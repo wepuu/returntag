@@ -1,0 +1,90 @@
+name: Bug report
+description: Report a reproducible ReturnTag or TagCore defect.
+title: "[RT-] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include production credentials, real OTPs or tokens, private
+        messages, manufacturer exports, or unmasked personal email addresses.
+
+  - type: input
+    id: ticket
+    attributes:
+      label: RT ticket
+      description: Enter the assigned RT identifier or "unassigned" for triage.
+      placeholder: RT-___
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical - security, privacy, or irreversible data risk
+        - High - core workflow unavailable or incorrect
+        - Medium - degraded behavior with a workaround
+        - Low - minor or cosmetic defect
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Describe the defect and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Use sanitized test data only.
+      placeholder: |
+        1. Go to ...
+        2. Submit ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include sanitized WordPress, WooCommerce, PHP, browser, and plugin versions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Add safe logs, screenshots, or stack traces with secrets and PII removed.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed credentials, OTPs, tokens, private messages, exports, and personal data.
+          required: true
+        - label: I checked whether this may expose owner or finder information.
+          required: true
+        - label: I checked whether a frozen product requirement is involved.
+          required: true

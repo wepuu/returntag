@@ -1,0 +1,49 @@
+# Dependencies
+/vendor/
+/node_modules/
+/plugin/tagcore/vendor/
+
+# Build and release artifacts
+/artifacts/
+/build/
+/dist/
+/coverage/
+/tmp/
+/.tools/
+/plugin/tagcore/build/
+/test-results/
+/playwright-report/
+tagcore-v*.zip
+
+# PHP quality-tool caches
+/.cache/
+/.phpunit.cache/
+/.phpunit.result.cache
+/.phpcs-cache
+/.phpstan.cache/
+/.pnpm-store/
+
+# Local WordPress environments
+/.wordpress/
+/.wp-env/
+/.wp-env.override.json
+/.wp-env.*.override.json
+
+# Environment files and local credentials
+.env
+.env.*
+!.env.example
+auth.json
+
+# Logs and runtime output
+*.log
+*.pid
+
+# Editors and operating systems
+/.idea/
+/.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini

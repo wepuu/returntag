@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/wp-env.json",
+  "core": "https://wordpress.org/wordpress-6.9.5.zip",
+  "phpVersion": "8.3",
+  "plugins": [
+    "./plugin/tagcore",
+    "https://downloads.wordpress.org/plugin/woocommerce.10.9.4.zip"
+  ],
+  "port": 8890,
+  "config": {
+    "WP_DEBUG": true,
+    "WP_DEBUG_LOG": true,
+    "WP_DEBUG_DISPLAY": false,
+    "SCRIPT_DEBUG": true,
+    "WP_ENVIRONMENT_TYPE": "local"
+  }
+}

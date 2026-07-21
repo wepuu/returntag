@@ -1,0 +1,57 @@
+{
+  "name": "returntag",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development tooling for the ReturnTag TagCore WordPress plugin.",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "build": "npm run build:admin && npm run build:public",
+    "build:admin": "wp-scripts build plugin/tagcore/assets/src/admin.tsx --output-path=plugin/tagcore/build/admin",
+    "build:public": "wp-scripts build plugin/tagcore/assets/src/public.ts --output-path=plugin/tagcore/build/public --experimental-modules",
+    "start:admin": "wp-scripts start plugin/tagcore/assets/src/admin.tsx --output-path=plugin/tagcore/build/admin",
+    "start:public": "wp-scripts start plugin/tagcore/assets/src/public.ts --output-path=plugin/tagcore/build/public --experimental-modules",
+    "lint:js": "wp-scripts lint-js plugin/tagcore/assets/src tests/js tests/e2e playwright.config.ts",
+    "lint:css": "wp-scripts lint-style plugin/tagcore/assets/src/**/*.css",
+    "test:unit": "wp-scripts test-unit-js",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit && npm run build",
+    "env:start": "wp-env start",
+    "env:start:minimum": "wp-env start --config=.wp-env.minimum.json",
+    "env:start:woocommerce-9": "wp-env start --config=.wp-env.woocommerce-9.json",
+    "env:start:minimum-woocommerce-9": "wp-env start --config=.wp-env.minimum-woocommerce-9.json",
+    "env:stop": "wp-env stop",
+    "env:stop:minimum": "wp-env stop --config=.wp-env.minimum.json",
+    "env:stop:woocommerce-9": "wp-env stop --config=.wp-env.woocommerce-9.json",
+    "env:stop:minimum-woocommerce-9": "wp-env stop --config=.wp-env.minimum-woocommerce-9.json",
+    "env:destroy": "wp-env destroy",
+    "env:destroy:minimum": "wp-env destroy --config=.wp-env.minimum.json",
+    "env:destroy:woocommerce-9": "wp-env destroy --config=.wp-env.woocommerce-9.json",
+    "env:destroy:minimum-woocommerce-9": "wp-env destroy --config=.wp-env.minimum-woocommerce-9.json",
+    "test:php:integration": "wp-env run tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration",
+    "test:php:integration:minimum": "wp-env run --config=.wp-env.minimum.json tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration",
+    "test:php:integration:woocommerce-9": "wp-env run --config=.wp-env.woocommerce-9.json tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration",
+    "test:php:integration:minimum-woocommerce-9": "wp-env run --config=.wp-env.minimum-woocommerce-9.json tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration"
+  },
+  "dependencies": {
+    "@wordpress/api-fetch": "7.33.1",
+    "@wordpress/components": "30.6.5",
+    "@wordpress/data": "10.33.1",
+    "@wordpress/element": "6.33.1",
+    "@wordpress/i18n": "6.6.1",
+    "@wordpress/icons": "11.0.1",
+    "@wordpress/interactivity": "6.33.3",
+    "@wordpress/notices": "5.33.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "@types/jest": "29.5.14",
+    "@types/node": "24.13.3",
+    "@wordpress/env": "11.11.0",
+    "@wordpress/scripts": "33.0.0",
+    "typescript": "6.0.3"
+  }
+}

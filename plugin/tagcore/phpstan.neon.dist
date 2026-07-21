@@ -1,0 +1,14 @@
+includes:
+  - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+  level: 8
+  paths:
+    - tagcore.php
+    - uninstall.php
+    - src
+  tmpDir: ../../.cache/phpstan
+  excludePaths:
+    analyse:
+      - vendor
+  reportUnmatchedIgnoredErrors: true

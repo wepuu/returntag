@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+  bootstrap="tests/bootstrap-integration.php"
+  cacheResult="false"
+  colors="true"
+  failOnRisky="true"
+  failOnWarning="true"
+  stopOnFailure="false"
+>
+  <testsuites>
+    <testsuite name="integration">
+      <directory suffix="Test.php">tests/Integration</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

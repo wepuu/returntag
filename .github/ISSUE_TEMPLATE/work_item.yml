@@ -1,0 +1,76 @@
+name: RT work item
+description: Propose a scoped ReturnTag engineering or documentation task.
+title: "[RT-] "
+body:
+  - type: input
+    id: ticket
+    attributes:
+      label: RT ticket
+      description: Enter the assigned identifier or proposed RT identifier.
+      placeholder: RT-___
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Requested outcome
+      description: State the user or operational outcome, not only an implementation mechanism.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      description: List the behavior, files, layers, or systems that may change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Out of scope
+      description: Name adjacent behavior that must not be implemented.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Provide objective, testable completion criteria.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frozen_requirements
+    attributes:
+      label: Frozen requirement impact
+      options:
+        - None
+        - Implements an existing frozen requirement
+        - May change a frozen requirement and requires PRD plus ADR approval
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: Technical, security, and data notes
+      description: Describe affected layers, schema, permissions, privacy, queues, feature flags, and rollback.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: The task does not request production credentials or personal data.
+          required: true
+        - label: The task does not add an order, shipment, or logistics-to-Tag-ID mapping.
+          required: true
+        - label: The task does not add a Claim ID or Apple/Google location integration.
+          required: true

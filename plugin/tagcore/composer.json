@@ -1,0 +1,68 @@
+{
+  "name": "returntag/tagcore",
+  "description": "Core WordPress plugin for the ReturnTag lost-item recovery platform.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require": {
+    "php": "^8.3",
+    "psr/log": "^3.0",
+    "woocommerce/action-scheduler": "^3.9"
+  },
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^9.6",
+    "squizlabs/php_codesniffer": "^3.13",
+    "szepeviktor/phpstan-wordpress": "^2.0",
+    "wp-coding-standards/wpcs": "^3.3",
+    "yoast/phpunit-polyfills": "^4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "ReturnTag\\TagCore\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "ReturnTag\\TagCore\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint": "phpcs --standard=phpcs.xml.dist",
+    "lint:fix": "phpcbf --standard=phpcs.xml.dist",
+    "analyse": "phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=512M",
+    "test": "phpunit --configuration=phpunit.xml.dist",
+    "test:integration": "phpunit --configuration=phpunit.integration.xml.dist",
+    "check": [
+      "@composer validate --strict",
+      "@lint",
+      "@analyse",
+      "@test"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "platform": {
+      "php": "8.3.0"
+    },
+    "sort-packages": true
+  },
+  "archive": {
+    "exclude": [
+      "/assets/src",
+      "/build/*.map",
+      "/composer.json",
+      "/composer.lock",
+      "/phpcs.xml.dist",
+      "/phpstan.neon.dist",
+      "/phpunit*.xml.dist",
+      "/src/**/README.md",
+      "/tests"
+    ]
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

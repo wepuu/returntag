@@ -1,0 +1,74 @@
+name: Release artifact
+
+on:
+  push:
+    tags:
+      - 'tagcore-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build immutable TagCore ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Validate tag and plugin version
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#tagcore-v}"
+          grep -Eq "^[[:space:]]*\*[[:space:]]+Version:[[:space:]]+${version}$" plugin/tagcore/tagcore.php
+          echo "TAGCORE_VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Install production PHP dependencies
+        run: composer install --working-dir=plugin/tagcore --no-dev --no-interaction --prefer-dist --classmap-authoritative
+
+      - name: Build production assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble plugin directory
+        shell: bash
+        run: |
+          mkdir -p artifacts/tagcore
+          cp plugin/tagcore/tagcore.php artifacts/tagcore/
+          cp plugin/tagcore/uninstall.php artifacts/tagcore/
+          cp -R plugin/tagcore/src artifacts/tagcore/
+          cp -R plugin/tagcore/vendor artifacts/tagcore/
+          cp -R plugin/tagcore/build artifacts/tagcore/
+          find artifacts/tagcore/src -name README.md -delete
+          find artifacts/tagcore/build -name '*.map' -delete
+
+      - name: Create ZIP and checksum
+        working-directory: artifacts
+        shell: bash
+        run: |
+          zip -q -r "tagcore-v${TAGCORE_VERSION}.zip" tagcore
+          sha256sum "tagcore-v${TAGCORE_VERSION}.zip" > "tagcore-v${TAGCORE_VERSION}.zip.sha256"
+
+      - name: Upload immutable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tagcore-v${{ env.TAGCORE_VERSION }}
+          path: |
+            artifacts/tagcore-v${{ env.TAGCORE_VERSION }}.zip
+            artifacts/tagcore-v${{ env.TAGCORE_VERSION }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 90

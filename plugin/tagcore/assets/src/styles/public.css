@@ -1,0 +1,11 @@
+.returntag-public {
+	--returntag-color-focus: #1d4ed8;
+	--returntag-space-unit: 4px;
+	box-sizing: border-box;
+}
+
+.returntag-public *,
+.returntag-public *::before,
+.returntag-public *::after {
+	box-sizing: inherit;
+}
