@@ -31,11 +31,13 @@ final class MigrationRegistryFactory {
 		$table_names = new TableNames( $this->database->prefix );
 		$inspector   = new WordPressSchemaInspector( $this->database );
 		$batches     = new CreateBatchesTableMigration( $this->database, $table_names, $inspector );
+		$tags        = new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches );
 
 		return new MigrationRegistry(
 			array(
 				$batches,
-				new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches ),
+				$tags,
+				new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags ),
 			)
 		);
 	}

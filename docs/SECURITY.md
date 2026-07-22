@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-103 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-104 Schema controls
 
 ## 1. Purpose
 
@@ -199,6 +199,13 @@ batches contract before it can advance Schema version `1` to `2`.
 Schema preflight blocks incompatible existing definitions before `dbDelta()`
 can rewrite them; only absent tables and missing expected indexes are eligible
 for automatic creation or repair.
+
+RT-104 stores only Batch-scoped export audit metadata: version, row count,
+format, SHA-256 checksum, operator ID, and UTC creation time. It stores no CSV
+body, path, Tag ID list, email, order, shipment, Claim ID, credential, or
+manufacturer export. The checksum index is deliberately non-unique so a
+repeated immutable export can retain a new audit record; the Batch/version pair
+is unique. RT-104 exposes no file, route, download, or write API.
 
 ## 12. Review requirements
 

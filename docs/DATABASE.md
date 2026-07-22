@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-103 tags table Migration implemented
+**Status:** RT-104 batch exports table Migration implemented
 
-**Schema created through RT-103:** `returntag_batches`, `returntag_tags`; current target version `2`
+**Schema created through RT-104:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`; current target version `3`
 
 ## 1. Purpose
 
@@ -12,7 +12,8 @@ site-scoped operational options but does not create or write them. RT-008 adds
 non-persistent operational logging. RT-101 implements the numbered Migration
 runtime. RT-102 registers Migration `0001` for batches. RT-103 registers
 Migration `0002` for tags after verifying the required batches contract. Each
-version advances only after postcondition verification.
+version advances only after postcondition verification. RT-104 registers
+Migration `0003` for immutable export audit metadata.
 
 ## 2. Table naming
 
@@ -50,9 +51,9 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-The batches and tags table contracts are implemented by RT-102 and RT-103. The
-remaining table definitions and Migrations belong to RT-104 through RT-108 and
-must remain consistent with the PRD and ADR 0003.
+The batches, tags, and batch exports table contracts are implemented by RT-102
+through RT-104. The remaining table definitions and Migrations belong to
+RT-105 through RT-108 and must remain consistent with the PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
 
@@ -115,6 +116,36 @@ batch snapshot needed by each physical tag. A later Repository/Application
 boundary must verify that `batch_id` exists and that these values match the
 referenced batch before insertion. RT-103 does not weaken that integrity rule
 by accepting arbitrary writes, because it exposes no write API.
+
+### 3.3 Schema version 3: `returntag_batch_exports`
+
+Migration `0003` creates the dynamically prefixed export audit table with
+InnoDB and the active WordPress character set and collation. File format and
+SHA-256 checksum values use ASCII with `ascii_bin` collation.
+
+| Column | Contract |
+|---|---|
+| `export_id` | Unsigned auto-increment bigint primary key |
+| `batch_id` | Required unsigned Batch ID storage; no foreign key |
+| `export_version` | Required unsigned integer |
+| `row_count` | Required unsigned integer |
+| `file_format` | Required, case-sensitive ASCII `varchar(32)` |
+| `file_checksum` | Required, case-sensitive ASCII `char(64)` |
+| `created_by` | Required unsigned WordPress user ID storage; no foreign key |
+| `created_at` | Required UTC datetime supplied by the application |
+
+The unique `batch_export_version_unique` index covers
+`(batch_id, export_version)`. The non-unique `batch_file_checksum` index covers
+`(batch_id, file_checksum)` so repeated delivery of the same immutable export
+can retain a distinct audit version. The table stores no CSV content, file
+path, Tag ID list, order identifier, personal data, or secret.
+
+RT-104 supplies no Repository or append operation. Later Application and
+Repository code must require an existing Batch, allocate a positive version
+concurrency-safely, validate `csv` and canonical SHA-256 syntax, verify that
+`row_count` matches the exported immutable Tag set, and expose no update or
+delete operation. Append-only behavior is therefore an application contract,
+not a trigger-enforced database property.
 
 ## 4. Forbidden relationships and fields
 
@@ -231,6 +262,14 @@ table or advancing version `1`. A complete tags table is idempotent, and a
 safely repairable missing index can be restored by `dbDelta()` and reverified.
 An incompatible tags engine, column, collation, primary key, or index leaves
 the stored version at `1` for diagnosis and safe retry.
+
+RT-104 advances Schema version `2` to `3`; a fresh installation runs
+`0 -> 1 -> 2 -> 3`. Migration `0003` verifies the complete Tags predecessor,
+which also verifies Batches. Missing or incompatible predecessor schema blocks
+creation and leaves version `2`. A complete exports table is idempotent, a
+missing expected index is repairable, and incompatible existing definitions
+fail before DDL mutation. Routine rollback preserves the table and its audit
+history.
 
 ## 10. Retention and uninstall
 

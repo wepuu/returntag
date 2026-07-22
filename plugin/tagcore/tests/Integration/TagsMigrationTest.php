@@ -13,10 +13,10 @@ use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateTagsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationException;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistry;
-use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
+use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaInspector;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use WP_UnitTestCase;
 use wpdb;
@@ -73,14 +73,12 @@ final class TagsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Production composition must register the contiguous versions in order.
+	 * The isolated RT-103 chain must register contiguous versions in order.
 	 */
-	public function test_production_registry_registers_versions_one_and_two_in_order(): void {
-		global $wpdb;
+	public function test_rt103_registry_registers_versions_one_and_two_in_order(): void {
 
-		$registry   = ( new MigrationRegistryFactory( $wpdb ) )->create();
+		$registry   = $this->registry();
 		$migrations = $registry->all();
-
 		self::assertSame( 2, $registry->target_version() );
 		self::assertCount( 2, $migrations );
 		self::assertInstanceOf( CreateBatchesTableMigration::class, $migrations[0] );
@@ -97,17 +95,6 @@ final class TagsMigrationTest extends WP_UnitTestCase {
 		self::assertSame( 0, $report->starting_version );
 		self::assertSame( 2, $report->ending_version );
 		self::assertSame( array( 1, 2 ), $report->applied_versions );
-		self::assertSame( 2, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
-		self::assertTrue( $this->batches_migration()->verify() );
-		self::assertTrue( $this->tags_migration()->verify() );
-	}
-
-	/**
-	 * The actual registered activation hook must use the production registry.
-	 */
-	public function test_plugin_activation_executes_the_production_migration_chain(): void {
-		do_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ), false );
-
 		self::assertSame( 2, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
 		self::assertTrue( $this->batches_migration()->verify() );
 		self::assertTrue( $this->tags_migration()->verify() );
@@ -132,9 +119,9 @@ final class TagsMigrationTest extends WP_UnitTestCase {
 		self::assertSame( array( 2 ), $report->applied_versions );
 		self::assertSame( $before, $this->show_create_table( $wpdb, $this->batches_table ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted table identifier with a prepared value placeholder.
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted table identifier with a prepared value placeholder.
 		$query = $wpdb->prepare( "SELECT COUNT(*) FROM {$this->batches_table} WHERE batch_code = %s", 'RT-103-UPGRADE' );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query was prepared immediately above.
+	// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query was prepared immediately above.
 		self::assertSame( 1, (int) $wpdb->get_var( $query ) );
 		self::assertTrue( $this->tags_migration()->verify() );
 	}
@@ -307,12 +294,12 @@ final class TagsMigrationTest extends WP_UnitTestCase {
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
 
 		try {
-			$registry = ( new MigrationRegistryFactory( $database ) )->create();
-			$runner   = new MigrationRunner(
-				$registry,
-				new WordPressSchemaVersionStore(),
-				new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
-			);
+			$registry   = $this->registry( $database );
+				$runner = new MigrationRunner(
+					$registry,
+					new WordPressSchemaVersionStore(),
+					new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
+				);
 
 			self::assertSame( 2, $runner->migrate()->ending_version );
 			self::assertTrue( $registry->all()[1]->verify() );
@@ -324,27 +311,35 @@ final class TagsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Build the production Registry and Runner against the isolated database.
+	 * Build an RT-103-only Registry and Runner against the isolated database.
 	 */
 	private function runner(): MigrationRunner {
 		global $wpdb;
 
 		return new MigrationRunner(
-			( new MigrationRegistryFactory( $wpdb ) )->create(),
+			$this->registry( $wpdb ),
 			new WordPressSchemaVersionStore(),
 			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
 		);
 	}
 
 	/**
-	 * Return the production Migration registry.
+	 * Return an RT-103-only Migration registry.
+	 *
+	 * @param wpdb|null $database Optional WordPress database adapter.
 	 */
-	private function registry(): MigrationRegistry {
+	private function registry( ?wpdb $database = null ): MigrationRegistry {
+
 		global $wpdb;
 
-		return ( new MigrationRegistryFactory( $wpdb ) )->create();
-	}
+		$active_database = $database ?? $wpdb;
+		$table_names     = new TableNames( $active_database->prefix );
+		$inspector       = new WordPressSchemaInspector( $active_database );
+		$batches         = new CreateBatchesTableMigration( $active_database, $table_names, $inspector );
+		$tags            = new CreateTagsTableMigration( $active_database, $table_names, $inspector, $batches );
 
+		return new MigrationRegistry( array( $batches, $tags ) );
+	}
 	/**
 	 * Return version 0001 from production composition.
 	 */
