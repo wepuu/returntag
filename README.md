@@ -8,8 +8,9 @@ The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
 CI enforces the initial quality gates. RT-101 provides the forward-only
-Migration runtime, and RT-102 registers schema version `1` for the batches
-table. Product business workflows are not yet implemented.
+Migration runtime; RT-102 and RT-103 register schema versions `1` and `2` for
+the batches and tags tables. Product business workflows are not yet
+implemented.
 
 ## Canonical naming
 
@@ -63,7 +64,8 @@ resets.
 Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. The repository similarly defines no REST route,
 email provider, OTP flow, activation flow, finder relay, WooCommerce business
-hook, or batch workflow. The only product table is the RT-102 batches schema.
+hook, or batch workflow. The only product tables are the RT-102 batches schema
+and the RT-103 tags schema.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -78,10 +80,11 @@ no product workflow or business audit event is logged yet.
 RT-101 adds an ordered, locked, retry-safe Migration Runner and WordPress
 lifecycle integration. It runs only during single-site activation, a completed
 TagCore upgrade, or an authorized admin compensation check. RT-102 registers
-Migration `0001`, which creates and verifies the dynamically prefixed
-`returntag_batches` table before advancing the site-scoped Schema version to
-`1`. Normal public requests do not run DDL. Network-wide activation is not
-supported in Milestone 1.
+Migration `0001` for `returntag_batches`; RT-103 registers Migration `0002`
+for `returntag_tags` and verifies the version `1` batches contract before it
+runs. The site-scoped Schema version advances to `2` only after both tables
+pass their postcondition checks. Normal public requests do not run DDL.
+Network-wide activation is not supported in Milestone 1.
 
 ## Repository layout
 

@@ -45,8 +45,20 @@ final class CreateBatchesTableMigration implements Migration {
 
 	/**
 	 * Create or safely complete the batches table with dbDelta().
+	 *
+	 * @throws MigrationException When an existing table has unsafe schema drift.
 	 */
 	public function up(): void {
+		$state = $this->inspect();
+
+		if ( SchemaTableState::INCOMPATIBLE === $state ) {
+			throw new MigrationException( 'The existing schema is incompatible with this migration.' );
+		}
+
+		if ( SchemaTableState::EXACT === $state ) {
+			return;
+		}
+
 		$table_name      = $this->table_names->batches();
 		$charset_collate = $this->database->get_charset_collate();
 		$sql             = "CREATE TABLE {$table_name} (
@@ -80,6 +92,13 @@ final class CreateBatchesTableMigration implements Migration {
 	 * Verify the exact RT-102 schema contract.
 	 */
 	public function verify(): bool {
+		return SchemaTableState::EXACT === $this->inspect();
+	}
+
+	/**
+	 * Inspect the complete RT-102 schema before mutation.
+	 */
+	private function inspect(): SchemaTableState {
 		$wordpress_charset   = strtolower( (string) $this->database->charset );
 		$wordpress_collation = strtolower( (string) $this->database->collate );
 		$unicode_column      = array(
@@ -91,7 +110,7 @@ final class CreateBatchesTableMigration implements Migration {
 			unset( $unicode_column['collation'] );
 		}
 
-		return $this->inspector->verify_table(
+		return $this->inspector->inspect_table(
 			$this->table_names->batches(),
 			'InnoDB',
 			$wordpress_collation,

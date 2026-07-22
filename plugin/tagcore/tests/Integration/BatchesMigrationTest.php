@@ -11,13 +11,14 @@ namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationException;
-use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
+use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistry;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
+use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaInspector;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use WP_UnitTestCase;
-
+use wpdb;
 /**
  * Verifies fresh install, retry, idempotency, and data constraints.
  */
@@ -60,9 +61,8 @@ final class BatchesMigrationTest extends WP_UnitTestCase {
 	public function test_fresh_install_advances_schema_from_zero_to_one(): void {
 		global $wpdb;
 
-		$registry = ( new MigrationRegistryFactory( $wpdb ) )->create();
-		$report   = $this->runner()->migrate();
-
+		$registry = $this->registry( $wpdb );
+		$report   = $this->runner( $wpdb )->migrate();
 		self::assertSame( 1, $registry->target_version() );
 		self::assertSame( 0, $report->starting_version );
 		self::assertSame( 1, $report->ending_version );
@@ -87,7 +87,7 @@ final class BatchesMigrationTest extends WP_UnitTestCase {
 		$alternate_database->query( "DROP TABLE IF EXISTS {$alternate_table}" );
 
 		try {
-			$registry = ( new MigrationRegistryFactory( $alternate_database ) )->create();
+			$registry = $this->registry( $alternate_database );
 			$runner   = new MigrationRunner(
 				$registry,
 				new WordPressSchemaVersionStore(),
@@ -168,6 +168,48 @@ final class BatchesMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * An incompatible column must be preserved for diagnosis, not rewritten.
+	 */
+	public function test_incompatible_column_type_is_not_auto_converted(): void {
+		global $wpdb;
+
+		$this->runner()->migrate();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deliberate isolated drift fixture.
+		$wpdb->query( "ALTER TABLE {$this->table_name} MODIFY batch_code varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL" );
+		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+
+		try {
+			$this->runner()->migrate();
+			self::fail( 'Expected incompatible column drift to block dbDelta.' );
+		} catch ( MigrationException ) {
+			self::assertSame( 0, get_option( WordPressSchemaVersionStore::OPTION_NAME, 0 ) );
+			self::assertSame( 'varchar(64)', $this->column_type( 'batch_code' ) );
+		}
+	}
+
+	/**
+	 * A conflicting index definition must not be replaced automatically.
+	 */
+	public function test_conflicting_index_definition_is_not_auto_repaired(): void {
+		global $wpdb;
+
+		$this->runner()->migrate();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deliberate isolated drift fixture.
+		$wpdb->query( "ALTER TABLE {$this->table_name} DROP INDEX batch_status_created_at, ADD KEY batch_status_created_at (batch_status, updated_at)" );
+		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+
+		try {
+			$this->runner()->migrate();
+			self::fail( 'Expected conflicting index drift to block dbDelta.' );
+		} catch ( MigrationException ) {
+			self::assertSame( 0, get_option( WordPressSchemaVersionStore::OPTION_NAME, 0 ) );
+			self::assertSame( array( 'batch_status', 'updated_at' ), $this->index_columns( 'batch_status_created_at' ) );
+		}
+	}
+
+	/**
 	 * Column defaults and batch-code uniqueness must match the contract.
 	 */
 	public function test_defaults_and_case_sensitive_batch_code_uniqueness(): void {
@@ -234,29 +276,50 @@ final class BatchesMigrationTest extends WP_UnitTestCase {
 
 	/**
 	 * Build the production registry and Runner against the isolated test database.
+	 *
+	 * @param wpdb|null $database Optional WordPress database adapter.
 	 */
-	private function runner(): MigrationRunner {
+	private function runner( ?wpdb $database = null ): MigrationRunner {
+
 		global $wpdb;
 
+		$active_database = $database ?? $wpdb;
+
 		return new MigrationRunner(
-			( new MigrationRegistryFactory( $wpdb ) )->create(),
+			$this->registry( $active_database ),
 			new WordPressSchemaVersionStore(),
-			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
+			new WordPressAdvisoryMigrationLock( $active_database, get_current_blog_id(), 0 )
 		);
 	}
 
 	/**
-	 * Return version 0001 from the production Migration registry.
+	 * Build an RT-102-only registry so later versions cannot change this test.
+	 *
+	 * @param wpdb $database WordPress database adapter.
 	 */
-	private function migration(): CreateBatchesTableMigration {
-		global $wpdb;
+	private function registry( wpdb $database ): MigrationRegistry {
 
-		$migration = ( new MigrationRegistryFactory( $wpdb ) )->create()->all()[0];
-		self::assertInstanceOf( CreateBatchesTableMigration::class, $migration );
-
-		return $migration;
+		return new MigrationRegistry( array( $this->migration( $database ) ) );
 	}
 
+	/**
+	 * Build version 0001 directly against the isolated database.
+	 *
+	 * @param wpdb|null $database Optional WordPress database adapter.
+	 */
+	private function migration( ?wpdb $database = null ): CreateBatchesTableMigration {
+
+		global $wpdb;
+
+		$active_database = $database ?? $wpdb;
+		$table_names     = new TableNames( $active_database->prefix );
+
+		return new CreateBatchesTableMigration(
+			$active_database,
+			$table_names,
+			new WordPressSchemaInspector( $active_database )
+		);
+	}
 	/**
 	 * Insert the minimum schema-level fixture and allow database defaults to run.
 	 *
@@ -292,6 +355,55 @@ final class BatchesMigrationTest extends WP_UnitTestCase {
 		self::assertIsString( $row[1] ?? null );
 
 		return $row[1];
+	}
+
+	/**
+	 * Read one trusted column type from the isolated schema fixture.
+	 *
+	 * @param string $column_name Trusted fixture column.
+	 */
+	private function column_type( string $column_name ): string {
+		global $wpdb;
+
+		$database_name = $wpdb->get_var( 'SELECT DATABASE()' );
+		self::assertIsString( $database_name );
+
+		$query = $wpdb->prepare(
+			'SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s',
+			$database_name,
+			$this->table_name,
+			$column_name
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query was prepared immediately above.
+		$type = $wpdb->get_var( $query );
+
+		self::assertIsString( $type );
+
+		return strtolower( $type );
+	}
+
+	/**
+	 * Read one trusted index definition from the isolated schema fixture.
+	 *
+	 * @param string $index_name Trusted fixture index.
+	 * @return list<string>
+	 */
+	private function index_columns( string $index_name ): array {
+		global $wpdb;
+
+		$database_name = $wpdb->get_var( 'SELECT DATABASE()' );
+		self::assertIsString( $database_name );
+
+		$query = $wpdb->prepare(
+			'SELECT COLUMN_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = %s ORDER BY SEQ_IN_INDEX',
+			$database_name,
+			$this->table_name,
+			$index_name
+		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query was prepared immediately above.
+		$rows = $wpdb->get_col( $query );
+
+		return array_map( 'strval', $rows );
 	}
 
 	/**

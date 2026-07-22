@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-102 batches table Migration implemented
+**Status:** RT-103 tags table Migration implemented
 
-**Schema created through RT-102:** `returntag_batches`; current target version `1`
+**Schema created through RT-103:** `returntag_batches`, `returntag_tags`; current target version `2`
 
 ## 1. Purpose
 
@@ -10,8 +10,9 @@ This document defines database naming, ownership, integrity, migration,
 retention, and rollback rules for ReturnTag schema tickets. RT-007 reads four
 site-scoped operational options but does not create or write them. RT-008 adds
 non-persistent operational logging. RT-101 implements the numbered Migration
-runtime. RT-102 registers Migration `0001` and creates the batches table after
-postcondition verification.
+runtime. RT-102 registers Migration `0001` for batches. RT-103 registers
+Migration `0002` for tags after verifying the required batches contract. Each
+version advances only after postcondition verification.
 
 ## 2. Table naming
 
@@ -49,9 +50,9 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-The batches table contract is implemented by RT-102. The remaining table
-definitions and Migrations belong to RT-103 through RT-108 and must remain
-consistent with the PRD and ADR 0003.
+The batches and tags table contracts are implemented by RT-102 and RT-103. The
+remaining table definitions and Migrations belong to RT-104 through RT-108 and
+must remain consistent with the PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
 
@@ -80,6 +81,40 @@ Indexes are `batch_code_unique`, `batch_status_created_at`,
 `tag_type_model_code`, and `activation_enabled_status`, in addition to the
 primary key. RT-102 creates no foreign key, SQL enum, check constraint,
 trigger, database-managed timestamp, soft-delete field, or business workflow.
+
+### 3.2 Schema version 2: `returntag_tags`
+
+Migration `0002` creates the dynamically prefixed tags table with InnoDB and
+the active WordPress character set and collation. Tag IDs and canonical code
+values use ASCII with `ascii_bin` collation.
+
+| Column | Contract |
+|---|---|
+| `tag_id` | Required, case-sensitive ASCII `char(6)` primary key |
+| `batch_id` | Required unsigned batch ID storage; no foreign key |
+| `owner_id` | Nullable unsigned WordPress user ID storage; no foreign key |
+| `tag_type` | Required, case-sensitive ASCII `varchar(32)` |
+| `model_code` | Nullable, case-sensitive ASCII `varchar(191)` |
+| `item_name` | Nullable private WordPress-charset `varchar(191)` |
+| `public_label` | Nullable public-target WordPress-charset `varchar(191)` |
+| `tag_status` | Required ASCII `varchar(32)`; default `unregistered` |
+| `lost_mode` | Required unsigned boolean storage; default `0` |
+| `lost_message` | Nullable public-target WordPress-charset text |
+| `owner_pairing_ack_at` | Nullable UTC acknowledgement datetime; not pairing proof |
+| `activated_at`, `owner_changed_at`, `last_scanned_at` | Nullable UTC event datetimes |
+| `created_at`, `updated_at` | Required UTC datetimes supplied by the application |
+
+Indexes are `batch_id_status`, `owner_id_status`, and
+`tag_status_updated_at`, in addition to the primary key. The primary key makes
+the public six-character Tag ID unique. RT-103 creates no foreign key, SQL
+enum, check constraint, trigger, database-managed timestamp, soft-delete
+field, repository, ID generator, or business workflow.
+
+The data model intentionally duplicates `tag_type` and `model_code` from the
+batch snapshot needed by each physical tag. A later Repository/Application
+boundary must verify that `batch_id` exists and that these values match the
+referenced batch before insertion. RT-103 does not weaken that integrity rule
+by accepting arbitrary writes, because it exposes no write API.
 
 ## 4. Forbidden relationships and fields
 
@@ -181,6 +216,21 @@ safely repairable missing index can be restored by `dbDelta()` and reverified.
 An incompatible engine, column, collation, or index contract fails without
 advancing the stored version. The table is retained for diagnosis and a later
 safe retry; no automatic drop, rebuild, or destructive down Migration occurs.
+
+Before calling `dbDelta()` on an existing table, the Schema Inspector classifies
+the table as exact, missing only expected indexes, or incompatible. Only a
+missing table or missing expected indexes may reach `dbDelta()`; conflicting
+columns, defaults, engines, collations, primary keys, extra indexes, or changed
+index definitions fail before DDL can rewrite the existing structure.
+
+RT-103 advances Schema version `1` to `2`; a fresh installation runs the
+contiguous `0 -> 1 -> 2` chain. Before creating or verifying the tags table,
+Migration `0002` independently verifies the complete batches contract. Missing
+or incompatible predecessor schema fails closed without creating the tags
+table or advancing version `1`. A complete tags table is idempotent, and a
+safely repairable missing index can be restored by `dbDelta()` and reverified.
+An incompatible tags engine, column, collation, primary key, or index leaves
+the stored version at `1` for diagnosis and safe retry.
 
 ## 10. Retention and uninstall
 

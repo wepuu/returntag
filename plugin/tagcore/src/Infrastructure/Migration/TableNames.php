@@ -25,6 +25,15 @@ final class TableNames {
 	 * Return the manufacturing batches table name.
 	 */
 	public function batches(): string {
+
 		return $this->wordpress_prefix . 'returntag_batches';
+	}
+
+	/**
+	 * Return the physical tags table name.
+	 */
+	public function tags(): string {
+
+		return $this->wordpress_prefix . 'returntag_tags';
 	}
 }

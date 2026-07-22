@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-102 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-103 Schema controls
 
 ## 1. Purpose
 
@@ -186,6 +186,19 @@ the Schema verifier checks the engine, collation, columns, primary key, unique
 constraint, and compound indexes before version `1` is recorded. The table has
 no Claim, order, shipment, tracking, account, device, pairing, battery, or
 location field. RT-102 does not accept public input or expose a read/write API.
+
+RT-103 stores the public Tag ID, batch membership, optional owner reference,
+lifecycle state, and bounded item display fields. A Tag ID is public and is not
+treated as an authentication secret. `item_name` is owner-private;
+`public_label` and `lost_message` are public-target fields but RT-103 exposes
+no route or rendering behavior. `owner_pairing_ack_at` records only an owner's
+static-guide acknowledgement, never verified pairing. The table contains no
+Claim, order, shipment, tracking, Apple/Google account, device, pairing state,
+battery, or location field. Migration `0002` verifies the complete predecessor
+batches contract before it can advance Schema version `1` to `2`.
+Schema preflight blocks incompatible existing definitions before `dbDelta()`
+can rewrite them; only absent tables and missing expected indexes are eligible
+for automatic creation or repair.
 
 ## 12. Review requirements
 

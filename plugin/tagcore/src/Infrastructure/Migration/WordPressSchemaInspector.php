@@ -61,29 +61,75 @@ final class WordPressSchemaInspector {
 		array $expected_columns,
 		array $expected_indexes
 	): bool {
+		return SchemaTableState::EXACT === $this->inspect_table(
+			$table_name,
+			$expected_engine,
+			$expected_collation,
+			$expected_columns,
+			$expected_indexes
+		);
+	}
+
+	/**
+	 * Classify the table before any potentially mutating dbDelta call.
+	 *
+	 * Only an absent table or missing expected indexes are safe to repair.
+	 * Existing column, engine, collation, or index-definition drift is blocked.
+	 *
+	 * @param string $table_name        Trusted table name.
+	 * @param string $expected_engine   Required storage engine.
+	 * @param string $expected_collation Required table collation; empty skips the collation comparison.
+	 * @param array  $expected_columns  Exact required column map.
+	 * @param array  $expected_indexes  Exact required index map.
+	 * @phpstan-param array<string, ColumnRequirement> $expected_columns
+	 * @phpstan-param array<string, IndexRequirement> $expected_indexes
+	 */
+	public function inspect_table(
+		string $table_name,
+		string $expected_engine,
+		string $expected_collation,
+		array $expected_columns,
+		array $expected_indexes
+	): SchemaTableState {
 		$table = $this->read_table( $table_name );
 
-		if ( null === $table || 0 !== strcasecmp( $expected_engine, $table['engine'] ) ) {
-			return false;
+		if ( null === $table ) {
+			return SchemaTableState::ABSENT;
+		}
+
+		if ( 0 !== strcasecmp( $expected_engine, $table['engine'] ) ) {
+			return SchemaTableState::INCOMPATIBLE;
 		}
 
 		if ( '' !== $expected_collation && 0 !== strcasecmp( $expected_collation, $table['collation'] ) ) {
-			return false;
+			return SchemaTableState::INCOMPATIBLE;
 		}
 
 		$columns = $this->read_columns( $table_name );
 
 		if ( array_keys( $expected_columns ) !== array_keys( $columns ) ) {
-			return false;
+			return SchemaTableState::INCOMPATIBLE;
 		}
 
 		foreach ( $expected_columns as $column_name => $requirement ) {
 			if ( ! $this->column_matches( $columns[ $column_name ], $requirement ) ) {
-				return false;
+				return SchemaTableState::INCOMPATIBLE;
 			}
 		}
 
-		return $expected_indexes === $this->read_indexes( $table_name );
+		$actual_indexes = $this->read_indexes( $table_name );
+
+		if ( $expected_indexes === $actual_indexes ) {
+			return SchemaTableState::EXACT;
+		}
+
+		foreach ( $actual_indexes as $index_name => $index ) {
+			if ( ! isset( $expected_indexes[ $index_name ] ) || $expected_indexes[ $index_name ] !== $index ) {
+				return SchemaTableState::INCOMPATIBLE;
+			}
+		}
+
+		return SchemaTableState::REPAIRABLE_INDEX_DRIFT;
 	}
 
 	/**
