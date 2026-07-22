@@ -10,6 +10,8 @@ product workflow emits logs yet.
 
 RT-101 adds the `Migration` contracts, ordered registry, site-scoped version
 store, MariaDB/MySQL advisory lock, retry-safe runner, schema readiness state,
-and WordPress administrative lifecycle adapter under `Migration/`. Its registry
-is intentionally empty until RT-102, so it creates no table or option. No
-product provider adapter is implemented.
+and WordPress administrative lifecycle adapter under `Migration/`. RT-102
+registers version `0001`, a trusted dynamic table-name mapping, an
+`information_schema` postcondition verifier, and the InnoDB batches table. It
+does not add a repository or batch business behavior. No product provider
+adapter is implemented.
