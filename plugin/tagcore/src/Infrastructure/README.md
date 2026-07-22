@@ -13,5 +13,8 @@ store, MariaDB/MySQL advisory lock, retry-safe runner, schema readiness state,
 and WordPress administrative lifecycle adapter under `Migration/`. RT-102
 registers version `0001`, a trusted dynamic table-name mapping, an
 `information_schema` postcondition verifier, and the InnoDB batches table. It
-does not add a repository or batch business behavior. No product provider
+does not add a repository or batch business behavior. RT-103 registers version
+`0002` and the InnoDB tags table, with an explicit predecessor-contract check
+before creation or verification. It adds no Repository, ID generation,
+activation, ownership, Lost Mode, or finder behavior. No product provider
 adapter is implemented.

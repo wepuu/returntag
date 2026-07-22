@@ -27,12 +27,15 @@ final class MigrationRegistryFactory {
 	 * Return every registered Migration in version order.
 	 */
 	public function create(): MigrationRegistry {
+
 		$table_names = new TableNames( $this->database->prefix );
 		$inspector   = new WordPressSchemaInspector( $this->database );
+		$batches     = new CreateBatchesTableMigration( $this->database, $table_names, $inspector );
 
 		return new MigrationRegistry(
 			array(
-				new CreateBatchesTableMigration( $this->database, $table_names, $inspector ),
+				$batches,
+				new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches ),
 			)
 		);
 	}

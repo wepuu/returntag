@@ -20,8 +20,19 @@ final class TableNamesTest extends TestCase {
 	 * A non-default WordPress prefix must determine the physical table name.
 	 */
 	public function test_batches_table_uses_supplied_wordpress_prefix(): void {
+
 		$table_names = new TableNames( 'rt_test_' );
 
 		self::assertSame( 'rt_test_returntag_batches', $table_names->batches() );
+	}
+
+	/**
+	 * The same non-default prefix must determine the physical tags table.
+	 */
+	public function test_tags_table_uses_supplied_wordpress_prefix(): void {
+
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_tags', $table_names->tags() );
 	}
 }

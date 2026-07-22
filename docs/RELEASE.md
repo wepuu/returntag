@@ -118,6 +118,16 @@ the table available for diagnosis and safe retry. Code rollback within the
 `0.1.0` line preserves the Schema option and batches table; previous stable
 code does not read them.
 
+RT-103 advances the target Schema from `1` to `2` and creates the dynamically
+prefixed `returntag_tags` table. A fresh installation applies the contiguous
+`0 -> 1 -> 2` chain; an upgrade from RT-102 preserves the batches table and
+data while adding tags. Deployment must verify version `2`, both InnoDB tables,
+the exact tag column contract, primary key, and compound indexes. Migration
+`0002` fails closed if the predecessor batches contract has drifted. A failed
+tags verification retains version `1` and leaves non-destructive state for
+diagnosis and retry. Code rollback within the `0.1.0` line preserves the Schema
+option and both tables; previous stable code does not read the tags table.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -139,7 +149,8 @@ validation, tests, or a permanent fix.
 The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
-flag adapter, the RT-101 Migration runtime, and the RT-102 batches table.
+flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
+RT-103 tags table.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or
