@@ -104,6 +104,17 @@ defined rollback window.
 Never roll back by deleting generated or exported Tag IDs, batch export
 history, completed owner claims, audit events, or accepted messages.
 
+RT-101 establishes the forward-only execution path. It records only verified
+versions in the non-autoloaded site option `returntag_schema_version`, uses a
+site-specific advisory lock, and retains the last successful version on
+failure. Activation, a completed TagCore update, and an authorized admin
+compensation check are the only triggers; public requests do not run DDL.
+
+RT-101 itself has target Schema version `0` and creates no tables. As later
+versions are added, a deployment must back up the database and verify the
+version, table set, and critical indexes. Code rollback to `0.1.0` preserves
+the Schema option and all new tables because that release does not read them.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -124,10 +135,10 @@ validation, tests, or a permanent fix.
 
 The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
-configuration, tagged artifact assembly, and the RT-007 read-only global
-feature flag adapter. RT-008 also supplies a default-disabled sanitized
-operational logger, but no production sink or retention configuration is
-selected. It is not a production-ready product release because no workflow
-consumes the flags or logger and there is no database schema, public route,
-migration, email-provider adapter, security workflow, or product business
-logic.
+configuration, tagged artifact assembly, the RT-007 read-only global feature
+flag adapter, and the RT-101 Migration runtime. RT-008 also supplies a
+default-disabled sanitized operational logger, but no production sink or
+retention configuration is selected. It is not a production-ready product
+release because no workflow consumes the flags or logger and there is no
+database table, numbered table migration, public route, repository,
+email-provider adapter, security workflow, or product business logic.

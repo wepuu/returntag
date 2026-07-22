@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
+use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use WP_UnitTestCase;
 
 /**
@@ -22,5 +23,17 @@ final class PluginBootstrapTest extends WP_UnitTestCase {
 		self::assertSame( '0.1.0', RETURNTAG_TAGCORE_VERSION );
 		self::assertFileExists( RETURNTAG_TAGCORE_FILE );
 		self::assertDirectoryExists( RETURNTAG_TAGCORE_DIR );
+	}
+
+	/**
+	 * Ensure the bootstrap registers only approved administrative migration hooks.
+	 */
+	public function test_plugin_registers_migration_lifecycle_without_running_schema_work_on_load(): void {
+		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+
+		self::assertNotFalse( has_action( 'admin_init' ) );
+		self::assertNotFalse( has_action( 'upgrader_process_complete' ) );
+		self::assertNotFalse( has_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ) ) );
+		self::assertFalse( get_option( WordPressSchemaVersionStore::OPTION_NAME, false ) );
 	}
 }

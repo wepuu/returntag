@@ -6,4 +6,10 @@ RT-007 implements `WordPressOptionFeatureFlagReader` as the first WordPress
 adapter. It is read-only, fail-closed, and adds no cache beyond the WordPress
 Options API. RT-008 adds `SensitiveLogContextSanitizer` and the default-disabled
 `WordPressErrorLogLogger`; neither is registered by the plugin bootstrap and no
-product workflow emits logs yet. No product provider adapter is implemented.
+product workflow emits logs yet.
+
+RT-101 adds the `Migration` contracts, ordered registry, site-scoped version
+store, MariaDB/MySQL advisory lock, retry-safe runner, schema readiness state,
+and WordPress administrative lifecycle adapter under `Migration/`. Its registry
+is intentionally empty until RT-102, so it creates no table or option. No
+product provider adapter is implemented.

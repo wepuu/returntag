@@ -7,8 +7,9 @@ and lives in `plugin/tagcore`.
 The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
-CI enforces the initial quality gates. Product business workflows are not yet
-implemented.
+CI enforces the initial quality gates. RT-101 also provides the forward-only
+Migration runtime used by later schema tickets. Product business workflows are
+not yet implemented.
 
 ## Canonical naming
 
@@ -61,8 +62,8 @@ resets.
 
 Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. The repository similarly defines no REST route,
-database schema, migration, email provider, OTP flow, activation flow, finder
-relay, or WooCommerce business hook.
+database table, numbered table migration, email provider, OTP flow, activation
+flow, finder relay, or WooCommerce business hook.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -73,6 +74,12 @@ RT-008 adds a PSR-3 application logging contract, a defensive context
 sanitizer, and a single-line structured WordPress error-log adapter. The
 adapter is disabled by default and is not registered by the plugin bootstrap;
 no product workflow or business audit event is logged yet.
+
+RT-101 adds an ordered, locked, retry-safe Migration Runner and WordPress
+lifecycle integration. It runs only during single-site activation, a completed
+TagCore upgrade, or an authorized admin compensation check. The RT-101 registry
+is empty, so the target Schema version is `0`; it creates no table or option on
+normal plugin load. Network-wide activation is not supported in Milestone 1.
 
 ## Repository layout
 

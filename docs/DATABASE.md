@@ -1,16 +1,16 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-001 database baseline, RT-007 read-only feature flags, and RT-008 non-persistent logging
+**Status:** RT-101 Migration runtime implemented; numbered table migrations pending
 
-**Schema created through RT-008:** none
+**Schema created through RT-101:** none; current target version `0`
 
 ## 1. Purpose
 
 This document defines database naming, ownership, integrity, migration,
-retention, and rollback rules for future ReturnTag schema tickets. RT-007 reads
-four site-scoped operational options but does not create or write them. RT-008
-adds operational logging contracts and adapters but does not persist logs or
-create options, tables, migrations, or repository code.
+retention, and rollback rules for ReturnTag schema tickets. RT-007 reads four
+site-scoped operational options but does not create or write them. RT-008 adds
+non-persistent operational logging. RT-101 implements the numbered Migration
+runtime, but its registry is empty and therefore creates no option or table.
 
 ## 2. Table naming
 
@@ -25,8 +25,10 @@ The WordPress prefix is installation-specific. Code must never hard-code
 `wp_`, interpolate an untrusted prefix, or assume a single-site prefix applies
 to every supported WordPress context.
 
-All WordPress options use the `returntag_` prefix. The planned schema version
-option is `returntag_schema_version`.
+All WordPress options use the `returntag_` prefix. The Migration runtime uses
+the non-autoloaded, site-scoped option `returntag_schema_version`. It advances
+only after a numbered Migration passes its postcondition checks. Missing or
+invalid values fail closed to `0`.
 
 The RT-007 global feature flag reader uses the four option names frozen in the
 PRD. Missing or noncanonical values are disabled. The adapter adds no cache
@@ -46,8 +48,8 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-Column definitions, indexes, and migrations belong to the numbered RT-101
-through RT-108 tickets and must remain consistent with the PRD.
+Column definitions, indexes, and migrations belong to RT-102 through RT-108
+and must remain consistent with the PRD and ADR 0003.
 
 ## 4. Forbidden relationships and fields
 
@@ -132,6 +134,17 @@ migration must:
 Production rollback must not depend on destructive `down()` migrations.
 Dropping or renaming data used by the previous stable release cannot occur in
 the same release that stops using it.
+
+The RT-101 runtime validates a contiguous registry, acquires a MariaDB/MySQL
+advisory lock derived from the current site ID and hashed active table prefix,
+re-reads the stored version, then applies and verifies one pending Migration at
+a time. Only a verified version is persisted. The lock is always released,
+and a failed version remains safe to retry.
+
+Migration execution is limited to single-site plugin activation,
+`upgrader_process_complete` for TagCore, and an `admin_init` compensation check
+requiring `activate_plugins`. Public requests do not run DDL. Milestone 1
+rejects network-wide activation; multisite installations activate per site.
 
 ## 10. Retention and uninstall
 

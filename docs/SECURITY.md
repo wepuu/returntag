@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 feature flags and RT-008 defensive operational logging
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-101 Migration controls
 
 ## 1. Purpose
 
@@ -166,6 +166,19 @@ Suspected credential exposure, address disclosure, mass activation, export
 leakage, or abuse requires immediate containment, evidence preservation,
 privacy-safe investigation, key or token revocation where relevant, and a
 reviewed remediation release.
+
+RT-101 permits schema execution only during single-site activation, a
+completed TagCore upgrade, or an admin compensation request authorized by
+`activate_plugins`. A database advisory lock prevents concurrent runners, and
+the version advances only after postcondition verification. Public requests do
+not execute DDL. Network-wide activation is rejected until a resumable
+multisite rollout is designed.
+
+Migration reports contain version numbers only. Activation errors and admin
+notices do not expose SQL, table names, database credentials, or raw exception
+messages. The Migration runtime does not enable operational logging and does
+not process PII, OTPs, tokens, message content, Apple/Google data, or location
+data.
 
 ## 12. Review requirements
 
