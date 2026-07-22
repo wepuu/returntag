@@ -7,9 +7,9 @@ and lives in `plugin/tagcore`.
 The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
-CI enforces the initial quality gates. RT-101 also provides the forward-only
-Migration runtime used by later schema tickets. Product business workflows are
-not yet implemented.
+CI enforces the initial quality gates. RT-101 provides the forward-only
+Migration runtime, and RT-102 registers schema version `1` for the batches
+table. Product business workflows are not yet implemented.
 
 ## Canonical naming
 
@@ -62,8 +62,8 @@ resets.
 
 Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. The repository similarly defines no REST route,
-database table, numbered table migration, email provider, OTP flow, activation
-flow, finder relay, or WooCommerce business hook.
+email provider, OTP flow, activation flow, finder relay, WooCommerce business
+hook, or batch workflow. The only product table is the RT-102 batches schema.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -77,9 +77,11 @@ no product workflow or business audit event is logged yet.
 
 RT-101 adds an ordered, locked, retry-safe Migration Runner and WordPress
 lifecycle integration. It runs only during single-site activation, a completed
-TagCore upgrade, or an authorized admin compensation check. The RT-101 registry
-is empty, so the target Schema version is `0`; it creates no table or option on
-normal plugin load. Network-wide activation is not supported in Milestone 1.
+TagCore upgrade, or an authorized admin compensation check. RT-102 registers
+Migration `0001`, which creates and verifies the dynamically prefixed
+`returntag_batches` table before advancing the site-scoped Schema version to
+`1`. Normal public requests do not run DDL. Network-wide activation is not
+supported in Milestone 1.
 
 ## Repository layout
 

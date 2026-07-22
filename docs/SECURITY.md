@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-101 Migration controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-102 Schema controls
 
 ## 1. Purpose
 
@@ -179,6 +179,13 @@ notices do not expose SQL, table names, database credentials, or raw exception
 messages. The Migration runtime does not enable operational logging and does
 not process PII, OTPs, tokens, message content, Apple/Google data, or location
 data.
+
+RT-102 stores manufacturing metadata only. Canonical codes and states use
+case-sensitive ASCII columns, new batches default to activation disabled, and
+the Schema verifier checks the engine, collation, columns, primary key, unique
+constraint, and compound indexes before version `1` is recorded. The table has
+no Claim, order, shipment, tracking, account, device, pairing, battery, or
+location field. RT-102 does not accept public input or expose a read/write API.
 
 ## 12. Review requirements
 

@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-101 Migration runtime implemented; numbered table migrations pending
+**Status:** RT-102 batches table Migration implemented
 
-**Schema created through RT-101:** none; current target version `0`
+**Schema created through RT-102:** `returntag_batches`; current target version `1`
 
 ## 1. Purpose
 
@@ -10,7 +10,8 @@ This document defines database naming, ownership, integrity, migration,
 retention, and rollback rules for ReturnTag schema tickets. RT-007 reads four
 site-scoped operational options but does not create or write them. RT-008 adds
 non-persistent operational logging. RT-101 implements the numbered Migration
-runtime, but its registry is empty and therefore creates no option or table.
+runtime. RT-102 registers Migration `0001` and creates the batches table after
+postcondition verification.
 
 ## 2. Table naming
 
@@ -48,8 +49,37 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-Column definitions, indexes, and migrations belong to RT-102 through RT-108
-and must remain consistent with the PRD and ADR 0003.
+The batches table contract is implemented by RT-102. The remaining table
+definitions and Migrations belong to RT-103 through RT-108 and must remain
+consistent with the PRD and ADR 0003.
+
+### 3.1 Schema version 1: `returntag_batches`
+
+Migration `0001` creates the dynamically prefixed batches table with InnoDB
+and the active WordPress character set and collation. Codes and canonical state
+values use ASCII with `ascii_bin` collation.
+
+| Column | Contract |
+|---|---|
+| `batch_id` | Unsigned auto-increment bigint primary key |
+| `batch_code` | Required, case-sensitive ASCII `varchar(191)`; unique |
+| `tag_type` | Required, case-sensitive ASCII `varchar(32)` |
+| `model_code` | Nullable, case-sensitive ASCII `varchar(191)` |
+| `smart_network` | Required ASCII `varchar(32)`; default `none` |
+| `manufacturer` | Nullable WordPress-charset `varchar(191)` |
+| `sales_channel` | Nullable, case-sensitive ASCII `varchar(64)` |
+| `requested_quantity` | Required unsigned integer |
+| `generated_quantity` | Required unsigned integer; default `0` |
+| `batch_status` | Required ASCII `varchar(32)`; default `draft` |
+| `activation_enabled` | Required unsigned boolean storage; default `0` |
+| `notes` | Nullable WordPress-charset text |
+| `created_by` | Required unsigned WordPress user ID storage; no foreign key |
+| `created_at`, `updated_at` | Required UTC datetimes supplied by the application |
+
+Indexes are `batch_code_unique`, `batch_status_created_at`,
+`tag_type_model_code`, and `activation_enabled_status`, in addition to the
+primary key. RT-102 creates no foreign key, SQL enum, check constraint,
+trigger, database-managed timestamp, soft-delete field, or business workflow.
 
 ## 4. Forbidden relationships and fields
 
@@ -145,6 +175,12 @@ Migration execution is limited to single-site plugin activation,
 `upgrader_process_complete` for TagCore, and an `admin_init` compensation check
 requiring `activate_plugins`. Public requests do not run DDL. Milestone 1
 rejects network-wide activation; multisite installations activate per site.
+
+RT-102 advances Schema version `0` to `1`. A complete table is idempotent; a
+safely repairable missing index can be restored by `dbDelta()` and reverified.
+An incompatible engine, column, collation, or index contract fails without
+advancing the stored version. The table is retained for diagnosis and a later
+safe retry; no automatic drop, rebuild, or destructive down Migration occurs.
 
 ## 10. Retention and uninstall
 

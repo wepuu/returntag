@@ -110,10 +110,13 @@ site-specific advisory lock, and retains the last successful version on
 failure. Activation, a completed TagCore update, and an authorized admin
 compensation check are the only triggers; public requests do not run DDL.
 
-RT-101 itself has target Schema version `0` and creates no tables. As later
-versions are added, a deployment must back up the database and verify the
-version, table set, and critical indexes. Code rollback to `0.1.0` preserves
-the Schema option and all new tables because that release does not read them.
+RT-102 advances the target Schema from `0` to `1` and creates the dynamically
+prefixed `returntag_batches` table. Deployment must back up the database and
+verify version `1`, InnoDB, the complete column contract, the unique batch code,
+and all compound indexes. A failed verification retains version `0` and leaves
+the table available for diagnosis and safe retry. Code rollback within the
+`0.1.0` line preserves the Schema option and batches table; previous stable
+code does not read them.
 
 ## 9. Incident response and rollback
 
@@ -136,9 +139,9 @@ validation, tests, or a permanent fix.
 The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
-flag adapter, and the RT-101 Migration runtime. RT-008 also supplies a
-default-disabled sanitized operational logger, but no production sink or
-retention configuration is selected. It is not a production-ready product
-release because no workflow consumes the flags or logger and there is no
-database table, numbered table migration, public route, repository,
-email-provider adapter, security workflow, or product business logic.
+flag adapter, the RT-101 Migration runtime, and the RT-102 batches table.
+RT-008 also supplies a default-disabled sanitized operational logger, but no
+production sink or retention configuration is selected. It is not a
+production-ready product release because no workflow consumes the flags or
+logger and there is no public route, repository, email-provider adapter,
+security workflow, batch workflow, or other product business logic.

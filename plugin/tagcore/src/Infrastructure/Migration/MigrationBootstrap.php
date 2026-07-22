@@ -18,9 +18,6 @@ final class MigrationBootstrap {
 	/**
 	 * Register the migration lifecycle for the current WordPress site.
 	 *
-	 * RT-101 intentionally registers no numbered table migrations. RT-102 adds
-	 * version 0001 to this registry.
-	 *
 	 * @param string $plugin_file Absolute plugin bootstrap path.
 	 */
 	public static function register( string $plugin_file ): void {
@@ -30,7 +27,7 @@ final class MigrationBootstrap {
 			return;
 		}
 
-		$registry      = new MigrationRegistry( array() );
+		$registry      = ( new MigrationRegistryFactory( $wpdb ) )->create();
 		$version_store = new WordPressSchemaVersionStore();
 		$lock          = new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id() );
 		$runner        = new MigrationRunner( $registry, $version_store, $lock );
