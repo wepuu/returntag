@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation, RT-007 feature flags, and RT-008 logging boundary implemented; product workflows pending
+**Status:** Engineering foundation and RT-101 Migration runtime implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -117,20 +117,23 @@ plugin/tagcore/src/WooCommerce/    ReturnTag\TagCore\WooCommerce
 ```
 
 The directories contain layer guidance, the RT-007 feature-flag contracts and
-adapter, and the RT-008 logging and sanitization contracts and adapters. Future
-implementation must preserve this mapping and dependency direction.
+adapter, the RT-008 logging boundary, and the RT-101 Migration runtime under
+`Infrastructure/Migration`. Future implementation must preserve this mapping
+and dependency direction.
 
 ## 6. Bootstrap boundary
 
 `plugin/tagcore/tagcore.php` remains small. It defines stable
-`RETURNTAG_TAGCORE_` constants, loads Composer when available, and makes the
-bundled Action Scheduler runtime available early enough for version
-negotiation. It does not register product hooks, routes, options, tables,
+`RETURNTAG_TAGCORE_` constants, loads Composer when available, makes the bundled
+Action Scheduler runtime available early enough for version negotiation, and
+delegates Migration lifecycle registration to its Infrastructure composition
+root. It does not contain schema SQL or register product hooks, routes,
 services, or workflows.
 
-Later tickets may add lifecycle hooks and invoke an application bootstrap, but
-domain workflows, database queries, email composition, request routing logic,
-and rendered pages stay outside the bootstrap file.
+RT-101 lifecycle hooks are limited to activation, completed plugin upgrade, and
+authorized admin compensation. Domain workflows, database queries, email
+composition, request routing logic, and rendered pages stay outside the
+bootstrap file.
 
 ## 7. Data and state rules
 
@@ -161,17 +164,25 @@ default-disabled WordPress error-log adapter. Operational diagnostic records
 remain separate from durable business audit events. No logger is registered or
 used by a product workflow in RT-008.
 
+RT-101 keeps schema orchestration inside Infrastructure. `MigrationRegistry`
+validates the ordered sequence, `MigrationRunner` owns locking and version
+progress, and `SchemaState` exposes readiness for future fail-closed startup.
+The empty RT-101 registry targets version `0`; RT-102 through RT-108 will add
+the actual table migrations. Public requests never invoke this runtime.
+
 External side effects must occur after durable state changes and be retry-safe.
 Transactional email must be queued rather than sent synchronously from a public
 request.
 
 ## 9. Public contracts
 
-The engineering foundation introduces no REST route, product hook, schema,
-event, migration, or business service. RT-007 introduces only the four
+The engineering foundation introduces no REST route, product hook, table,
+event, or business service. RT-007 introduces only the four
 approved global option names and a read contract; it neither creates nor
 writes those options. RT-008 adds engineering-only logging contracts and a
-disabled adapter without emitting product events. The Composer package, PSR-4
+disabled adapter without emitting product events. RT-101 adds only the
+Migration engineering contracts and administrative lifecycle hooks; it
+registers no numbered table migration yet. The Composer package, PSR-4
 namespace, plugin headers, build entry points, and quality commands are also
 engineering contracts. Product names documented in the PRD remain future
 contracts and must not be implemented or changed outside their assigned
@@ -205,9 +216,9 @@ PRD update before implementation.
 
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
-operations configuration. Transactional email, encryption, rate limiting,
-metrics, and migrations still require explicit application interfaces and
-provider adapters when their product tickets are implemented.
+operations configuration. RT-101 supplies schema orchestration but no table or
+repository. Transactional email, encryption, rate limiting, metrics, numbered
+schema changes, and repositories still require their assigned tickets.
 
 ### Runtime dependency rationale
 

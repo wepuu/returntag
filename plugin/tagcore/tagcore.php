@@ -35,3 +35,7 @@ $returntag_action_scheduler = RETURNTAG_TAGCORE_DIR . '/vendor/woocommerce/actio
 if ( is_readable( $returntag_action_scheduler ) ) {
 	require_once $returntag_action_scheduler;
 }
+
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap::register( RETURNTAG_TAGCORE_FILE );
+}
