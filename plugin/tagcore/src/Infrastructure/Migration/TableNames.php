@@ -36,4 +36,12 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_tags';
 	}
+
+	/**
+	 * Return the immutable batch export audit table name.
+	 */
+	public function batch_exports(): string {
+
+		return $this->wordpress_prefix . 'returntag_batch_exports';
+	}
 }

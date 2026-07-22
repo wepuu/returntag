@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation and RT-103 Schema version 2 implemented; product workflows pending
+**Status:** Engineering foundation and RT-104 Schema version 3 implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -118,8 +118,9 @@ plugin/tagcore/src/WooCommerce/    ReturnTag\TagCore\WooCommerce
 
 The directories contain layer guidance, the RT-007 feature-flag contracts and
 adapter, the RT-008 logging boundary, and the Migration runtime plus RT-102
-batches and RT-103 tags schemas under `Infrastructure/Migration`. Future
-implementation must preserve this mapping and dependency direction.
+batches, RT-103 tags, and RT-104 batch export audit schemas under
+`Infrastructure/Migration`. Future implementation must preserve this mapping
+and dependency direction.
 
 ## 6. Bootstrap boundary
 
@@ -174,7 +175,11 @@ fails closed if its required version `0001` batches contract has drifted.
 Existing tables are classified before `dbDelta()` runs; only table creation or
 missing-index repair is allowed, while incompatible definitions fail before
 DDL mutation.
-RT-104 through RT-108 will add the remaining table Migrations. Public requests
+
+RT-104 registers version `0003` for batch export audit metadata that later
+Repository and Application contracts must treat as append-only. The database
+schema itself does not use triggers to prevent direct updates or deletes.
+RT-105 through RT-108 will add the remaining table Migrations. Public requests
 never invoke this runtime.
 
 External side effects must occur after durable state changes and be retry-safe.
@@ -184,17 +189,19 @@ request.
 ## 9. Public contracts
 
 The engineering foundation introduces no REST route, product hook, event, or
-business service; RT-102 and RT-103 add only the current product tables.
+business service; RT-102 through RT-104 add only the current product tables.
 RT-007 introduces only the four approved global option names and a read
-contract; it neither
-creates nor writes those options. RT-008 adds engineering-only logging
-contracts and a disabled adapter without emitting product events. RT-101 adds the Migration
-engineering contracts and administrative lifecycle hooks. RT-102 adds only the
+contract; it neither creates nor writes those options. RT-008 adds
+engineering-only logging contracts and a disabled adapter without emitting
+product events. RT-101 adds the Migration engineering contracts and
+administrative lifecycle hooks. RT-102 adds only the
 version `0001` batches table contract. RT-103 adds only the version `0002` tags
 table contract, without a repository, state transition, ownership operation,
-activation, Tag ID generation, batch job, or export behavior. The Composer
-package, PSR-4 namespace, plugin headers, build entry points, and quality
-commands are also engineering contracts. Product names documented in the PRD
+activation, Tag ID generation, batch job, or export behavior. The RT-104
+contract stores only export audit metadata and does not generate a CSV,
+calculate a checksum, allocate an export version, or change Batch state. The
+Composer package, PSR-4 namespace, plugin headers, build entry points, and
+quality commands are also engineering contracts. Product names documented in the PRD
 remain future contracts and must not be implemented or changed outside their
 assigned tickets.
 
@@ -226,10 +233,10 @@ PRD update before implementation.
 
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
-operations configuration. RT-101 supplies schema orchestration; RT-102 and
-RT-103 supply the batches and tags tables only. Transactional email,
-encryption, rate limiting, metrics, the remaining numbered schema changes, and
-repositories still require their assigned tickets.
+operations configuration. RT-101 supplies schema orchestration; RT-102 through
+RT-104 supply the batches, tags, and batch export audit tables only.
+Transactional email, encryption, rate limiting, metrics, the remaining
+numbered schema changes, and repositories still require their assigned tickets.
 
 ### Runtime dependency rationale
 

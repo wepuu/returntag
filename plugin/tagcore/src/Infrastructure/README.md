@@ -16,5 +16,7 @@ registers version `0001`, a trusted dynamic table-name mapping, an
 does not add a repository or batch business behavior. RT-103 registers version
 `0002` and the InnoDB tags table, with an explicit predecessor-contract check
 before creation or verification. It adds no Repository, ID generation,
-activation, ownership, Lost Mode, or finder behavior. No product provider
-adapter is implemented.
+activation, ownership, Lost Mode, or finder behavior. RT-104 registers version
+`0003` and the InnoDB batch export audit table. It adds no CSV generation,
+checksum calculation, export version allocator, file storage, Repository, or
+Batch state transition. No product provider adapter is implemented.
