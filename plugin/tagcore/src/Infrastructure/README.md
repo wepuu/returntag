@@ -28,4 +28,9 @@ messages tables. It defines opaque finder-email and message ciphertext,
 case-sensitive lookup/status metadata, UTC lifecycle fields, and provider
 delivery projection only. It adds no encryption, Finder relay, email sending,
 token exchange, webhook, cleanup, state transition, or Repository behavior.
+RT-107 registers version `0007` for hash-only access token lifecycle storage.
+It adds a unique digest, purpose, actor role, Conversation reference, and UTC
+expiry/exchange/revocation fields without adding generation, hashing, secure
+links, GET/POST exchange, sessions, revocation workflows, cleanup, or a
+Repository.
 No product provider adapter is implemented.

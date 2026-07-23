@@ -35,6 +35,7 @@ final class MigrationRegistryFactory {
 		$exports       = new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags );
 		$challenges    = new CreateAuthChallengesTableMigration( $this->database, $table_names, $inspector, $exports );
 		$conversations = new CreateConversationsTableMigration( $this->database, $table_names, $inspector, $challenges );
+		$messages      = new CreateMessagesTableMigration( $this->database, $table_names, $inspector, $conversations );
 
 		return new MigrationRegistry(
 			array(
@@ -43,7 +44,8 @@ final class MigrationRegistryFactory {
 				$exports,
 				$challenges,
 				$conversations,
-				new CreateMessagesTableMigration( $this->database, $table_names, $inspector, $conversations ),
+				$messages,
+				new CreateAccessTokensTableMigration( $this->database, $table_names, $inspector, $messages ),
 			)
 		);
 	}

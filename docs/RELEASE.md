@@ -157,6 +157,15 @@ Messages retains verified version `5` and retry resumes at `0006`. Rollback
 preserves both new tables, encrypted records, and the Schema option. Version
 `0.1.0` exposes no conversation or message business write path.
 
+RT-107 advances the target Schema from `6` to `7` and creates the dynamically
+prefixed `returntag_access_tokens` table. Fresh install applies
+`0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7`; upgrade preserves all prior tables and
+data. Deployment must verify version `7`, InnoDB, the exact hash-only column
+contract, unique digest index, lifecycle nullability, binary collations, and
+compound index order. Failure retains version `6` and non-destructive state for
+diagnosis and retry. Rollback preserves all seven tables and the Schema option;
+version `0.1.0` exposes no token generation, exchange, or business write path.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -180,7 +189,7 @@ CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
 flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
 RT-103 tags, RT-104 batch export audit, RT-105 authentication challenge, and
-RT-106 conversation and message tables.
+RT-106 conversation and message, and RT-107 access token tables.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or

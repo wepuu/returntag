@@ -8,10 +8,10 @@ The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
 CI enforces the initial quality gates. RT-101 provides the forward-only
-Migration runtime; RT-102 through RT-106 register schema versions `1` through
-`6` for the batches, tags, batch export audit, authentication challenge,
-conversation, and message tables. Product business workflows are not yet
-implemented.
+Migration runtime; RT-102 through RT-107 register schema versions `1` through
+`7` for the batches, tags, batch export audit, authentication challenge,
+conversation, message, and access token tables. Product business workflows are
+not yet implemented.
 
 ## Canonical naming
 
@@ -67,8 +67,8 @@ schedule business jobs yet. The repository similarly defines no REST route,
 email provider, OTP flow, activation flow, finder relay, WooCommerce business
 hook, or batch workflow. The only product tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
-authentication challenge schema, and the RT-106 conversation and message
-schemas.
+authentication challenge schema, the RT-106 conversation and message schemas,
+and the RT-107 access token schema.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -97,7 +97,12 @@ implementing an OTP or Finder verification flow. Schema version advances to
 Conversation status has no database default and must be supplied explicitly by
 future application code; message delivery status defaults to `queued`. Schema
 version advances independently through `5` and `6` only after each table
-verifies. Normal public requests do not run DDL.
+verifies. RT-107 registers Migration `0007` for
+`returntag_access_tokens`, storing only a unique case-sensitive token digest and
+explicit UTC lifecycle timestamps. It adds no Token generator, secure-link
+route, or exchange behavior. Schema version advances to `7` only after the
+complete predecessor chain and access token table verify. Normal public
+requests do not run DDL.
 Network-wide activation is not supported in Milestone 1.
 
 ## Repository layout

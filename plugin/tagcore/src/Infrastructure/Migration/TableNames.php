@@ -68,4 +68,12 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_messages';
 	}
+
+	/**
+	 * Return the hashed conversation access tokens table name.
+	 */
+	public function access_tokens(): string {
+
+		return $this->wordpress_prefix . 'returntag_access_tokens';
+	}
 }

@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-106 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-107 Schema controls
 
 ## 1. Purpose
 
@@ -233,6 +233,20 @@ treated as confirmed delivery. RT-106 does not notify an owner, send email,
 verify finder identity, expose a secure page, process a token, log ciphertext,
 or enforce retention. Those controls must be implemented and reviewed before a
 production write path is enabled.
+
+RT-107 adds only hash-based storage for future secure-link and conversation
+access tokens. The table contains a unique 64-character digest, purpose, actor
+role, Conversation reference, and explicit UTC expiry, exchange, revocation,
+and creation times. It contains no plaintext Token, email address, IP address,
+User-Agent, owner ID, order, Claim ID, device, pairing, or location field.
+
+RT-107 does not choose a hashing implementation, generate or deliver a Token,
+register a route, authenticate an actor, create a session, or consume a Token.
+Future secure-link handling must keep raw Tokens out of logs and URLs as early
+as practical, validate purpose and actor binding, reject expired/revoked/
+exchanged Tokens, and require explicit POST or equivalent confirmation before
+exchange. A GET request must remain non-consuming so email scanners cannot use
+a one-time Token through prefetch.
 
 ## 12. Review requirements
 

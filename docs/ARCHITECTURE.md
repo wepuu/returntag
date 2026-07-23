@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation and RT-106 Schema version 6 implemented; product workflows pending
+**Status:** Engineering foundation and RT-107 Schema version 7 implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -120,6 +120,7 @@ The directories contain layer guidance, the RT-007 feature-flag contracts and
 adapter, the RT-008 logging boundary, and the Migration runtime plus RT-102
 batches, RT-103 tags, RT-104 batch export audit, RT-105 authentication
 challenge, and RT-106 conversation and message schemas under
+`Infrastructure/Migration`. RT-107 adds the hash-only access token schema under
 `Infrastructure/Migration`. Future implementation must preserve this mapping
 and dependency direction.
 
@@ -187,8 +188,12 @@ version `0005` for finder/owner conversation state and version `0006` for
 encrypted message and delivery-state storage. The two versions advance
 independently so a failed Messages migration leaves a verified, retryable
 version `5`. Neither table introduces a physical foreign key or business write
-path. RT-107 and RT-108 will add the remaining table Migrations. Public
-requests never invoke this runtime.
+path. Public requests never invoke this runtime. RT-107 registers version
+`0007` for
+hash-only secure-link and conversation access token state. It verifies the
+complete Messages predecessor before creation and adds no generator, hashing
+adapter, route, token exchange, session, revocation workflow, or cleanup job.
+RT-108 will add the final phase-one table Migration.
 
 External side effects must occur after durable state changes and be retry-safe.
 Transactional email must be queued rather than sent synchronously from a public
@@ -197,7 +202,7 @@ request.
 ## 9. Public contracts
 
 The engineering foundation introduces no REST route, product hook, event, or
-business service; RT-102 through RT-106 add only the current product tables.
+business service; RT-102 through RT-107 add only the current product tables.
 RT-007 introduces only the four approved global option names and a read
 contract; it neither creates nor writes those options. RT-008 adds
 engineering-only logging contracts and a disabled adapter without emitting
@@ -213,7 +218,10 @@ send, verify, resend, consume, or rate-limit an OTP and does not authenticate a
 user. The RT-106 contracts store opaque finder email and message ciphertext,
 lookup metadata, lifecycle state, and provider delivery identifiers without
 creating, verifying, sending, replying to, closing, reporting, or expiring a
-conversation. The
+conversation. The RT-107 contract stores only a unique digest, purpose, actor
+role, conversation reference, and UTC expiry/exchange/revocation times. It does
+not generate, deliver, consume, exchange, revoke, or authenticate with a
+Token. The
 Composer package, PSR-4 namespace, plugin headers, build entry points, and
 quality commands are also engineering contracts. Product names documented in the PRD
 remain future contracts and must not be implemented or changed outside their
@@ -248,8 +256,8 @@ PRD update before implementation.
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
 operations configuration. RT-101 supplies schema orchestration; RT-102 through
-RT-106 supply the batches, tags, batch export audit, authentication challenge,
-conversation, and message tables only.
+RT-107 supply the batches, tags, batch export audit, authentication challenge,
+conversation, message, and access token tables only.
 Transactional email, encryption, rate limiting, metrics, the remaining
 numbered schema changes, and repositories still require their assigned tickets.
 
