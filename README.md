@@ -8,9 +8,10 @@ The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
 CI enforces the initial quality gates. RT-101 provides the forward-only
-Migration runtime; RT-102 through RT-105 register schema versions `1` through
-`4` for the batches, tags, batch export audit, and authentication challenge
-tables. Product business workflows are not yet implemented.
+Migration runtime; RT-102 through RT-106 register schema versions `1` through
+`6` for the batches, tags, batch export audit, authentication challenge,
+conversation, and message tables. Product business workflows are not yet
+implemented.
 
 ## Canonical naming
 
@@ -65,8 +66,9 @@ Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. The repository similarly defines no REST route,
 email provider, OTP flow, activation flow, finder relay, WooCommerce business
 hook, or batch workflow. The only product tables are the RT-102 batches schema,
-the RT-103 tags schema, the RT-104 batch export audit schema, and the RT-105
-authentication challenge schema.
+the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
+authentication challenge schema, and the RT-106 conversation and message
+schemas.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -90,7 +92,12 @@ checks. RT-105 registers Migration `0004` for
 `returntag_auth_challenges` after verifying version `3`; it defines encrypted
 email, keyed lookup, code-hash, bounded-counter, and expiry storage without
 implementing an OTP or Finder verification flow. Schema version advances to
-`4` only after all four tables verify. Normal public requests do not run DDL.
+`4` only after all four tables verify. RT-106 registers Migration `0005` for
+`returntag_conversations` and Migration `0006` for `returntag_messages`.
+Conversation status has no database default and must be supplied explicitly by
+future application code; message delivery status defaults to `queued`. Schema
+version advances independently through `5` and `6` only after each table
+verifies. Normal public requests do not run DDL.
 Network-wide activation is not supported in Milestone 1.
 
 ## Repository layout

@@ -28,18 +28,22 @@ final class MigrationRegistryFactory {
 	 */
 	public function create(): MigrationRegistry {
 
-		$table_names = new TableNames( $this->database->prefix );
-		$inspector   = new WordPressSchemaInspector( $this->database );
-		$batches     = new CreateBatchesTableMigration( $this->database, $table_names, $inspector );
-		$tags        = new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches );
-		$exports     = new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags );
+		$table_names   = new TableNames( $this->database->prefix );
+		$inspector     = new WordPressSchemaInspector( $this->database );
+		$batches       = new CreateBatchesTableMigration( $this->database, $table_names, $inspector );
+		$tags          = new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches );
+		$exports       = new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags );
+		$challenges    = new CreateAuthChallengesTableMigration( $this->database, $table_names, $inspector, $exports );
+		$conversations = new CreateConversationsTableMigration( $this->database, $table_names, $inspector, $challenges );
 
 		return new MigrationRegistry(
 			array(
 				$batches,
 				$tags,
 				$exports,
-				new CreateAuthChallengesTableMigration( $this->database, $table_names, $inspector, $exports ),
+				$challenges,
+				$conversations,
+				new CreateMessagesTableMigration( $this->database, $table_names, $inspector, $conversations ),
 			)
 		);
 	}

@@ -52,4 +52,20 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_auth_challenges';
 	}
+
+	/**
+	 * Return the privacy-preserving finder conversations table name.
+	 */
+	public function conversations(): string {
+
+		return $this->wordpress_prefix . 'returntag_conversations';
+	}
+
+	/**
+	 * Return the encrypted conversation messages table name.
+	 */
+	public function messages(): string {
+
+		return $this->wordpress_prefix . 'returntag_messages';
+	}
 }

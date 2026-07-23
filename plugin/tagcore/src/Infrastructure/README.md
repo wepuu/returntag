@@ -23,4 +23,9 @@ Batch state transition. RT-105 registers version `0004` and the InnoDB
 authentication challenges table. It defines only opaque ciphertext, keyed
 lookup, code-hash, counter, and lifecycle-time storage; it adds no encryption,
 OTP, Finder verification, login, rate-limit, cleanup, or Repository behavior.
+RT-106 registers versions `0005` and `0006` for the InnoDB conversations and
+messages tables. It defines opaque finder-email and message ciphertext,
+case-sensitive lookup/status metadata, UTC lifecycle fields, and provider
+delivery projection only. It adds no encryption, Finder relay, email sending,
+token exchange, webhook, cleanup, state transition, or Repository behavior.
 No product provider adapter is implemented.

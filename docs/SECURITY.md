@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-105 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-106 Schema controls
 
 ## 1. Purpose
 
@@ -217,6 +217,22 @@ counters, expiry, verification, consumption, and creation times, but RT-105
 does not enforce the PRD's ten-minute expiry, five-attempt limit, resend delay,
 rate limits, or terminal-state decisions. No challenge value is logged or
 exposed through a route, Repository, admin screen, email, or public response.
+
+RT-106 adds only the storage boundary for privacy-preserving conversations and
+messages. Finder email and message content use opaque `longblob` envelopes;
+finder equality lookup uses a keyed-HMAC-shaped value. Owner email is not
+stored in either table. The schema contains no plaintext address, message body,
+Reply-To value, attachment, order, Claim ID, smart-network device, pairing, or
+location field. Encryption and lookup keys remain outside WordPress and its
+database.
+
+Conversation status must be written explicitly by future application code;
+the database does not silently promote a record to `pending_verification` or
+`open`. Message delivery begins as `queued`, and provider acceptance must not be
+treated as confirmed delivery. RT-106 does not notify an owner, send email,
+verify finder identity, expose a secure page, process a token, log ciphertext,
+or enforce retention. Those controls must be implemented and reviewed before a
+production write path is enabled.
 
 ## 12. Review requirements
 
