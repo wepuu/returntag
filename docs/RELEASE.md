@@ -136,6 +136,16 @@ index, and the non-unique Batch/checksum index. Failure retains version `2`;
 rollback preserves all three tables and export audit history. Version `0.1.0`
 code does not read the new table.
 
+RT-105 advances the target Schema from `3` to `4` and creates the dynamically
+prefixed `returntag_auth_challenges` table. Fresh install applies
+`0 -> 1 -> 2 -> 3 -> 4`; upgrade preserves the first three tables and their
+data. Deployment must verify version `4`, InnoDB, the exact sensitive-column
+contract, default counters, nullability, and all three compound indexes.
+Failure retains version `3` and leaves non-destructive state for diagnosis and
+retry. Rollback preserves all four tables and the Schema option; version
+`0.1.0` does not read authentication challenges. No retention cleanup or
+business write path is enabled by this ticket.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -158,7 +168,8 @@ The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
 flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
-RT-103 tags and RT-104 batch export audit tables.
+RT-103 tags, RT-104 batch export audit, and RT-105 authentication challenge
+tables.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or

@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-104 batch exports table Migration implemented
+**Status:** RT-105 authentication challenges table Migration implemented
 
-**Schema created through RT-104:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`; current target version `3`
+**Schema created through RT-105:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`; current target version `4`
 
 ## 1. Purpose
 
@@ -13,7 +13,8 @@ non-persistent operational logging. RT-101 implements the numbered Migration
 runtime. RT-102 registers Migration `0001` for batches. RT-103 registers
 Migration `0002` for tags after verifying the required batches contract. Each
 version advances only after postcondition verification. RT-104 registers
-Migration `0003` for immutable export audit metadata.
+Migration `0003` for immutable export audit metadata. RT-105 registers
+Migration `0004` for privacy-oriented authentication challenge state.
 
 ## 2. Table naming
 
@@ -51,9 +52,10 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-The batches, tags, and batch exports table contracts are implemented by RT-102
-through RT-104. The remaining table definitions and Migrations belong to
-RT-105 through RT-108 and must remain consistent with the PRD and ADR 0003.
+The batches, tags, batch exports, and authentication challenges table contracts
+are implemented by RT-102 through RT-105. The remaining table definitions and
+Migrations belong to RT-106 through RT-108 and must remain consistent with the
+PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
 
@@ -146,6 +148,43 @@ concurrency-safely, validate `csv` and canonical SHA-256 syntax, verify that
 `row_count` matches the exported immutable Tag set, and expose no update or
 delete operation. Append-only behavior is therefore an application contract,
 not a trigger-enforced database property.
+
+### 3.4 Schema version 4: `returntag_auth_challenges`
+
+Migration `0004` creates the dynamically prefixed one-time authentication
+challenge table with InnoDB and the active WordPress table character set and
+collation. Purpose, subject, lookup, and hash values use case-sensitive ASCII
+storage. Ciphertext is an opaque binary value.
+
+| Column | Contract |
+|---|---|
+| `challenge_id` | Unsigned auto-increment bigint primary key |
+| `purpose` | Required case-sensitive ASCII `varchar(32)` |
+| `subject_type` | Required case-sensitive ASCII `varchar(32)` |
+| `subject_id` | Required case-sensitive ASCII `varchar(191)` polymorphic identifier |
+| `email_ciphertext` | Required opaque `longblob`; plaintext email is forbidden |
+| `email_lookup` | Required case-sensitive ASCII `char(64)` for a keyed HMAC lookup |
+| `code_hash` | Required case-sensitive ASCII `varchar(255)` for a secure code hash |
+| `attempt_count` | Unsigned integer, default `0` |
+| `send_count` | Unsigned integer, default `0` |
+| `ip_hash` | Optional case-sensitive ASCII `char(64)` for a privacy-safe keyed IP lookup |
+| `expires_at` | Required UTC datetime supplied by the application |
+| `verified_at` | Optional UTC verification time |
+| `consumed_at` | Optional UTC consumption time |
+| `created_at` | Required UTC creation time supplied by the application |
+
+Indexes are `(purpose, email_lookup, created_at)`,
+`(subject_type, subject_id, created_at)`, and `(expires_at, consumed_at)`.
+They support later challenge lookup, throttling, and cleanup without creating a
+false uniqueness rule: multiple historical challenges for the same purpose
+and lookup are valid. No index contains ciphertext or a plaintext identity.
+
+RT-105 supplies no Repository, encryption service, HMAC service, OTP generator,
+sender, verifier, limiter, login flow, or cleanup task. Later code must treat
+`subject_id` as a typed reference rather than authorization evidence, use a
+self-describing authenticated-encryption envelope, keep keys outside the
+database, compare secrets safely, enforce the PRD expiry/attempt/resend limits,
+and define retention before writes are enabled.
 
 ## 4. Forbidden relationships and fields
 
@@ -270,6 +309,15 @@ creation and leaves version `2`. A complete exports table is idempotent, a
 missing expected index is repairable, and incompatible existing definitions
 fail before DDL mutation. Routine rollback preserves the table and its audit
 history.
+
+RT-105 advances Schema version `3` to `4`; a fresh installation runs
+`0 -> 1 -> 2 -> 3 -> 4`. Migration `0004` verifies the complete Batch Exports
+predecessor chain before creating authentication challenge storage. Missing or
+incompatible predecessors leave version `3`. A complete table is idempotent,
+a missing expected index is repairable, and incompatible sensitive columns,
+engine, collation, or index definitions fail before `dbDelta()` mutation.
+Rollback preserves all four tables and the Schema option; version `0.1.0` code
+does not read the challenge table.
 
 ## 10. Retention and uninstall
 

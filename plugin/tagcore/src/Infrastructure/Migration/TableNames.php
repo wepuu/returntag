@@ -44,4 +44,12 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_batch_exports';
 	}
+
+	/**
+	 * Return the one-time authentication challenges table name.
+	 */
+	public function auth_challenges(): string {
+
+		return $this->wordpress_prefix . 'returntag_auth_challenges';
+	}
 }

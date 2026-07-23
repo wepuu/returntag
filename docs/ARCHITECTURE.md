@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation and RT-104 Schema version 3 implemented; product workflows pending
+**Status:** Engineering foundation and RT-105 Schema version 4 implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -118,7 +118,8 @@ plugin/tagcore/src/WooCommerce/    ReturnTag\TagCore\WooCommerce
 
 The directories contain layer guidance, the RT-007 feature-flag contracts and
 adapter, the RT-008 logging boundary, and the Migration runtime plus RT-102
-batches, RT-103 tags, and RT-104 batch export audit schemas under
+batches, RT-103 tags, RT-104 batch export audit, and RT-105 authentication
+challenge schemas under
 `Infrastructure/Migration`. Future implementation must preserve this mapping
 and dependency direction.
 
@@ -179,7 +180,10 @@ DDL mutation.
 RT-104 registers version `0003` for batch export audit metadata that later
 Repository and Application contracts must treat as append-only. The database
 schema itself does not use triggers to prevent direct updates or deletes.
-RT-105 through RT-108 will add the remaining table Migrations. Public requests
+RT-105 registers version `0004` for one-time authentication challenge state.
+It provides only privacy-oriented storage for opaque email ciphertext, keyed
+lookups, code hashes, counters, and UTC lifecycle times. RT-106 through RT-108
+will add the remaining table Migrations. Public requests
 never invoke this runtime.
 
 External side effects must occur after durable state changes and be retry-safe.
@@ -189,7 +193,7 @@ request.
 ## 9. Public contracts
 
 The engineering foundation introduces no REST route, product hook, event, or
-business service; RT-102 through RT-104 add only the current product tables.
+business service; RT-102 through RT-105 add only the current product tables.
 RT-007 introduces only the four approved global option names and a read
 contract; it neither creates nor writes those options. RT-008 adds
 engineering-only logging contracts and a disabled adapter without emitting
@@ -200,6 +204,9 @@ table contract, without a repository, state transition, ownership operation,
 activation, Tag ID generation, batch job, or export behavior. The RT-104
 contract stores only export audit metadata and does not generate a CSV,
 calculate a checksum, allocate an export version, or change Batch state. The
+RT-105 contract stores authentication challenge state but does not generate,
+send, verify, resend, consume, or rate-limit an OTP and does not authenticate a
+user. The
 Composer package, PSR-4 namespace, plugin headers, build entry points, and
 quality commands are also engineering contracts. Product names documented in the PRD
 remain future contracts and must not be implemented or changed outside their
@@ -234,7 +241,8 @@ PRD update before implementation.
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
 operations configuration. RT-101 supplies schema orchestration; RT-102 through
-RT-104 supply the batches, tags, and batch export audit tables only.
+RT-105 supply the batches, tags, batch export audit, and authentication
+challenge tables only.
 Transactional email, encryption, rate limiting, metrics, the remaining
 numbered schema changes, and repositories still require their assigned tickets.
 

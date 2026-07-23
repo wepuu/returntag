@@ -14,7 +14,6 @@ use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateTagsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationException;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistry;
-use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
@@ -85,11 +84,13 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Production composition must register versions one through three in order.
+	 * The isolated RT-104 composition must register versions one through three.
 	 */
-	public function test_production_registry_registers_versions_one_through_three(): void {
-		$migrations = $this->production_registry()->all();
+	public function test_rt104_registry_registers_versions_one_through_three(): void {
 
+		global $wpdb;
+
+		$migrations = $this->rt104_registry( $wpdb )->all();
 		self::assertCount( 3, $migrations );
 		self::assertInstanceOf( CreateBatchesTableMigration::class, $migrations[0] );
 		self::assertInstanceOf( CreateTagsTableMigration::class, $migrations[1] );
@@ -98,21 +99,13 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The registered activation hook must execute the current production chain.
-	 */
-	public function test_plugin_activation_executes_production_chain_to_three(): void {
-		do_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ), false );
-
-		self::assertSame( 3, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
-		self::assertTrue( $this->exports_migration()->verify() );
-	}
-
-	/**
-	 * Fresh installation must create and verify all three schema versions.
+	 * Fresh installation must create and verify the isolated RT-104 chain.
 	 */
 	public function test_fresh_install_advances_schema_from_zero_to_three(): void {
-		$report = $this->production_runner()->migrate();
 
+		global $wpdb;
+
+		$report = $this->rt104_runner( $wpdb )->migrate();
 		self::assertSame( 0, $report->starting_version );
 		self::assertSame( 3, $report->ending_version );
 		self::assertSame( array( 1, 2, 3 ), $report->applied_versions );
@@ -133,8 +126,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 
 		$batches_before = $this->show_create_table( $wpdb, $this->batches_table );
 		$tags_before    = $this->show_create_table( $wpdb, $this->tags_table );
-		$report         = $this->production_runner()->migrate();
-
+		$report         = $this->rt104_runner( $wpdb )->migrate();
 		self::assertSame( 2, $report->starting_version );
 		self::assertSame( 3, $report->ending_version );
 		self::assertSame( array( 3 ), $report->applied_versions );
@@ -153,7 +145,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	public function test_complete_schema_is_idempotent(): void {
 		global $wpdb;
 
-		$runner = $this->production_runner();
+		$runner = $this->rt104_runner( $wpdb );
 		$runner->migrate();
 		$before = $this->show_create_table( $wpdb, $this->exports_table );
 
@@ -172,14 +164,12 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	public function test_retry_repairs_missing_checksum_index(): void {
 		global $wpdb;
 
-		$this->production_runner()->migrate();
-
+		$this->rt104_runner( $wpdb )->migrate();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted isolated schema fixture.
 		$wpdb->query( "ALTER TABLE {$this->exports_table} DROP INDEX batch_file_checksum" );
 		$this->set_schema_version( 2 );
 
-		$report = $this->production_runner()->migrate();
-
+		$report = $this->rt104_runner( $wpdb )->migrate();
 		self::assertSame( array( 3 ), $report->applied_versions );
 		self::assertSame( 3, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
 		self::assertTrue( $this->exports_migration()->verify() );
@@ -191,14 +181,13 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	public function test_incompatible_column_is_preserved_and_version_stays_two(): void {
 		global $wpdb;
 
-		$this->production_runner()->migrate();
-
+		$this->rt104_runner( $wpdb )->migrate();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deliberate isolated drift fixture.
 		$wpdb->query( "ALTER TABLE {$this->exports_table} MODIFY file_checksum char(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL" );
 		$this->set_schema_version( 2 );
 
 		try {
-			$this->production_runner()->migrate();
+			$this->rt104_runner( $wpdb )->migrate();
 			self::fail( 'Expected incompatible export schema to block dbDelta.' );
 		} catch ( MigrationException ) {
 			self::assertSame( 2, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
@@ -216,7 +205,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 		$this->drop_table( $wpdb, $this->tags_table );
 
 		try {
-			$this->production_runner()->migrate();
+			$this->rt104_runner( $wpdb )->migrate();
 			self::fail( 'Expected predecessor drift to block Migration 0003.' );
 		} catch ( MigrationException ) {
 			self::assertSame( 2, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
@@ -230,7 +219,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	public function test_batch_version_is_unique_while_checksum_can_repeat(): void {
 		global $wpdb;
 
-		$this->production_runner()->migrate();
+		$this->rt104_runner( $wpdb )->migrate();
 		$first_batch  = $this->insert_batch( $wpdb, $this->batches_table, 'RT-104-FIRST' );
 		$second_batch = $this->insert_batch( $wpdb, $this->batches_table, 'RT-104-SECOND' );
 		$checksum     = str_repeat( 'a', 64 );
@@ -256,7 +245,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	public function test_physical_schema_matches_independent_contract(): void {
 		global $wpdb;
 
-		$this->production_runner()->migrate();
+		$this->rt104_runner( $wpdb )->migrate();
 		$this->assert_table_contract( $wpdb, $this->exports_table );
 	}
 
@@ -277,7 +266,7 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
 
 		try {
-			$registry = ( new MigrationRegistryFactory( $database ) )->create();
+			$registry = $this->rt104_registry( $database );
 			$runner   = new MigrationRunner(
 				$registry,
 				new WordPressSchemaVersionStore(),
@@ -295,24 +284,32 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Return the production Migration registry.
+	 * Return the isolated RT-104 Migration registry.
+	 *
+	 * @param wpdb $database WordPress database adapter.
 	 */
-	private function production_registry(): MigrationRegistry {
-		global $wpdb;
+	private function rt104_registry( wpdb $database ): MigrationRegistry {
 
-		return ( new MigrationRegistryFactory( $wpdb ) )->create();
+		$names     = new TableNames( $database->prefix );
+		$inspector = new WordPressSchemaInspector( $database );
+		$batches   = new CreateBatchesTableMigration( $database, $names, $inspector );
+		$tags      = new CreateTagsTableMigration( $database, $names, $inspector, $batches );
+		$exports   = new CreateBatchExportsTableMigration( $database, $names, $inspector, $tags );
+
+		return new MigrationRegistry( array( $batches, $tags, $exports ) );
 	}
 
 	/**
-	 * Build the production Runner.
+	 * Build the isolated RT-104 Runner.
+	 *
+	 * @param wpdb $database WordPress database adapter.
 	 */
-	private function production_runner(): MigrationRunner {
-		global $wpdb;
+	private function rt104_runner( wpdb $database ): MigrationRunner {
 
 		return new MigrationRunner(
-			$this->production_registry(),
+			$this->rt104_registry( $database ),
 			new WordPressSchemaVersionStore(),
-			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
+			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 	}
 
@@ -335,10 +332,13 @@ final class BatchExportsMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Return version 0003 from production composition.
+	 * Return version 0003 from the isolated RT-104 composition.
 	 */
 	private function exports_migration(): CreateBatchExportsTableMigration {
-		$migration = $this->production_registry()->all()[2];
+
+		global $wpdb;
+
+		$migration = $this->rt104_registry( $wpdb )->all()[2];
 		self::assertInstanceOf( CreateBatchExportsTableMigration::class, $migration );
 
 		return $migration;
