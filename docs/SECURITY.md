@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-104 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-105 Schema controls
 
 ## 1. Purpose
 
@@ -206,6 +206,17 @@ body, path, Tag ID list, email, order, shipment, Claim ID, credential, or
 manufacturer export. The checksum index is deliberately non-unique so a
 repeated immutable export can retain a new audit record; the Batch/version pair
 is unique. RT-104 exposes no file, route, download, or write API.
+
+RT-105 defines storage for passwordless OTP, Finder email verification, and
+other one-time challenges without implementing any authentication behavior.
+The contract forbids plaintext email, OTP, and IP storage: email ciphertext is
+an opaque binary envelope, equality/rate-limit lookups are keyed HMAC-shaped
+values, and the code is represented only by a secure hash. Encryption and HMAC
+keys remain outside WordPress and its database. The schema also records bounded
+counters, expiry, verification, consumption, and creation times, but RT-105
+does not enforce the PRD's ten-minute expiry, five-attempt limit, resend delay,
+rate limits, or terminal-state decisions. No challenge value is logged or
+exposed through a route, Repository, admin screen, email, or public response.
 
 ## 12. Review requirements
 

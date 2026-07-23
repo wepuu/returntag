@@ -19,4 +19,8 @@ before creation or verification. It adds no Repository, ID generation,
 activation, ownership, Lost Mode, or finder behavior. RT-104 registers version
 `0003` and the InnoDB batch export audit table. It adds no CSV generation,
 checksum calculation, export version allocator, file storage, Repository, or
-Batch state transition. No product provider adapter is implemented.
+Batch state transition. RT-105 registers version `0004` and the InnoDB
+authentication challenges table. It defines only opaque ciphertext, keyed
+lookup, code-hash, counter, and lifecycle-time storage; it adds no encryption,
+OTP, Finder verification, login, rate-limit, cleanup, or Repository behavior.
+No product provider adapter is implemented.

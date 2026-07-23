@@ -39,9 +39,18 @@ final class TableNamesTest extends TestCase {
 	 * The same non-default prefix must determine the batch exports table.
 	 */
 	public function test_batch_exports_table_uses_supplied_wordpress_prefix(): void {
-
 		$table_names = new TableNames( 'rt_test_' );
 
 		self::assertSame( 'rt_test_returntag_batch_exports', $table_names->batch_exports() );
+	}
+
+	/**
+	 * The same non-default prefix must determine the auth challenges table.
+	 */
+	public function test_auth_challenges_table_uses_supplied_wordpress_prefix(): void {
+
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_auth_challenges', $table_names->auth_challenges() );
 	}
 }

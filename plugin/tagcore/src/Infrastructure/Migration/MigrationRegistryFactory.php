@@ -32,12 +32,14 @@ final class MigrationRegistryFactory {
 		$inspector   = new WordPressSchemaInspector( $this->database );
 		$batches     = new CreateBatchesTableMigration( $this->database, $table_names, $inspector );
 		$tags        = new CreateTagsTableMigration( $this->database, $table_names, $inspector, $batches );
+		$exports     = new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags );
 
 		return new MigrationRegistry(
 			array(
 				$batches,
 				$tags,
-				new CreateBatchExportsTableMigration( $this->database, $table_names, $inspector, $tags ),
+				$exports,
+				new CreateAuthChallengesTableMigration( $this->database, $table_names, $inspector, $exports ),
 			)
 		);
 	}
