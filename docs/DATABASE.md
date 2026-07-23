@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-106 conversations and messages table Migrations implemented
+**Status:** RT-107 access tokens table Migration implemented
 
-**Schema created through RT-106:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`; current target version `6`
+**Schema created through RT-107:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`; current target version `7`
 
 ## 1. Purpose
 
@@ -16,7 +16,8 @@ version advances only after postcondition verification. RT-104 registers
 Migration `0003` for immutable export audit metadata. RT-105 registers
 Migration `0004` for privacy-oriented authentication challenge state. RT-106
 registers Migrations `0005` and `0006` for privacy-preserving conversations and
-encrypted messages.
+encrypted messages. RT-107 registers Migration `0007` for hash-only access
+token lifecycle state.
 
 ## 2. Table naming
 
@@ -55,8 +56,8 @@ load, activation, deactivation, or uninstall.
 | `returntag_events` | Privacy-safe business audit events |
 
 The batches, tags, batch exports, authentication challenges, conversations, and
-messages table contracts are implemented by RT-102 through RT-106. The
-remaining table definitions and Migrations belong to RT-107 and RT-108 and must
+messages, and access token table contracts are implemented by RT-102 through
+RT-107. The remaining table definition and Migration belong to RT-108 and must
 remain consistent with the PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
@@ -244,6 +245,41 @@ RT-106 supplies no Repository, encryption or HMAC service, Finder form, email
 verification, access token, queue handler, provider adapter, webhook, retention
 job, or conversation state machine. No production write path is enabled.
 
+### 3.7 Schema version 7: `returntag_access_tokens`
+
+Migration `0007` creates the dynamically prefixed access token table with
+InnoDB and the active WordPress table character set and collation. Purpose,
+actor role, and the digest use case-sensitive ASCII storage. The schema stores
+no plaintext Token.
+
+| Column | Contract |
+|---|---|
+| `token_id` | Unsigned auto-increment bigint primary key |
+| `conversation_id` | Required unsigned Conversation ID storage; no foreign key |
+| `purpose` | Required case-sensitive ASCII `varchar(32)` |
+| `actor_role` | Required case-sensitive ASCII `varchar(32)` |
+| `token_hash` | Required case-sensitive ASCII `char(64)` digest; unique |
+| `expires_at` | Required UTC expiry supplied by the application |
+| `exchanged_at` | Optional UTC successful-exchange time |
+| `revoked_at` | Optional UTC revocation time |
+| `created_at` | Required UTC creation time supplied by the application |
+
+The unique `token_hash_unique` index covers `token_hash`. Non-unique indexes
+cover `(conversation_id, purpose, actor_role)` and `(expires_at, revoked_at)`.
+Multiple historical tokens for the same Conversation, purpose, and actor are
+valid; future Application code must enforce issuance, rotation, exchange,
+revocation, replay, and concurrency policy.
+
+The fixed 64-character column supports a normalized 256-bit digest encoded as
+hexadecimal text. RT-107 does not select or implement the hashing adapter. Any
+future adapter must use one deterministic canonical encoding so equivalent
+digests cannot differ only by representation. A different digest format
+requires a forward-compatible expand Migration.
+
+RT-107 supplies no Token generator, hashing service, Repository, secure-link
+route, GET or POST handler, session, exchange, revocation workflow, logger,
+audit event, or retention job. No production write path is enabled.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:
@@ -388,6 +424,15 @@ repairable before the version advances, and incompatible columns, engines,
 collations, or index definitions fail before `dbDelta()` mutation. Rollback
 preserves all six tables and the Schema option; version `0.1.0` has no business
 read or write path for the two new tables.
+
+RT-107 advances Schema version `6` to `7`; a fresh installation runs
+`0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7`. Migration `0007` verifies the complete
+Messages predecessor chain before creating access token storage. Missing or
+incompatible predecessors leave version `6`. A complete table is idempotent,
+a missing expected index is repairable, and incompatible hash storage, engine,
+collation, column, or index definitions fail before `dbDelta()` mutation.
+Rollback preserves all seven tables and the Schema option; version `0.1.0` has
+no access token business read or write path.
 
 ## 10. Retention and uninstall
 

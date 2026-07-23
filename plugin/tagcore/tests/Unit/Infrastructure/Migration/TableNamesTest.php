@@ -72,4 +72,14 @@ final class TableNamesTest extends TestCase {
 
 		self::assertSame( 'rt_test_returntag_messages', $table_names->messages() );
 	}
+
+	/**
+	 * The same non-default prefix must determine the access tokens table.
+	 */
+	public function test_access_tokens_table_uses_supplied_wordpress_prefix(): void {
+
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_access_tokens', $table_names->access_tokens() );
+	}
 }
