@@ -146,6 +146,17 @@ retry. Rollback preserves all four tables and the Schema option; version
 `0.1.0` does not read authentication challenges. No retention cleanup or
 business write path is enabled by this ticket.
 
+RT-106 advances the target Schema from `4` to `6` through independently
+verified versions `5` and `6`, creating dynamically prefixed
+`returntag_conversations` and `returntag_messages` tables. Fresh install applies
+`0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6`; upgrade preserves all prior tables and data.
+Deployment must verify version `6`, both InnoDB tables, their exact privacy
+columns, binary collations, nullability, message default `queued`, and compound
+index order. Failure before Conversations retains version `4`; failure during
+Messages retains verified version `5` and retry resumes at `0006`. Rollback
+preserves both new tables, encrypted records, and the Schema option. Version
+`0.1.0` exposes no conversation or message business write path.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -168,8 +179,8 @@ The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
 flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
-RT-103 tags, RT-104 batch export audit, and RT-105 authentication challenge
-tables.
+RT-103 tags, RT-104 batch export audit, RT-105 authentication challenge, and
+RT-106 conversation and message tables.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or

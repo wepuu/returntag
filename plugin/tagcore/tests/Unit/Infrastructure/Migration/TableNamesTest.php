@@ -48,9 +48,28 @@ final class TableNamesTest extends TestCase {
 	 * The same non-default prefix must determine the auth challenges table.
 	 */
 	public function test_auth_challenges_table_uses_supplied_wordpress_prefix(): void {
-
 		$table_names = new TableNames( 'rt_test_' );
 
 		self::assertSame( 'rt_test_returntag_auth_challenges', $table_names->auth_challenges() );
+	}
+
+	/**
+	 * The same non-default prefix must determine the conversations table.
+	 */
+	public function test_conversations_table_uses_supplied_wordpress_prefix(): void {
+
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_conversations', $table_names->conversations() );
+	}
+
+	/**
+	 * The same non-default prefix must determine the messages table.
+	 */
+	public function test_messages_table_uses_supplied_wordpress_prefix(): void {
+
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_messages', $table_names->messages() );
 	}
 }

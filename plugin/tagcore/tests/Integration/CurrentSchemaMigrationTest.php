@@ -12,6 +12,8 @@ namespace ReturnTag\TagCore\Tests\Integration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateAuthChallengesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchExportsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchesTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\CreateConversationsTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\CreateMessagesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateTagsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -48,34 +50,38 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Production composition must register contiguous versions one through four.
+	 * Production composition must register contiguous versions one through six.
 	 */
-	public function test_production_registry_registers_versions_one_through_four(): void {
+	public function test_production_registry_registers_versions_one_through_six(): void {
+
 		global $wpdb;
 
 		$registry   = ( new MigrationRegistryFactory( $wpdb ) )->create();
 		$migrations = $registry->all();
 
-		self::assertSame( 4, $registry->target_version() );
-		self::assertCount( 4, $migrations );
+		self::assertSame( 6, $registry->target_version() );
+		self::assertCount( 6, $migrations );
 		self::assertInstanceOf( CreateBatchesTableMigration::class, $migrations[0] );
 		self::assertInstanceOf( CreateTagsTableMigration::class, $migrations[1] );
 		self::assertInstanceOf( CreateBatchExportsTableMigration::class, $migrations[2] );
 		self::assertInstanceOf( CreateAuthChallengesTableMigration::class, $migrations[3] );
-		self::assertSame( array( 1, 2, 3, 4 ), array_map( static fn( $migration ): int => $migration->version(), $migrations ) );
+		self::assertInstanceOf( CreateConversationsTableMigration::class, $migrations[4] );
+		self::assertInstanceOf( CreateMessagesTableMigration::class, $migrations[5] );
+		self::assertSame( array( 1, 2, 3, 4, 5, 6 ), array_map( static fn( $migration ): int => $migration->version(), $migrations ) );
 	}
 
 	/**
 	 * The registered activation hook must execute the current production chain.
 	 */
-	public function test_plugin_activation_executes_production_chain_to_four(): void {
-		global $wpdb;
+	public function test_plugin_activation_executes_production_chain_to_six(): void {
+
+			global $wpdb;
 
 		do_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ), false );
 
 		$registry = ( new MigrationRegistryFactory( $wpdb ) )->create();
-		self::assertSame( 4, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
-		self::assertTrue( $registry->all()[3]->verify() );
+		self::assertSame( 6, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
+		self::assertTrue( $registry->all()[5]->verify() );
 	}
 
 	/**
@@ -86,8 +92,8 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	private function clear_schema( wpdb $database ): void {
 		$names = new TableNames( $database->prefix );
 
-		foreach ( array( $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table_name ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated test cleanup with trusted identifiers.
+		foreach ( array( $names->messages(), $names->conversations(), $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table_name ) {
+			   // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated test cleanup with trusted identifiers.
 			$database->query( "DROP TABLE IF EXISTS {$table_name}" );
 		}
 

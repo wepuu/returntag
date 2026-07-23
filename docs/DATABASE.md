@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-105 authentication challenges table Migration implemented
+**Status:** RT-106 conversations and messages table Migrations implemented
 
-**Schema created through RT-105:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`; current target version `4`
+**Schema created through RT-106:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`; current target version `6`
 
 ## 1. Purpose
 
@@ -14,7 +14,9 @@ runtime. RT-102 registers Migration `0001` for batches. RT-103 registers
 Migration `0002` for tags after verifying the required batches contract. Each
 version advances only after postcondition verification. RT-104 registers
 Migration `0003` for immutable export audit metadata. RT-105 registers
-Migration `0004` for privacy-oriented authentication challenge state.
+Migration `0004` for privacy-oriented authentication challenge state. RT-106
+registers Migrations `0005` and `0006` for privacy-preserving conversations and
+encrypted messages.
 
 ## 2. Table naming
 
@@ -52,10 +54,10 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-The batches, tags, batch exports, and authentication challenges table contracts
-are implemented by RT-102 through RT-105. The remaining table definitions and
-Migrations belong to RT-106 through RT-108 and must remain consistent with the
-PRD and ADR 0003.
+The batches, tags, batch exports, authentication challenges, conversations, and
+messages table contracts are implemented by RT-102 through RT-106. The
+remaining table definitions and Migrations belong to RT-107 and RT-108 and must
+remain consistent with the PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
 
@@ -185,6 +187,62 @@ sender, verifier, limiter, login flow, or cleanup task. Later code must treat
 self-describing authenticated-encryption envelope, keep keys outside the
 database, compare secrets safely, enforce the PRD expiry/attempt/resend limits,
 and define retention before writes are enabled.
+
+### 3.5 Schema version 5: `returntag_conversations`
+
+Migration `0005` creates the dynamically prefixed finder/owner conversation
+table with InnoDB and the active WordPress table character set and collation.
+Identifiers, lookup values, and status use case-sensitive ASCII storage;
+finder email ciphertext is an opaque binary envelope.
+
+| Column | Contract |
+|---|---|
+| `conversation_id` | Unsigned auto-increment bigint primary key |
+| `tag_id` | Required, case-sensitive ASCII `char(6)` Tag reference; no foreign key |
+| `owner_id_snapshot` | Required unsigned WordPress user ID snapshot; no foreign key |
+| `finder_email_ciphertext` | Required opaque `longblob`; plaintext finder email is forbidden |
+| `finder_email_lookup` | Required case-sensitive ASCII `char(64)` keyed-HMAC lookup |
+| `finder_verified_at` | Optional UTC verification time |
+| `conversation_status` | Required case-sensitive ASCII `varchar(32)` with no database default |
+| `expires_at` | Required UTC expiry supplied by the application |
+| `last_activity_at` | Required UTC activity time supplied by the application |
+| `created_at` | Required UTC creation time supplied by the application |
+
+Indexes are `(tag_id, conversation_status, last_activity_at)`,
+`(owner_id_snapshot, conversation_status, last_activity_at)`,
+`(finder_email_lookup, created_at)`, and `(conversation_status, expires_at)`.
+There is no uniqueness constraint on finder lookup or Tag ID because multiple
+historical conversations are valid. Future application code must explicitly
+write one of the canonical conversation states and verify the Tag and owner
+snapshot references.
+
+### 3.6 Schema version 6: `returntag_messages`
+
+Migration `0006` creates the dynamically prefixed encrypted conversation
+message table. Message bodies are opaque binary envelopes. Roles, delivery
+states, and provider identifiers use case-sensitive ASCII storage.
+
+| Column | Contract |
+|---|---|
+| `message_id` | Unsigned auto-increment bigint primary key |
+| `conversation_id` | Required unsigned Conversation ID storage; no foreign key |
+| `sender_role` | Required case-sensitive ASCII `varchar(32)` with no database default |
+| `body_ciphertext` | Required opaque `longblob`; plaintext message bodies are forbidden |
+| `delivery_status` | Required case-sensitive ASCII `varchar(32)`; default `queued` |
+| `provider_message_id` | Optional case-sensitive ASCII `varchar(191)`; non-unique |
+| `delivered_at` | Optional UTC confirmed-delivery time |
+| `created_at` | Required UTC creation time supplied by the application |
+
+Indexes are `(conversation_id, message_id)`, `(delivery_status, created_at)`,
+and the non-unique `provider_message_id`. Provider acceptance is not confirmed
+delivery. The current schema stores the latest provider identifier and delivery
+projection; it does not model provider namespaces or delivery-attempt history.
+A future expand Migration is required before multi-provider webhook ambiguity
+or attempt-history requirements are enabled.
+
+RT-106 supplies no Repository, encryption or HMAC service, Finder form, email
+verification, access token, queue handler, provider adapter, webhook, retention
+job, or conversation state machine. No production write path is enabled.
 
 ## 4. Forbidden relationships and fields
 
@@ -318,6 +376,18 @@ a missing expected index is repairable, and incompatible sensitive columns,
 engine, collation, or index definitions fail before `dbDelta()` mutation.
 Rollback preserves all four tables and the Schema option; version `0.1.0` code
 does not read the challenge table.
+
+RT-106 advances Schema version `4` through independently verified versions `5`
+and `6`; a fresh installation runs `0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6`.
+Migration `0005` verifies the complete authentication challenge predecessor
+chain before creating conversations. Migration `0006` verifies conversations
+before creating messages. Failure in `0005` leaves version `4`; failure in
+`0006` leaves the verified conversations table and version `5`, so retry resumes
+at Messages. Complete tables are idempotent, missing expected indexes are
+repairable before the version advances, and incompatible columns, engines,
+collations, or index definitions fail before `dbDelta()` mutation. Rollback
+preserves all six tables and the Schema option; version `0.1.0` has no business
+read or write path for the two new tables.
 
 ## 10. Retention and uninstall
 
