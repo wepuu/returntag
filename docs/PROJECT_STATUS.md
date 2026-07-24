@@ -14,11 +14,11 @@
 
 \* Plugin directory: `plugin/tagcore`
 
-\* Current baseline version: `0.1.0`
+\* Current baseline version: `0.2.0`
 
-\* Current completed milestone: Milestone 0 — Engineering Foundation
+\* Current completed milestone: Milestone 1 — Database and Migration
 
-\* Current workstream: Milestone 1 — Database and Migration (RT-109 implemented; schema target version `8`)
+\* Current workstream: Milestone 1 acceptance (RT-110 implemented; schema target version `8`)
 
 
 
@@ -64,6 +64,8 @@ The following tickets are considered implemented in the current baseline:
 
 \* RT-109 — Typed Repository interfaces, sensitive-value and Event policy hardening, `$wpdb` adapters, and transaction boundary
 
+\* RT-110 — Fresh installation, partial upgrade, uninstall, query-plan, and database-engine acceptance
+
 
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
@@ -78,7 +80,7 @@ The project uses Docker and `@wordpress/env`.
 
 
 
-Known environment at the Milestone 0 handoff:
+Known environment for Milestone 1 acceptance:
 
 
 
@@ -94,7 +96,7 @@ Known environment at the Milestone 0 handoff:
 
 \* WooCommerce: `10.9.4`
 
-\* TagCore: `0.1.0`
+\* TagCore: `0.2.0`
 
 \* TagCore status: active
 
@@ -308,7 +310,7 @@ Before modifying files, a new Codex session or account must:
 
 5\. Inspect the current branch and recent commits.
 
-6\. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-109.
+6\. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-110.
 
 7\. Inspect `package.json`, `.wp-env.json`, and GitHub Actions workflows.
 
@@ -326,8 +328,7 @@ The new session must not assume that account-level chat history is available.
 
 
 
-The next planned ticket after RT-109 is RT-110 (Milestone 1 integration,
-release, and acceptance completion).
+The next planned ticket after RT-110 is RT-201 (Batch administration).
 It has not been authorized by this status file.
 
 

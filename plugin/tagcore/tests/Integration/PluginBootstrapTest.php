@@ -20,7 +20,7 @@ final class PluginBootstrapTest extends WP_UnitTestCase {
 	 * Ensure stable foundation constants are defined after WordPress loads.
 	 */
 	public function test_plugin_defines_stable_foundation_constants(): void {
-		self::assertSame( '0.1.0', RETURNTAG_TAGCORE_VERSION );
+		self::assertSame( '0.2.0', RETURNTAG_TAGCORE_VERSION );
 		self::assertFileExists( RETURNTAG_TAGCORE_FILE );
 		self::assertDirectoryExists( RETURNTAG_TAGCORE_DIR );
 	}

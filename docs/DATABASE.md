@@ -1,6 +1,6 @@
 # ReturnTag Database Baseline
 
-**Status:** Schema version 8 and RT-109 typed Repository adapters implemented
+**Status:** Milestone 1 complete at Schema version 8 with typed Repository adapters and RT-110 acceptance coverage
 
 **Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
 
@@ -538,6 +538,19 @@ the plugin bootstrap does not register or call the new adapters. Schema
 inspection now distinguishes a successful no-row result from query failure or
 malformed metadata; inspection failure stops migration before `dbDelta()` and
 does not advance the Schema version.
+
+RT-110 also changes Schema version `8` to `8`. Production-composition tests
+cover fresh activation from no Option or tables, upgrade from verified version
+`4` while preserving predecessor data, reconciliation of complete tables when
+the Option is missing, and non-destructive uninstall. MariaDB 10.11 and MySQL
+8.0 run the integration suite in independent CI jobs; the normal local
+acceptance environment remains WordPress 7.0.2, PHP 8.4, WooCommerce 10.9.4,
+and the existing wp-env MariaDB image.
+
+Repository query shapes, cursors, projections, and candidate indexes are
+recorded in `docs/QUERY_CATALOG.md`. EXPLAIN tests require the expected index to
+remain available in `possible_keys` but do not freeze optimizer-specific plans
+or cost estimates.
 
 ## 10. Retention and uninstall
 

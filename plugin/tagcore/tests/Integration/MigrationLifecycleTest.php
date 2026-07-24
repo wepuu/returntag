@@ -106,6 +106,26 @@ final class MigrationLifecycleTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Registered lifecycle integration must remain inert on public request hooks.
+	 */
+	public function test_public_request_hook_does_not_run_migration(): void {
+		$migration = new RunnerMigrationFake( 1 );
+		$lifecycle = $this->create_lifecycle( $migration );
+
+		$lifecycle->register_hooks();
+
+		try {
+			do_action( 'returntag_public_request_fixture' );
+			self::assertSame( 0, $migration->up_count );
+		} finally {
+			remove_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ), array( $lifecycle, 'activate' ) );
+			remove_action( 'upgrader_process_complete', array( $lifecycle, 'after_plugin_upgrade' ) );
+			remove_action( 'admin_init', array( $lifecycle, 'maybe_migrate_in_admin' ) );
+			remove_action( 'admin_notices', array( $lifecycle, 'render_admin_notice' ) );
+		}
+	}
+
+	/**
 	 * Build one pending Migration lifecycle around in-memory collaborators.
 	 *
 	 * @param RunnerMigrationFake $migration Pending migration fixture.
