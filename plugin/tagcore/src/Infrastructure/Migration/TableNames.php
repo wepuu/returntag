@@ -76,4 +76,12 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_access_tokens';
 	}
+
+	/**
+	 * Return the privacy-safe business audit events table name.
+	 */
+	public function events(): string {
+
+		return $this->wordpress_prefix . 'returntag_events';
+	}
 }

@@ -166,6 +166,16 @@ compound index order. Failure retains version `6` and non-destructive state for
 diagnosis and retry. Rollback preserves all seven tables and the Schema option;
 version `0.1.0` exposes no token generation, exchange, or business write path.
 
+RT-108 advances the target Schema from `7` to `8` and creates the dynamically
+prefixed `returntag_events` table. Fresh install applies
+`0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8`; upgrade preserves all prior tables
+and access-token data. Deployment must verify version `8`, InnoDB, the exact
+privacy-safe column contract, ASCII binary identifiers, metadata nullability,
+and all actor, target, type, correlation, and global-time index orders. Failure
+retains version `7` and non-destructive state for diagnosis and retry. Rollback
+preserves all eight tables, audit events, and the Schema option; version
+`0.1.0` exposes no event writer or query path.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -189,7 +199,8 @@ CI, asset builds, unit and integration-test configuration, browser-test
 configuration, tagged artifact assembly, the RT-007 read-only global feature
 flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
 RT-103 tags, RT-104 batch export audit, RT-105 authentication challenge, and
-RT-106 conversation and message, and RT-107 access token tables.
+RT-106 conversation and message, RT-107 access token, and RT-108 business event
+tables.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or

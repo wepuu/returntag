@@ -33,4 +33,9 @@ It adds a unique digest, purpose, actor role, Conversation reference, and UTC
 expiry/exchange/revocation fields without adding generation, hashing, secure
 links, GET/POST exchange, sessions, revocation workflows, cleanup, or a
 Repository.
+RT-108 registers version `0008` for privacy-safe business event storage. It
+adds actor, target, result, correlation, optional metadata, and UTC creation
+fields plus stable audit-query indexes without emitting events, bridging the
+operational logger, enforcing metadata policy, or adding a Repository, admin
+query, export, retention job, update, or delete path.
 No product provider adapter is implemented.

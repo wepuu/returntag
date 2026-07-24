@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation and RT-107 Schema version 7 implemented; product workflows pending
+**Status:** Engineering foundation and RT-108 Schema version 8 implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -120,7 +120,8 @@ The directories contain layer guidance, the RT-007 feature-flag contracts and
 adapter, the RT-008 logging boundary, and the Migration runtime plus RT-102
 batches, RT-103 tags, RT-104 batch export audit, RT-105 authentication
 challenge, and RT-106 conversation and message schemas under
-`Infrastructure/Migration`. RT-107 adds the hash-only access token schema under
+`Infrastructure/Migration`. RT-107 adds the hash-only access token schema and
+RT-108 adds the privacy-safe business event schema under
 `Infrastructure/Migration`. Future implementation must preserve this mapping
 and dependency direction.
 
@@ -193,7 +194,12 @@ path. Public requests never invoke this runtime. RT-107 registers version
 hash-only secure-link and conversation access token state. It verifies the
 complete Messages predecessor before creation and adds no generator, hashing
 adapter, route, token exchange, session, revocation workflow, or cleanup job.
-RT-108 will add the final phase-one table Migration.
+RT-108 registers version `0008` for durable business event storage. It verifies
+the complete Access Tokens predecessor, adds actor/target/result/correlation
+and optional metadata fields, and provides stable query indexes without
+emitting events or adding a Repository. The Migration itself does not enforce
+append-only writes through triggers; RT-109 must expose an append/query-only
+Event Repository.
 
 External side effects must occur after durable state changes and be retry-safe.
 Transactional email must be queued rather than sent synchronously from a public
@@ -201,8 +207,9 @@ request.
 
 ## 9. Public contracts
 
-The engineering foundation introduces no REST route, product hook, event, or
-business service; RT-102 through RT-107 add only the current product tables.
+The engineering foundation introduces no REST route, product hook, emitted
+business event, or business service; RT-102 through RT-108 add only the current
+product tables.
 RT-007 introduces only the four approved global option names and a read
 contract; it neither creates nor writes those options. RT-008 adds
 engineering-only logging contracts and a disabled adapter without emitting
@@ -221,7 +228,10 @@ creating, verifying, sending, replying to, closing, reporting, or expiring a
 conversation. The RT-107 contract stores only a unique digest, purpose, actor
 role, conversation reference, and UTC expiry/exchange/revocation times. It does
 not generate, deliver, consume, exchange, revoke, or authenticate with a
-Token. The
+Token. The RT-108 contract stores only privacy-safe event classification,
+opaque internal actor/target identifiers, results, correlation, optional
+metadata text, and UTC creation time. It does not emit, update, delete, display,
+export, or retain an event through a product workflow. The
 Composer package, PSR-4 namespace, plugin headers, build entry points, and
 quality commands are also engineering contracts. Product names documented in the PRD
 remain future contracts and must not be implemented or changed outside their
@@ -256,10 +266,10 @@ PRD update before implementation.
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
 operations configuration. RT-101 supplies schema orchestration; RT-102 through
-RT-107 supply the batches, tags, batch export audit, authentication challenge,
-conversation, message, and access token tables only.
-Transactional email, encryption, rate limiting, metrics, the remaining
-numbered schema changes, and repositories still require their assigned tickets.
+RT-108 supply the batches, tags, batch export audit, authentication challenge,
+conversation, message, access token, and business event tables only.
+Transactional email, encryption, rate limiting, metrics, and repositories
+still require their assigned tickets.
 
 ### Runtime dependency rationale
 

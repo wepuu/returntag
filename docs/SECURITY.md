@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-107 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-108 Schema controls
 
 ## 1. Purpose
 
@@ -247,6 +247,20 @@ as practical, validate purpose and actor binding, reject expired/revoked/
 exchanged Tokens, and require explicit POST or equivalent confirmation before
 exchange. A GET request must remain non-consuming so email scanners cannot use
 a one-time Token through prefetch.
+
+RT-108 adds only the durable storage boundary for privacy-safe business audit
+events. It records classification codes, optional numeric actor identity,
+opaque target identity, result, correlation, optional metadata text, and UTC
+creation time. It has no dedicated plaintext OTP, Token, email, message body,
+order, Claim ID, device, pairing, or location field.
+
+The schema cannot make arbitrary metadata safe. RT-109 must reject invalid
+JSON, enforce size and nesting limits, allow only approved metadata keys and
+scalar structures, and forbid secrets, private messages, full email addresses,
+precise location, and external account or device identifiers before append.
+Correlation IDs are operational grouping values, not authentication tokens.
+RT-108 emits no event, registers no logger bridge or admin route, and exposes
+no production write or query API.
 
 ## 12. Review requirements
 
