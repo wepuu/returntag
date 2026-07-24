@@ -285,6 +285,18 @@ missing table. Repository lookups do not authorize actors, verify OTPs,
 exchange Tokens, or implement business state transitions. RT-109 registers no
 logger bridge, route, admin screen, or production write path.
 
+RT-110 adds security-oriented installation and upgrade acceptance. Tests prove
+that a partial upgrade preserves predecessor records, a complete schema can
+restore a missing version Option without DDL, ordinary public lifecycle hooks
+cannot run migrations, and uninstall preserves tables, Schema state, and
+records. Database compatibility jobs use synthetic values only and do not
+persist CI databases or expose production credentials.
+
+Query-plan tests execute EXPLAIN over prepared, dynamically prefixed statements.
+They do not log bound ciphertext, hashes, OTPs, Tokens, email addresses, or
+message content. The Query Catalog marks complete-record reads so future public
+and administrative lists must use explicit privacy-reviewed projections.
+
 ## 12. Review requirements
 
 Security-sensitive changes must include automated negative tests, a review of

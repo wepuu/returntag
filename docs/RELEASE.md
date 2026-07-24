@@ -21,7 +21,8 @@ TagCore uses semantic versioning:
 - major releases may contain explicitly approved breaking changes.
 
 The plugin header, release tag, artifact name, and release record must identify
-the same version. Milestone 0 uses version `0.1.0`.
+the same version. Milestone 0 uses version `0.1.0`; Milestone 1 closes at
+version `0.2.0` with Schema version `8`.
 
 ## 3. Git workflow
 
@@ -187,6 +188,18 @@ and upgrade behavior are otherwise unchanged. Code rollback preserves all
 eight tables, Schema version `8`, and stored data; the prior stable code does
 not instantiate these adapters.
 
+RT-110 updates the plugin and project version from `0.1.0` to `0.2.0` while
+leaving Schema version `8` unchanged. Acceptance covers fresh activation,
+upgrade from version `4`, reconciliation of a complete schema with a missing
+Option, non-destructive uninstall, bounded Repository query plans, and the
+MariaDB 10.11/MySQL 8.0 compatibility matrix. No dependency or lock resolution
+changes are included.
+
+Code rollback to the RT-109 `0.1.0` baseline preserves all eight tables,
+`returntag_schema_version=8`, and stored records. That code understands the same
+Schema and registers no product Repository consumer. RT-110 does not authorize
+or create a Git tag, release ZIP, GitHub Release, publication, or deployment.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -203,7 +216,7 @@ When a release causes risk:
 Feature flags are containment tools, not substitutes for authorization,
 validation, tests, or a permanent fix.
 
-## 10. Foundation release status
+## 10. Milestone 1 release status
 
 The repository has a Composer package, PSR-4 autoloading, pinned dependencies,
 CI, asset builds, unit and integration-test configuration, browser-test
@@ -212,7 +225,8 @@ flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
 RT-103 tags, RT-104 batch export audit, RT-105 authentication challenge, and
 RT-106 conversation and message, RT-107 access token, and RT-108 business event
 tables. RT-109 provides typed Repository contracts and `$wpdb` adapters for
-those tables without registering a production consumer.
+those tables without registering a production consumer. RT-110 verifies the
+production Migration composition and closes the data milestone at `0.2.0`.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or

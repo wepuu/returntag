@@ -134,12 +134,19 @@ hook, state transition, ID generation, OTP, activation, Finder relay, email,
 export, or WooCommerce behavior. Schema remains `8` and the plugin remains
 `0.1.0`.
 
+RT-110 closes Milestone 1 at plugin and project version `0.2.0`. It adds
+production-composition acceptance tests for fresh activation, partial upgrade,
+version reconciliation, non-destructive uninstall, public-request lifecycle
+isolation, and Repository EXPLAIN coverage. CI also verifies the complete
+integration suite against MariaDB 10.11 and MySQL 8.0. No Schema version,
+product workflow, public API, Hook, Option, or dependency changes are introduced.
+
 ## Repository layout
 
 ```text
 .
 |-- .github/                     Issue templates, CI, dependency and release workflows
-|-- docs/                        Product, architecture, data, security, and release docs
+|-- docs/                        Product, architecture, query, data, security, and release docs
 |-- plugin/tagcore/
 |   |-- assets/src/              Admin and public TypeScript/CSS entry points
 |   |-- src/                     PHP architectural layers

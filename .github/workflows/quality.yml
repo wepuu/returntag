@@ -112,6 +112,60 @@ jobs:
         if: always()
         run: npx wp-env stop ${{ matrix.config }}
 
+  database-compatibility:
+    name: Database ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - environment: mariadb-10.11
+            image: mariadb:10.11
+          - environment: mysql-8.0
+            image: mysql:8.0
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_DATABASE: wordpress_test
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_ROOT_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=password --silent"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 20
+    env:
+      DB_HOST: 127.0.0.1:3306
+      DB_NAME: wordpress_test
+      DB_PASSWORD: password
+      DB_USER: root
+      WP_DEVELOP_DIR: ${{ runner.temp }}/wordpress-develop
+      WP_TESTS_DIR: ${{ runner.temp }}/wordpress-develop/tests/phpunit
+      WP_VERSION: 7.0.2
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mysqli
+          tools: composer:v2
+
+      - name: Install Composer dependencies
+        run: composer install --working-dir=plugin/tagcore --no-interaction --prefer-dist
+
+      - name: Install WordPress test library
+        run: bash .github/scripts/install-wordpress-tests.sh
+
+      - name: Run database compatibility tests
+        run: composer --working-dir=plugin/tagcore test:integration
+
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest

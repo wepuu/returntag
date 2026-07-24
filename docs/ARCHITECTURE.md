@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation, Schema version 8, and RT-109 persistence adapters implemented; product workflows pending
+**Status:** Milestone 1 data foundation complete at version 0.2.0 and Schema version 8; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -232,6 +232,13 @@ encryption or keyed hashing occurred; future approved cryptographic adapters
 must be their only source in product workflows. Transaction callbacks reject
 nesting, commit on success, roll back on exceptions, and do not automatically
 retry side effects.
+
+RT-110 adds no runtime composition or product behavior. It closes the data
+foundation with production-registry installation and upgrade tests,
+non-destructive uninstall verification, public-request lifecycle isolation,
+query-to-index documentation, and database-engine compatibility checks.
+Milestone 1 remains a modular persistence foundation rather than a usable
+activation, recovery, email, or commerce product.
 
 External side effects must occur after durable state changes and be retry-safe.
 Transactional email must be queued rather than sent synchronously from a public
