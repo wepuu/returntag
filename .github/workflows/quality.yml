@@ -142,8 +142,8 @@ jobs:
       DB_NAME: wordpress_test
       DB_PASSWORD: password
       DB_USER: root
-      WP_DEVELOP_DIR: ${{ runner.temp }}/wordpress-develop
-      WP_TESTS_DIR: ${{ runner.temp }}/wordpress-develop/tests/phpunit
+      WP_DEVELOP_DIR: ${{ github.workspace }}/.wordpress-develop
+      WP_TESTS_DIR: ${{ github.workspace }}/.wordpress-develop/tests/phpunit
       WP_VERSION: 7.0.2
     steps:
       - name: Check out repository
