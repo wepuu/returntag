@@ -176,6 +176,17 @@ retains version `7` and non-destructive state for diagnosis and retry. Rollback
 preserves all eight tables, audit events, and the Schema option; version
 `0.1.0` exposes no event writer or query path.
 
+RT-109 leaves the target Schema at `8` and the plugin version at `0.1.0`. It
+adds internal typed persistence records, non-interchangeable sensitive-value
+objects, Repository ports, `$wpdb` adapters, bounded cursors, default-deny
+Event identity/metadata validation, and a transaction boundary without adding
+a Migration, DDL, Option, Hook, route, or product workflow. Correlation queries
+use the existing index through an `event_id` cursor. Schema inspection errors
+now stop before DDL instead of being classified as absent tables. Fresh install
+and upgrade behavior are otherwise unchanged. Code rollback preserves all
+eight tables, Schema version `8`, and stored data; the prior stable code does
+not instantiate these adapters.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -200,9 +211,10 @@ configuration, tagged artifact assembly, the RT-007 read-only global feature
 flag adapter, the RT-101 Migration runtime, the RT-102 batches table, and the
 RT-103 tags, RT-104 batch export audit, RT-105 authentication challenge, and
 RT-106 conversation and message, RT-107 access token, and RT-108 business event
-tables.
+tables. RT-109 provides typed Repository contracts and `$wpdb` adapters for
+those tables without registering a production consumer.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because no workflow consumes the flags or
-logger and there is no public route, repository, email-provider adapter,
+logger and there is no public route, business use case, email-provider adapter,
 security workflow, batch workflow, or other product business logic.

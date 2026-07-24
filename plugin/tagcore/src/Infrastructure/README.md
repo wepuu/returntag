@@ -38,4 +38,17 @@ adds actor, target, result, correlation, optional metadata, and UTC creation
 fields plus stable audit-query indexes without emitting events, bridging the
 operational logger, enforcing metadata policy, or adding a Repository, admin
 query, export, retention job, update, or delete path.
+
+RT-109 adds `$wpdb` adapters for the eight tables and a non-nesting transaction
+manager under `Persistence/`. The adapters use the trusted Migration table-name
+mapping, parameterized values, strict stored-row mapping, bounded stable
+cursors, logical-reference checks, fixed persistence errors, and per-operation
+suppression of raw database error output. The Event adapter is append/query
+only, requires explicit identity and metadata policies, and uses a dedicated
+descending `event_id` correlation cursor that matches the existing index.
+Sensitive stored values are mapped through distinct types and revalidated on
+read. Migration inspection distinguishes a successful absent-table result from
+query failure or malformed metadata and stops before DDL on failure. These
+adapters are not registered by the plugin bootstrap and implement no product
+workflow.
 No product provider adapter is implemented.

@@ -11,3 +11,12 @@ product use case.
 RT-008 defines `ApplicationLogger`, a project-owned PSR-3 marker port, and
 `LogContextSanitizer`. Application code must use these abstractions and must
 not call WordPress encoding or PHP error-log functions directly.
+
+RT-109 adds typed immutable persistence records, bounded cursor/page types,
+Repository ports for the eight Schema version 8 tables, distinct encrypted
+payload/digest/hash value objects, default-deny Event identity and metadata
+policies, and a transaction port. Sensitive value types prevent accidental
+cross-use but do not perform or prove encryption or hashing; approved
+cryptographic adapters remain responsible for producing them. The ports expose
+no generic CRUD, delete, state transition, authentication, token exchange,
+activation, export, relay, or WooCommerce behavior.
