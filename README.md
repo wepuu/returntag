@@ -8,10 +8,10 @@ The repository contains an executable engineering foundation for a modular
 WordPress plugin. WordPress can load the plugin, Composer provides PSR-4 and
 runtime infrastructure, Node tooling builds isolated admin/public assets, and
 CI enforces the initial quality gates. RT-101 provides the forward-only
-Migration runtime; RT-102 through RT-107 register schema versions `1` through
-`7` for the batches, tags, batch export audit, authentication challenge,
-conversation, message, and access token tables. Product business workflows are
-not yet implemented.
+Migration runtime; RT-102 through RT-108 register schema versions `1` through
+`8` for the batches, tags, batch export audit, authentication challenge,
+conversation, message, access token, and privacy-safe business event tables.
+Product business workflows are not yet implemented.
 
 ## Canonical naming
 
@@ -68,7 +68,7 @@ email provider, OTP flow, activation flow, finder relay, WooCommerce business
 hook, or batch workflow. The only product tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
-and the RT-107 access token schema.
+the RT-107 access token schema, and the RT-108 business event schema.
 
 RT-007 defines the four approved global feature flag names and a read-only
 WordPress option adapter. Missing or ambiguous values fail closed, and no
@@ -102,7 +102,11 @@ verifies. RT-107 registers Migration `0007` for
 explicit UTC lifecycle timestamps. It adds no Token generator, secure-link
 route, or exchange behavior. Schema version advances to `7` only after the
 complete predecessor chain and access token table verify. Normal public
-requests do not run DDL.
+requests do not run DDL. RT-108 registers Migration `0008` for
+`returntag_events`, with actor, target, result, correlation, optional metadata
+storage, and stable audit-query indexes. It emits no event and adds no
+Repository or business write path. Schema version advances to `8` only after
+the complete predecessor chain and Events table verify.
 Network-wide activation is not supported in Milestone 1.
 
 ## Repository layout

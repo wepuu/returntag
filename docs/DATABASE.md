@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-107 access tokens table Migration implemented
+**Status:** RT-108 business events table Migration implemented
 
-**Schema created through RT-107:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`; current target version `7`
+**Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
 
 ## 1. Purpose
 
@@ -17,7 +17,8 @@ Migration `0003` for immutable export audit metadata. RT-105 registers
 Migration `0004` for privacy-oriented authentication challenge state. RT-106
 registers Migrations `0005` and `0006` for privacy-preserving conversations and
 encrypted messages. RT-107 registers Migration `0007` for hash-only access
-token lifecycle state.
+token lifecycle state. RT-108 registers Migration `0008` for privacy-safe
+business audit events.
 
 ## 2. Table naming
 
@@ -55,10 +56,8 @@ load, activation, deactivation, or uninstall.
 | `returntag_access_tokens` | Hashed secure-link tokens, purpose, expiry, exchange, and revocation state |
 | `returntag_events` | Privacy-safe business audit events |
 
-The batches, tags, batch exports, authentication challenges, conversations, and
-messages, and access token table contracts are implemented by RT-102 through
-RT-107. The remaining table definition and Migration belong to RT-108 and must
-remain consistent with the PRD and ADR 0003.
+The eight phase-one table contracts are implemented by RT-102 through RT-108
+and remain governed by the PRD and ADR 0003.
 
 ### 3.1 Schema version 1: `returntag_batches`
 
@@ -280,6 +279,41 @@ RT-107 supplies no Token generator, hashing service, Repository, secure-link
 route, GET or POST handler, session, exchange, revocation workflow, logger,
 audit event, or retention job. No production write path is enabled.
 
+### 3.8 Schema version 8: `returntag_events`
+
+Migration `0008` creates the dynamically prefixed business events table with
+InnoDB and the active WordPress table character set and collation. Event,
+actor, target, result, and correlation codes use case-sensitive ASCII storage.
+Optional metadata uses the WordPress table character set as portable
+`longtext`; a future Repository must validate JSON before writing it.
+
+| Column | Contract |
+|---|---|
+| `event_id` | Unsigned auto-increment bigint primary key |
+| `event_type` | Required case-sensitive ASCII `varchar(64)` |
+| `actor_type` | Required case-sensitive ASCII `varchar(32)` |
+| `actor_id` | Optional unsigned WordPress or internal actor ID; no foreign key |
+| `target_type` | Required case-sensitive ASCII `varchar(32)` |
+| `target_id` | Required case-sensitive ASCII `varchar(191)` supporting numeric and public Tag identifiers |
+| `event_result` | Required case-sensitive ASCII `varchar(32)` |
+| `correlation_id` | Optional case-sensitive ASCII `varchar(64)` operation correlation value |
+| `metadata_json` | Optional WordPress-charset `longtext`; future write paths must validate bounded privacy-safe JSON |
+| `created_at` | Required UTC creation time supplied by the application |
+
+Non-unique indexes cover `(event_type, created_at)`,
+`(target_type, target_id, created_at)`,
+`(actor_type, actor_id, created_at)`, and `correlation_id`. The
+`(created_at, event_id)` index supports stable global audit pagination and
+time-based retention scans. Correlation is intentionally non-unique because one
+business operation may append multiple related events.
+
+The PRD event names are examples, not a closed SQL enum. RT-108 adds no event
+writer, Repository, admin query, export, retention job, logger bridge, trigger,
+or product workflow. Append-only behavior is not implemented by database
+triggers; RT-109 must expose Event persistence through append and bounded query
+contracts without update or delete methods. Until then, no production write
+path is enabled.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:
@@ -433,6 +467,16 @@ a missing expected index is repairable, and incompatible hash storage, engine,
 collation, column, or index definitions fail before `dbDelta()` mutation.
 Rollback preserves all seven tables and the Schema option; version `0.1.0` has
 no access token business read or write path.
+
+RT-108 advances Schema version `7` to `8`; a fresh installation runs the
+contiguous `0 -> 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8` chain. Migration `0008`
+verifies the complete Access Tokens predecessor before creating Events.
+Missing or incompatible predecessors leave version `7`. A complete table is
+idempotent, missing expected indexes are repairable, and incompatible
+metadata, identifier, engine, collation, column, or index definitions fail
+before `dbDelta()` mutation. Rollback preserves all eight tables, business
+events, and the Schema option; version `0.1.0` has no event business read or
+write path.
 
 ## 10. Retention and uninstall
 
