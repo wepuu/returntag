@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 0 — Engineering Foundation
 
-\* Current workstream: Milestone 1 — Database and Migration (RT-108 implemented; schema target version `8`)
+\* Current workstream: Milestone 1 — Database and Migration (RT-109 implemented; schema target version `8`)
 
 
 
@@ -61,6 +61,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-107 — Access Tokens table Migration (`0007`)
 
 \* RT-108 — Events table Migration (`0008`)
+
+\* RT-109 — Typed Repository interfaces, sensitive-value and Event policy hardening, `$wpdb` adapters, and transaction boundary
 
 
 
@@ -306,7 +308,7 @@ Before modifying files, a new Codex session or account must:
 
 5\. Inspect the current branch and recent commits.
 
-6\. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-108.
+6\. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-109.
 
 7\. Inspect `package.json`, `.wp-env.json`, and GitHub Actions workflows.
 
@@ -324,8 +326,8 @@ The new session must not assume that account-level chat history is available.
 
 
 
-The next planned ticket after RT-108 is RT-109 (typed Repository interfaces and
-`$wpdb` adapters).
+The next planned ticket after RT-109 is RT-110 (Milestone 1 integration,
+release, and acceptance completion).
 It has not been authorized by this status file.
 
 

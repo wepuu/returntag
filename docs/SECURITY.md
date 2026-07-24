@@ -1,6 +1,6 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, and RT-108 Schema controls
+**Status:** Security baseline plus RT-007 flags, RT-008 logging, RT-108 Schema controls, and RT-109 persistence boundaries
 
 ## 1. Purpose
 
@@ -254,13 +254,36 @@ opaque target identity, result, correlation, optional metadata text, and UTC
 creation time. It has no dedicated plaintext OTP, Token, email, message body,
 order, Claim ID, device, pairing, or location field.
 
-The schema cannot make arbitrary metadata safe. RT-109 must reject invalid
-JSON, enforce size and nesting limits, allow only approved metadata keys and
-scalar structures, and forbid secrets, private messages, full email addresses,
-precise location, and external account or device identifiers before append.
-Correlation IDs are operational grouping values, not authentication tokens.
-RT-108 emits no event, registers no logger bridge or admin route, and exposes
-no production write or query API.
+The schema cannot make arbitrary metadata safe. RT-109 rejects invalid JSON,
+nested structures, unapproved or sensitive keys, full email-shaped values, and
+encoded metadata larger than 4096 bytes. Values are limited to flat scalar
+types, and the default policy denies all non-empty metadata until a future
+ticket supplies an event-specific allowlist. Stored metadata is revalidated on
+read. Correlation IDs are operational grouping values, not authentication
+tokens.
+
+Event identity is a separate default-deny boundary. Every Event write must be
+approved by an event-specific actor/target/correlation policy, while a generic
+guard rejects email, IP, digest/token-shaped, credential, device, session, and
+location-like identifiers. Stored Event identities are checked again on read.
+No production Event policy or writer is registered in RT-109.
+
+RT-109 represents finder email and message ciphertext, keyed lookup digests,
+OTP password hashes, and access-token digests with distinct value objects so
+they cannot be accidentally interchanged in Repository calls. Hydration
+revalidates their storage shape and rejects a plaintext six-character OTP in
+the hash column. These value objects do not prove that encryption or keyed
+hashing occurred; only a future approved cryptographic adapter may create them
+from product input.
+
+Repository adapters parameterize query values and use only trusted table
+identifiers. Persistence and schema-inspection errors return fixed messages;
+raw `$wpdb` error output is suppressed for the operation and its prior setting
+is restored so SQL and bound data are not leaked. Failed or malformed
+`information_schema` reads stop migration instead of being treated as a
+missing table. Repository lookups do not authorize actors, verify OTPs,
+exchange Tokens, or implement business state transitions. RT-109 registers no
+logger bridge, route, admin screen, or production write path.
 
 ## 12. Review requirements
 

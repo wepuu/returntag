@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Engineering foundation and RT-108 Schema version 8 implemented; product workflows pending
+**Status:** Engineering foundation, Schema version 8, and RT-109 persistence adapters implemented; product workflows pending
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -122,7 +122,10 @@ batches, RT-103 tags, RT-104 batch export audit, RT-105 authentication
 challenge, and RT-106 conversation and message schemas under
 `Infrastructure/Migration`. RT-107 adds the hash-only access token schema and
 RT-108 adds the privacy-safe business event schema under
-`Infrastructure/Migration`. Future implementation must preserve this mapping
+`Infrastructure/Migration`. RT-109 adds canonical persistence enums under
+`Domain`, typed records, sensitive-value objects, Event policies, and
+Repository ports under `Application/Persistence`, and `$wpdb` adapters under
+`Infrastructure/Persistence`. Future implementation must preserve this mapping
 and dependency direction.
 
 ## 6. Bootstrap boundary
@@ -177,7 +180,9 @@ uses a trusted table-name mapping, and verifies the batches table through
 fails closed if its required version `0001` batches contract has drifted.
 Existing tables are classified before `dbDelta()` runs; only table creation or
 missing-index repair is allowed, while incompatible definitions fail before
-DDL mutation.
+DDL mutation. RT-109 hardens this boundary so a failed or malformed
+`information_schema` query raises a fixed migration error; only a successful
+query returning no table row is classified as absent.
 
 RT-104 registers version `0003` for batch export audit metadata that later
 Repository and Application contracts must treat as append-only. The database
@@ -198,8 +203,35 @@ RT-108 registers version `0008` for durable business event storage. It verifies
 the complete Access Tokens predecessor, adds actor/target/result/correlation
 and optional metadata fields, and provides stable query indexes without
 emitting events or adding a Repository. The Migration itself does not enforce
-append-only writes through triggers; RT-109 must expose an append/query-only
-Event Repository.
+append-only writes through triggers.
+
+RT-109 implements narrow persistence contracts for all eight tables. Domain
+backed enums freeze the canonical stored vocabulary without adding state
+machines. Application owns immutable create/stored records, bounded page and
+cursor types, Repository ports, Event identity and metadata policies, distinct
+sensitive-value objects, and the transaction port. Infrastructure maps those
+contracts to trusted dynamic table names and parameterized `$wpdb` operations.
+It verifies logical references before inserts because the schema intentionally
+has no physical foreign keys.
+
+Repositories expose only ticket-approved insert/append, lookup, and bounded
+query methods. They expose no generic array CRUD, update, delete, state
+transition, or unbounded list operation. The Event Repository is append/query
+only. Default policies deny every Event identity and every non-empty metadata
+object; future tickets must supply event-specific identity and scalar-key
+allowlists before writing events. A generic identifier guard additionally
+rejects email, IP, digest/token-shaped, credential, device, session, and
+location-like values. Correlation queries use a dedicated descending
+`event_id` cursor to follow the existing `correlation_id` index without a
+Schema change.
+
+Encrypted payload, lookup digest, OTP hash, and access-token digest types are
+not interchangeable. Stored values are revalidated during hydration, including
+recognition of OTP password-hash formats. These types cannot prove that
+encryption or keyed hashing occurred; future approved cryptographic adapters
+must be their only source in product workflows. Transaction callbacks reject
+nesting, commit on success, roll back on exceptions, and do not automatically
+retry side effects.
 
 External side effects must occur after durable state changes and be retry-safe.
 Transactional email must be queued rather than sent synchronously from a public
@@ -209,7 +241,7 @@ request.
 
 The engineering foundation introduces no REST route, product hook, emitted
 business event, or business service; RT-102 through RT-108 add only the current
-product tables.
+product tables and RT-109 adds internal persistence contracts and adapters.
 RT-007 introduces only the four approved global option names and a read
 contract; it neither creates nor writes those options. RT-008 adds
 engineering-only logging contracts and a disabled adapter without emitting
@@ -231,7 +263,9 @@ not generate, deliver, consume, exchange, revoke, or authenticate with a
 Token. The RT-108 contract stores only privacy-safe event classification,
 opaque internal actor/target identifiers, results, correlation, optional
 metadata text, and UTC creation time. It does not emit, update, delete, display,
-export, or retain an event through a product workflow. The
+export, or retain an event through a product workflow. RT-109 makes the eight
+table adapters available to future composition roots but does not instantiate
+them from the plugin bootstrap or expose them through a public API. The
 Composer package, PSR-4 namespace, plugin headers, build entry points, and
 quality commands are also engineering contracts. Product names documented in the PRD
 remain future contracts and must not be implemented or changed outside their

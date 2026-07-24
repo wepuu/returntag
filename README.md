@@ -11,7 +11,11 @@ CI enforces the initial quality gates. RT-101 provides the forward-only
 Migration runtime; RT-102 through RT-108 register schema versions `1` through
 `8` for the batches, tags, batch export audit, authentication challenge,
 conversation, message, access token, and privacy-safe business event tables.
-Product business workflows are not yet implemented.
+RT-109 adds typed persistence records, distinct sensitive-value objects,
+bounded Repository ports, `$wpdb` adapters, and a non-nesting transaction
+boundary for those eight tables. It also makes schema inspection failures
+explicit and keeps Event writes disabled until an identity allowlist is
+provided. Product business workflows are not yet implemented.
 
 ## Canonical naming
 
@@ -108,6 +112,27 @@ storage, and stable audit-query indexes. It emits no event and adds no
 Repository or business write path. Schema version advances to `8` only after
 the complete predecessor chain and Events table verify.
 Network-wide activation is not supported in Milestone 1.
+
+RT-109 adds the canonical persistence enums and immutable create/stored
+records, distinct types for encrypted payloads, keyed lookup digests, OTP
+password hashes, and access-token digests, eight narrow Application Repository
+ports, bounded stable-cursor result pages, and Infrastructure `$wpdb` adapters.
+References between tables are verified by the adapters because the schema
+deliberately has no physical foreign keys. Sensitive types prevent values from
+being accidentally interchanged; future approved cryptographic adapters remain
+responsible for actually encrypting or hashing source values.
+
+The Event adapter is append/query-only. It requires an explicit identity
+allowlist for every write and rejects non-empty metadata unless a separate
+event-specific metadata allowlist is supplied. Correlation queries use a
+dedicated descending `event_id` cursor that matches the existing Schema version
+8 index. Migration metadata-query errors fail closed and are no longer
+classified as absent tables. Transaction callbacks commit on success, roll
+back on exceptions, reject nesting, and do not retry automatically. These
+adapters are not registered by the plugin bootstrap and add no product route,
+hook, state transition, ID generation, OTP, activation, Finder relay, email,
+export, or WooCommerce behavior. Schema remains `8` and the plugin remains
+`0.1.0`.
 
 ## Repository layout
 

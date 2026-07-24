@@ -137,23 +137,24 @@ final class WordPressSchemaInspector {
 	 *
 	 * @param string $table_name Trusted table name.
 	 * @return array{engine: string, collation: string}|null
+	 * @throws MigrationException When schema metadata cannot be read safely.
 	 */
 	private function read_table( string $table_name ): ?array {
 		$database_name = $this->database_name();
+		$query         = $this->prepare(
+			'SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+			array( $database_name, $table_name )
+		);
+		$row           = $this->with_suppressed_errors(
+			fn(): ?array => $this->database->get_row( $query, ARRAY_A )
+		);
 
-		if ( null === $database_name ) {
+		if ( null === $row ) {
 			return null;
 		}
 
-		$query = $this->database->prepare(
-			'SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
-			$database_name,
-			$table_name
-		);
-		$row   = $this->database->get_row( $query, ARRAY_A );
-
-		if ( ! is_array( $row ) || ! is_string( $row['ENGINE'] ?? null ) || ! is_string( $row['TABLE_COLLATION'] ?? null ) ) {
-			return null;
+		if ( ! is_string( $row['ENGINE'] ?? null ) || ! is_string( $row['TABLE_COLLATION'] ?? null ) ) {
+			throw new MigrationException( 'Schema inspection failed.' );
 		}
 
 		return array(
@@ -176,29 +177,26 @@ final class WordPressSchemaInspector {
 	 *     collation: string|null,
 	 *     extra: string
 	 * }>
+	 * @throws MigrationException When schema metadata cannot be read safely.
 	 */
 	private function read_columns( string $table_name ): array {
 		$database_name = $this->database_name();
-
-		if ( null === $database_name ) {
-			return array();
-		}
-
-		$query = $this->database->prepare(
+		$query         = $this->prepare(
 			'SELECT COLUMN_NAME, DATA_TYPE, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, CHARACTER_MAXIMUM_LENGTH, CHARACTER_SET_NAME, COLLATION_NAME, EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION',
-			$database_name,
-			$table_name
+			array( $database_name, $table_name )
 		);
-		$rows  = $this->database->get_results( $query, ARRAY_A );
-		$map   = array();
+		$rows          = $this->with_suppressed_errors(
+			fn(): ?array => $this->database->get_results( $query, ARRAY_A )
+		);
+		$map           = array();
 
-		if ( ! is_array( $rows ) ) {
-			return array();
+		if ( null === $rows ) {
+			throw new MigrationException( 'Schema inspection failed.' );
 		}
 
 		foreach ( $rows as $row ) {
 			if ( ! is_string( $row['COLUMN_NAME'] ?? null ) ) {
-				return array();
+				throw new MigrationException( 'Schema inspection failed.' );
 			}
 
 			$column_name         = $row['COLUMN_NAME'];
@@ -269,24 +267,21 @@ final class WordPressSchemaInspector {
 	 *
 	 * @param string $table_name Trusted table name.
 	 * @return array<string, array{unique: bool, columns: list<string>}>
+	 * @throws MigrationException When schema metadata cannot be read safely.
 	 */
 	private function read_indexes( string $table_name ): array {
 		$database_name = $this->database_name();
-
-		if ( null === $database_name ) {
-			return array();
-		}
-
-		$query = $this->database->prepare(
+		$query         = $this->prepare(
 			'SELECT INDEX_NAME, NON_UNIQUE, SEQ_IN_INDEX, COLUMN_NAME, SUB_PART FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s ORDER BY INDEX_NAME, SEQ_IN_INDEX',
-			$database_name,
-			$table_name
+			array( $database_name, $table_name )
 		);
-		$rows  = $this->database->get_results( $query, ARRAY_A );
-		$map   = array();
+		$rows          = $this->with_suppressed_errors(
+			fn(): ?array => $this->database->get_results( $query, ARRAY_A )
+		);
+		$map           = array();
 
-		if ( ! is_array( $rows ) ) {
-			return array();
+		if ( null === $rows ) {
+			throw new MigrationException( 'Schema inspection failed.' );
 		}
 
 		foreach ( $rows as $row ) {
@@ -294,7 +289,7 @@ final class WordPressSchemaInspector {
 			$column     = $row['COLUMN_NAME'] ?? null;
 
 			if ( ! is_string( $index_name ) || ! is_string( $column ) || null !== ( $row['SUB_PART'] ?? null ) ) {
-				return array();
+				throw new MigrationException( 'Schema inspection failed.' );
 			}
 
 			if ( ! isset( $map[ $index_name ] ) ) {
@@ -314,11 +309,62 @@ final class WordPressSchemaInspector {
 
 	/**
 	 * Read the active database name without accessing protected wpdb state.
+	 *
+	 * @throws MigrationException When the active database cannot be determined.
 	 */
-	private function database_name(): ?string {
-		$database_name = $this->database->get_var( 'SELECT DATABASE()' );
+	private function database_name(): string {
+		$database_name = $this->with_suppressed_errors(
+			fn(): mixed => $this->database->get_var( 'SELECT DATABASE()' )
+		);
 
-		return is_string( $database_name ) && '' !== $database_name ? $database_name : null;
+		if ( ! is_string( $database_name ) || '' === $database_name ) {
+			throw new MigrationException( 'Schema inspection failed.' );
+		}
+
+		return $database_name;
+	}
+
+	/**
+	 * Prepare one information_schema query.
+	 *
+	 * @param string $query Query template.
+	 * @param array  $arguments Query values.
+	 * @phpstan-param literal-string $query
+	 * @phpstan-param list<string> $arguments
+	 * @throws MigrationException When query preparation fails.
+	 */
+	private function prepare( string $query, array $arguments ): string {
+		$prepared = $this->database->prepare( $query, $arguments );
+
+		if ( ! is_string( $prepared ) ) {
+			throw new MigrationException( 'Schema inspection failed.' );
+		}
+
+		return $prepared;
+	}
+
+	/**
+	 * Execute one metadata query without exposing raw database errors.
+	 *
+	 * @template T
+	 * @param callable(): T $operation Metadata query.
+	 * @return T
+	 * @throws MigrationException When the database reports a metadata-query failure.
+	 */
+	private function with_suppressed_errors( callable $operation ): mixed {
+		$previous = $this->database->suppress_errors( true );
+
+		try {
+			$result = $operation();
+
+			if ( '' !== $this->database->last_error ) {
+				throw new MigrationException( 'Schema inspection failed.' );
+			}
+
+			return $result;
+		} finally {
+			$this->database->suppress_errors( $previous );
+		}
 	}
 
 	/**

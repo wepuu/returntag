@@ -1,6 +1,6 @@
 # ReturnTag Database Baseline
 
-**Status:** RT-108 business events table Migration implemented
+**Status:** Schema version 8 and RT-109 typed Repository adapters implemented
 
 **Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
 
@@ -18,7 +18,8 @@ Migration `0004` for privacy-oriented authentication challenge state. RT-106
 registers Migrations `0005` and `0006` for privacy-preserving conversations and
 encrypted messages. RT-107 registers Migration `0007` for hash-only access
 token lifecycle state. RT-108 registers Migration `0008` for privacy-safe
-business audit events.
+business audit events. RT-109 adds typed persistence contracts and `$wpdb`
+adapters for the eight existing tables without changing the schema.
 
 ## 2. Table naming
 
@@ -285,7 +286,7 @@ Migration `0008` creates the dynamically prefixed business events table with
 InnoDB and the active WordPress table character set and collation. Event,
 actor, target, result, and correlation codes use case-sensitive ASCII storage.
 Optional metadata uses the WordPress table character set as portable
-`longtext`; a future Repository must validate JSON before writing it.
+`longtext`; the RT-109 Repository validates approved JSON before writing it.
 
 | Column | Contract |
 |---|---|
@@ -310,9 +311,55 @@ business operation may append multiple related events.
 The PRD event names are examples, not a closed SQL enum. RT-108 adds no event
 writer, Repository, admin query, export, retention job, logger bridge, trigger,
 or product workflow. Append-only behavior is not implemented by database
-triggers; RT-109 must expose Event persistence through append and bounded query
-contracts without update or delete methods. Until then, no production write
-path is enabled.
+triggers. RT-109 exposes Event persistence only through append and bounded
+query contracts without update or delete methods. No production event writer
+is registered by the plugin bootstrap.
+
+### 3.9 RT-109 persistence contract
+
+RT-109 adds one typed Repository port and `$wpdb` adapter for each phase-one
+table. Create records and stored records are separate immutable DTOs, database
+timestamps map to UTC `DateTimeImmutable`, unknown persisted enum values fail
+with a mapping exception, and ciphertext remains an opaque byte string.
+Encrypted email/message payloads, keyed lookup digests, OTP password hashes,
+and access-token digests use distinct non-interchangeable value objects.
+Hydration revalidates their storage shape; an approved cryptographic adapter,
+not the value object itself, must create the encrypted or keyed value.
+
+Repository methods are deliberately narrow:
+
+- Batches insert and resolve by ID or code.
+- Tags insert, resolve by public Tag ID, and list by Batch or owner.
+- Batch Exports append, resolve by Batch/version, and list by Batch.
+- Auth Challenges insert, resolve by ID, and locate the most recent structural
+  match; application code must still decide expiry, attempts, and consumption.
+- Conversations insert and resolve by ID.
+- Messages append and list by Conversation.
+- Access Tokens insert and resolve by hash; lookup does not authenticate or
+  exchange a Token.
+- Events append and query by target or correlation. Correlation pagination
+  orders by descending `event_id` through a dedicated cursor so it follows the
+  existing Schema version 8 `correlation_id` index.
+
+All lists use stable cursors with a default page size of `50` and a maximum of
+`100`. Adapters validate logical parent references before insert, while unique
+constraints remain the final protection against duplicate Batch codes, Tag
+IDs, Batch export versions, and Token hashes. They provide no generic CRUD,
+physical delete, ordinary update, state transition, or unbounded query.
+
+Event metadata is limited to a flat scalar object of at most 4096 encoded
+bytes. Keys require an event-specific allowlist, sensitive key names and full
+email-shaped values are rejected, and the default policy allows no non-empty
+metadata. Event actor/target/correlation values separately require an explicit
+event identity allowlist; the default denies every event. A generic guard
+rejects email, IP, digest/token-shaped, credential, device, session, and
+location-like identifiers. Persisted Event identity and JSON are revalidated
+on read.
+
+`TransactionManager::transactional()` starts one database transaction, commits
+only after the callback returns, and rolls back when the callback throws.
+Nested transactions and implicit retries are rejected; a future application
+service remains responsible for idempotency and retry decisions.
 
 ## 4. Forbidden relationships and fields
 
@@ -380,6 +427,10 @@ duplicating IDs, exports, email, or events.
 - Ordinary logs and audit metadata must not contain plaintext OTPs, complete
   tokens, full private messages, or unnecessary full email addresses.
 - SQL uses `$wpdb->prepare()` or a safe repository abstraction.
+- Persistence failures expose fixed exception messages. The `$wpdb` gateway
+  suppresses raw database error output during its operation and restores the
+  caller's previous error-reporting state, so SQL and bound sensitive values
+  are not copied into ordinary logs.
 
 ## 9. Migration policy
 
@@ -477,6 +528,16 @@ metadata, identifier, engine, collation, column, or index definitions fail
 before `dbDelta()` mutation. Rollback preserves all eight tables, business
 events, and the Schema option; version `0.1.0` has no event business read or
 write path.
+
+RT-109 changes Schema version `8` to `8`: it adds no Migration, table, column,
+index, Option, or DDL trigger. Fresh installs and upgrades continue to use the
+existing `0001` through `0008` chain. Code rollback removes only the unused
+Repository classes and preserves all eight tables, the Schema option, and
+stored data. The previous `0.1.0` baseline remains database-compatible because
+the plugin bootstrap does not register or call the new adapters. Schema
+inspection now distinguishes a successful no-row result from query failure or
+malformed metadata; inspection failure stops migration before `dbDelta()` and
+does not advance the Schema version.
 
 ## 10. Retention and uninstall
 
