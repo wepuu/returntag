@@ -328,7 +328,8 @@ not the value object itself, must create the encrypted or keyed value.
 
 Repository methods are deliberately narrow:
 
-- Batches insert and resolve by ID or code.
+- Batches insert, resolve by ID or code, and return a bounded newest-first
+  summary projection that excludes `notes`.
 - Tags insert, resolve by public Tag ID, and list by Batch or owner.
 - Batch Exports append, resolve by Batch/version, and list by Batch.
 - Auth Challenges insert, resolve by ID, and locate the most recent structural
@@ -360,6 +361,22 @@ on read.
 only after the callback returns, and rolls back when the callback throws.
 Nested transactions and implicit retries are rejected; a future application
 service remains responsible for idempotency and retry decisions.
+
+### 3.10 RT-201 Batch creation write path
+
+RT-201 leaves Schema version `8` unchanged and creates no table or index.
+`CreateBatch` writes one `returntag_batches` row and one append-only
+`batch.created` Event in the same non-nested transaction. The server always
+sets `generated_quantity=0`, `batch_status=draft`,
+`activation_enabled=0`, the authenticated WordPress User ID, and explicit UTC
+timestamps. A preflight code lookup improves the authorized operator error,
+but the existing `batch_code_unique` database constraint remains the final
+concurrency control.
+
+Batch list queries use `batch_id DESC` keyset pagination with a maximum page
+size of `100` and select only summary columns. Detail reads remain explicit
+authorized operations. RT-201 provides no update or delete method and does not
+generate Tag IDs.
 
 ## 4. Forbidden relationships and fields
 

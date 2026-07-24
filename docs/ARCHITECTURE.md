@@ -272,11 +272,17 @@ opaque internal actor/target identifiers, results, correlation, optional
 metadata text, and UTC creation time. It does not emit, update, delete, display,
 export, or retain an event through a product workflow. RT-109 makes the eight
 table adapters available to future composition roots but does not instantiate
-them from the plugin bootstrap or expose them through a public API. The
-Composer package, PSR-4 namespace, plugin headers, build entry points, and
-quality commands are also engineering contracts. Product names documented in the PRD
-remain future contracts and must not be implemented or changed outside their
-assigned tickets.
+them from the plugin bootstrap or expose them through a public API. RT-201 is
+the first product-facing exception to the earlier foundation-only contract. It
+registers the capability-protected `tagcore/v1/batches` collection and item
+routes plus the WordPress-native TagCore Batch admin page. The REST controller
+validates and normalizes input, invokes Application services, maps privacy-safe
+responses, and applies no-store headers. The `CreateBatch` service owns fixed
+draft defaults and atomically persists the Batch with a `batch.created` Event.
+The Composer package, PSR-4 namespace, plugin headers, build entry points, and
+quality commands are also engineering contracts. Product names documented in
+the PRD remain future contracts and must not be implemented or changed outside
+their assigned tickets.
 
 New architectural decisions that alter a frozen requirement or introduce a
 long-lived tradeoff require an approved ADR under `docs/adr` and any necessary
@@ -311,6 +317,13 @@ RT-108 supply the batches, tags, batch export audit, authentication challenge,
 conversation, message, access token, and business event tables only.
 Transactional email, encryption, rate limiting, metrics, and repositories
 still require their assigned tickets.
+
+RT-201 composes only the Batch and Event repositories required by its
+administrative workflow. Its React interface uses WordPress-provided packages,
+the dedicated `manage_returntag_batches` capability, REST cookie
+authentication with the WordPress REST nonce, and plugin-scoped CSS. It does
+not compose Action Scheduler or add an ID generator, export, Batch transition,
+email, public route, or WooCommerce integration.
 
 ### Runtime dependency rationale
 

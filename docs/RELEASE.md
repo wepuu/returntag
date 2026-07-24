@@ -200,6 +200,15 @@ Code rollback to the RT-109 `0.1.0` baseline preserves all eight tables,
 Schema and registers no product Repository consumer. RT-110 does not authorize
 or create a Git tag, release ZIP, GitHub Release, publication, or deployment.
 
+RT-201 leaves plugin version `0.2.0` and Schema version `8` unchanged. Fresh
+activation installs the existing eight tables and capability contract version
+`1`; upgrade or direct ZIP replacement reconciles administrator capabilities
+on an authorized `admin_init` request. The only new write is an atomic draft
+Batch plus `batch.created` Event. Code rollback may leave
+`returntag_capability_schema_version=1` and the two administrator capabilities
+in place; the previous `0.2.0` code does not use them. Disabling TagCore removes
+the admin page and routes without deleting Batch or Event data.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -227,8 +236,10 @@ RT-106 conversation and message, RT-107 access token, and RT-108 business event
 tables. RT-109 provides typed Repository contracts and `$wpdb` adapters for
 those tables without registering a production consumer. RT-110 verifies the
 production Migration composition and closes the data milestone at `0.2.0`.
+RT-201 adds the first capability-protected Batch create/list/detail
+administrative workflow without changing the release version or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because no workflow consumes the flags or
-logger and there is no public route, business use case, email-provider adapter,
-security workflow, batch workflow, or other product business logic.
+production-ready product release because there is no public route, ID
+generation, batch queue, export, activation, email-provider adapter, finder
+relay, or WooCommerce business workflow.

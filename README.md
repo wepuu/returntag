@@ -15,7 +15,10 @@ RT-109 adds typed persistence records, distinct sensitive-value objects,
 bounded Repository ports, `$wpdb` adapters, and a non-nesting transaction
 boundary for those eight tables. It also makes schema inspection failures
 explicit and keeps Event writes disabled until an identity allowlist is
-provided. Product business workflows are not yet implemented.
+provided. RT-201 adds the first narrowly scoped product workflow: authorized
+administrators can create, list, and inspect disabled draft production
+Batches. Tag ID generation, queues, exports, and Batch state changes remain
+future work.
 
 ## Canonical naming
 
@@ -67,9 +70,11 @@ styles use separate `returntag-` roots and do not use Tailwind or global CSS
 resets.
 
 Action Scheduler is available as queue infrastructure, but TagCore does not
-schedule business jobs yet. The repository similarly defines no REST route,
-email provider, OTP flow, activation flow, finder relay, WooCommerce business
-hook, or batch workflow. The only product tables are the RT-102 batches schema,
+schedule business jobs yet. RT-201 registers capability-protected
+`tagcore/v1/batches` administration routes and a WordPress-native Batch
+administration page. The repository still defines no email provider, OTP flow,
+activation flow, finder relay, WooCommerce business hook, ID generator, export,
+or Batch state transition. The only product tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
 the RT-107 access token schema, and the RT-108 business event schema.
@@ -140,6 +145,14 @@ version reconciliation, non-destructive uninstall, public-request lifecycle
 isolation, and Repository EXPLAIN coverage. CI also verifies the complete
 integration suite against MariaDB 10.11 and MySQL 8.0. No Schema version,
 product workflow, public API, Hook, Option, or dependency changes are introduced.
+
+RT-201 keeps Schema version `8` and plugin version `0.2.0`. It installs the
+non-autoloaded capability contract version `1`, grants
+`manage_returntag_batches` to administrators, and exposes list, detail, and
+create-draft operations through `tagcore/v1/batches`. Creation fixes status to
+`draft`, generated quantity to `0`, activation to disabled, actor to the current
+user, and timestamps to UTC. The Batch row and privacy-safe `batch.created`
+Event are committed in one transaction.
 
 ## Repository layout
 

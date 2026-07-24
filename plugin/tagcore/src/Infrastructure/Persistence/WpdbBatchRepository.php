@@ -11,7 +11,11 @@ namespace ReturnTag\TagCore\Infrastructure\Persistence;
 
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceMappingException;
+use ReturnTag\TagCore\Application\Persistence\Pagination\BatchCursor;
+use ReturnTag\TagCore\Application\Persistence\Pagination\BatchPage;
+use ReturnTag\TagCore\Application\Persistence\Pagination\PageSize;
 use ReturnTag\TagCore\Application\Persistence\Record\BatchRecord;
+use ReturnTag\TagCore\Application\Persistence\Record\BatchSummaryRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\NewBatchRecord;
 use ReturnTag\TagCore\Application\Persistence\RecordValidator;
 use ReturnTag\TagCore\Application\Persistence\Repository\BatchRepository;
@@ -99,6 +103,45 @@ final class WpdbBatchRepository implements BatchRepository {
 	}
 
 	/**
+	 * Return one bounded Batch summary page ordered newest first.
+	 *
+	 * @param BatchCursor|null $cursor Previous cursor.
+	 * @param PageSize         $page_size Bounded page size.
+	 */
+	public function list_summaries( ?BatchCursor $cursor, PageSize $page_size ): BatchPage {
+		$limit = $page_size->value + 1;
+
+		if ( null === $cursor ) {
+			$rows = $this->gateway->rows(
+				'SELECT batch_id, batch_code, tag_type, model_code, requested_quantity, generated_quantity, ' .
+				'batch_status, activation_enabled, created_at FROM %i ORDER BY batch_id DESC LIMIT %d',
+				array( $this->tables->batches(), $limit )
+			);
+		} else {
+			$rows = $this->gateway->rows(
+				'SELECT batch_id, batch_code, tag_type, model_code, requested_quantity, generated_quantity, ' .
+				'batch_status, activation_enabled, created_at FROM %i WHERE batch_id < %d ' .
+				'ORDER BY batch_id DESC LIMIT %d',
+				array( $this->tables->batches(), $cursor->batch_id, $limit )
+			);
+		}
+
+		$has_more = count( $rows ) > $page_size->value;
+
+		if ( $has_more ) {
+			array_pop( $rows );
+		}
+
+		$items = array_map( fn( array $row ): BatchSummaryRecord => $this->hydrate_summary( $row ), $rows );
+		$last  = $has_more ? end( $items ) : false;
+		$next  = $last instanceof BatchSummaryRecord
+			? new BatchCursor( $last->batch_id )
+			: null;
+
+		return new BatchPage( $items, $next );
+	}
+
+	/**
 	 * Map one strict stored Batch row.
 	 *
 	 * @param array<string, mixed> $row Stored row.
@@ -127,6 +170,30 @@ final class WpdbBatchRepository implements BatchRepository {
 			);
 		} catch ( InvalidArgumentException ) {
 			throw new PersistenceMappingException( 'Stored Batch record is invalid.' );
+		}
+	}
+
+	/**
+	 * Map one strict stored Batch summary row.
+	 *
+	 * @param array<string, mixed> $row Stored row.
+	 * @throws PersistenceMappingException When stored data violates the contract.
+	 */
+	private function hydrate_summary( array $row ): BatchSummaryRecord {
+		try {
+			return new BatchSummaryRecord(
+				StoredRow::positive_int( $row, 'batch_id' ),
+				StoredRow::string( $row, 'batch_code' ),
+				StoredRow::enum( $row, 'tag_type', TagType::class ),
+				StoredRow::nullable_string( $row, 'model_code' ),
+				StoredRow::positive_int( $row, 'requested_quantity' ),
+				StoredRow::unsigned_int( $row, 'generated_quantity' ),
+				StoredRow::enum( $row, 'batch_status', BatchStatus::class ),
+				StoredRow::boolean( $row, 'activation_enabled' ),
+				$this->dates->parse( StoredRow::string( $row, 'created_at' ) )
+			);
+		} catch ( InvalidArgumentException ) {
+			throw new PersistenceMappingException( 'Stored Batch summary is invalid.' );
 		}
 	}
 }

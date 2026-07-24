@@ -39,3 +39,7 @@ if ( is_readable( $returntag_action_scheduler ) ) {
 if ( class_exists( ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap::class ) ) {
 	ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }
+
+if ( class_exists( ReturnTag\TagCore\Admin\AdminBootstrap::class ) ) {
+	ReturnTag\TagCore\Admin\AdminBootstrap::register( RETURNTAG_TAGCORE_FILE );
+}
