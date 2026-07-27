@@ -70,4 +70,10 @@ integer-only, duplicate pending actions are unique, and retry delays are
 bounded. Production must drive Action Scheduler with real Cron or WP-CLI and
 monitor the `returntag-tag-generation` group.
 
+RT-205 adds a bounded `$wpdb` projection for Batch counters and the two
+metadata-free lifecycle Events, plus an Action Scheduler monitor that reports
+only pending/running availability. Database failures and provider internals
+remain behind fixed Application contracts; no queue argument, Tag ID, SQL, or
+raw failure is returned to the administrator.
+
 No product provider adapter is implemented.

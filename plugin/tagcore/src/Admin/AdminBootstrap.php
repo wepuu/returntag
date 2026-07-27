@@ -12,6 +12,7 @@ namespace ReturnTag\TagCore\Admin;
 use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
+use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
@@ -20,12 +21,14 @@ use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
-use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationProgressReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
 use wpdb;
@@ -73,11 +76,15 @@ final class AdminBootstrap {
 		);
 		$list         = new ListBatches( $batches );
 		$get          = new GetBatch( $batches );
+		$get_progress = new GetBatchGenerationProgress(
+			new WpdbBatchGenerationProgressReader( $gateway, $tables, $dates ),
+			new ActionSchedulerBatchGenerationMonitor()
+		);
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 
-		$controller = new BatchRestController( $create, $start, $list, $get, $schema_state );
+		$controller = new BatchRestController( $create, $start, $get_progress, $list, $get, $schema_state );
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
 	}

@@ -75,3 +75,14 @@ The test deliberately does not assert:
 
 Those values vary with engine version, statistics, and fixture size. Capacity
 benchmarks and production-scale latency budgets remain future operational work.
+
+## 6. RT-205 administrative progress
+
+| Read shape | Predicate and bound | Candidate index |
+|---|---|---|
+| Batch progress | `batch_id = ?` with named counter/state columns | `PRIMARY` |
+| Generation lifecycle times | `target_type = 'batch' AND target_id = ? AND event_type IN (...)`, ordered by `created_at, event_id`, limit `3` | `target_type_target_id_created_at` plus the InnoDB primary-key suffix |
+
+The projection returns no Tag row, Event metadata, Action Scheduler argument,
+private manufacturing notes, or personal data. Queue status is inspected
+separately through the provider adapter.

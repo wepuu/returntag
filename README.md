@@ -183,6 +183,14 @@ transition, and completion Event in short database transactions. Exact
 duplicate queue actions collapse, delayed retries are bounded, and stale work
 resumes from committed progress without exposing Tag IDs.
 
+RT-205 keeps Schema version `8` and plugin version `0.2.0`. Batch detail now
+requires a second confirmation before invoking RT-204, shows committed target,
+generated, remaining, and failed-ID values, and exposes audited start and
+completion times. An authenticated no-store GET endpoint reports only aggregate
+progress and normalized queue health. Visible generating views poll at bounded
+intervals, pause while hidden, and offer an idempotent retry only when no
+pending worker remains.
+
 ## Repository layout
 
 ```text

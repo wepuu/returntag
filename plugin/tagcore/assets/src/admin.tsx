@@ -1,6 +1,7 @@
 import apiFetch from '@wordpress/api-fetch';
 import {
 	Button,
+	Modal,
 	Notice,
 	RadioControl,
 	SelectControl,
@@ -8,7 +9,13 @@ import {
 	TextareaControl,
 	TextControl,
 } from '@wordpress/components';
-import { createRoot, useEffect, useRef, useState } from '@wordpress/element';
+import {
+	createRoot,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	box,
@@ -21,6 +28,13 @@ import {
 	scheduled,
 } from '@wordpress/icons';
 
+import {
+	type BatchGenerationProgress,
+	type BatchStatus,
+	calculateProgressPercent,
+	generationPollDelay,
+	shouldPollGeneration,
+} from './admin/batch-generation';
 import {
 	type BatchFormValues,
 	type SalesChannel,
@@ -50,7 +64,7 @@ interface BatchRecord {
 	sales_channel: string | null;
 	requested_quantity: number;
 	generated_quantity: number;
-	batch_status: string;
+	batch_status: BatchStatus;
 	activation_enabled: boolean;
 	notes: string | null;
 	created_by: number;
@@ -65,7 +79,7 @@ interface BatchSummary {
 	model_code: string | null;
 	requested_quantity: number;
 	generated_quantity: number;
-	batch_status: string;
+	batch_status: BatchStatus;
 	activation_enabled: boolean;
 	created_at: string;
 }
@@ -115,6 +129,16 @@ const smartNetworkLabels: Record< SmartNetwork, string > = {
 	other: __( 'Other', 'tagcore' ),
 };
 
+const batchStatusLabels: Record< BatchStatus, string > = {
+	draft: __( 'Draft', 'tagcore' ),
+	generating: __( 'Generating', 'tagcore' ),
+	generated: __( 'Generated', 'tagcore' ),
+	exported: __( 'Exported', 'tagcore' ),
+	released: __( 'Released', 'tagcore' ),
+	suspended: __( 'Suspended', 'tagcore' ),
+	voided: __( 'Voided', 'tagcore' ),
+};
+
 const fieldLabels: Record< string, string > = {
 	batch_code: __( 'Batch Code', 'tagcore' ),
 	tag_type: __( 'Tag type', 'tagcore' ),
@@ -158,22 +182,34 @@ function ErrorHelp( {
 	);
 }
 
-function StatusBand( { createdAt }: { createdAt: string } ) {
+function StatusBand( {
+	status,
+	generatedQuantity,
+	activationEnabled,
+	createdAt,
+}: {
+	status: BatchStatus;
+	generatedQuantity: number;
+	activationEnabled: boolean;
+	createdAt: string;
+} ) {
 	const facts = [
 		{
 			icon: file,
 			label: __( 'Status', 'tagcore' ),
-			value: __( 'Draft', 'tagcore' ),
+			value: batchStatusLabels[ status ],
 		},
 		{
 			icon: box,
 			label: __( 'Generated', 'tagcore' ),
-			value: '0',
+			value: generatedQuantity.toLocaleString(),
 		},
 		{
 			icon: lock,
 			label: __( 'Activation', 'tagcore' ),
-			value: __( 'Disabled', 'tagcore' ),
+			value: activationEnabled
+				? __( 'Enabled', 'tagcore' )
+				: __( 'Disabled', 'tagcore' ),
 		},
 		{
 			icon: people,
@@ -288,7 +324,7 @@ function CreateBatchScreen() {
 
 	if ( created ) {
 		return (
-			<main
+			<section
 				className="returntag-created"
 				aria-labelledby="returntag-title"
 			>
@@ -305,7 +341,12 @@ function CreateBatchScreen() {
 						created.batch_code
 					) }
 				</Notice>
-				<StatusBand createdAt={ created.created_at } />
+				<StatusBand
+					status={ created.batch_status }
+					generatedQuantity={ created.generated_quantity }
+					activationEnabled={ created.activation_enabled }
+					createdAt={ created.created_at }
+				/>
 				<dl className="returntag-created-details">
 					<div>
 						<dt>{ __( 'Batch Code', 'tagcore' ) }</dt>
@@ -321,8 +362,11 @@ function CreateBatchScreen() {
 					</div>
 				</dl>
 				<div className="returntag-actions">
-					<Button variant="primary" href={ config.listUrl }>
-						{ __( 'View batches', 'tagcore' ) }
+					<Button
+						variant="primary"
+						href={ `${ config.listUrl }&view=detail&batch_id=${ created.batch_id }` }
+					>
+						{ __( 'Review and generate IDs', 'tagcore' ) }
 					</Button>
 					<Button
 						variant="secondary"
@@ -335,7 +379,7 @@ function CreateBatchScreen() {
 						{ __( 'Create another', 'tagcore' ) }
 					</Button>
 				</div>
-			</main>
+			</section>
 		);
 	}
 
@@ -411,7 +455,7 @@ function CreateBatchScreen() {
 	};
 
 	return (
-		<main aria-labelledby="returntag-title">
+		<section aria-labelledby="returntag-title">
 			<header className="returntag-page-header">
 				<div>
 					<h1 id="returntag-title">
@@ -463,7 +507,12 @@ function CreateBatchScreen() {
 				</div>
 			) }
 
-			<StatusBand createdAt={ config.currentTime } />
+			<StatusBand
+				status="draft"
+				generatedQuantity={ 0 }
+				activationEnabled={ false }
+				createdAt={ config.currentTime }
+			/>
 
 			<div className="returntag-form-layout">
 				<ProgressSpine active={ activeStage } />
@@ -742,7 +791,7 @@ function CreateBatchScreen() {
 					</p>
 				</form>
 			</div>
-		</main>
+		</section>
 	);
 }
 
@@ -753,18 +802,71 @@ function BatchListScreen() {
 	const [ error, setError ] = useState< string | null >( null );
 	const [ loadingMore, setLoadingMore ] = useState( false );
 
-	useEffect( () => {
-		apiFetch< BatchListResponse >( {
-			path: `${ config.restPath }/batches?per_page=50`,
-		} )
-			.then( setResponse )
-			.catch( ( reason: ApiError ) => {
-				setError(
-					reason.message ??
-						__( 'TagCore could not load Batches.', 'tagcore' )
-				);
+	const loadBatches = useCallback( async () => {
+		try {
+			const next = await apiFetch< BatchListResponse >( {
+				path: `${ config.restPath }/batches?per_page=50`,
 			} );
+			setResponse( next );
+			setError( null );
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__( 'TagCore could not load Batches.', 'tagcore' )
+			);
+		}
 	}, [] );
+
+	useEffect( () => {
+		void loadBatches();
+	}, [ loadBatches ] );
+
+	useEffect( () => {
+		if (
+			! response?.items.some(
+				( batch ) => batch.batch_status === 'generating'
+			)
+		) {
+			return;
+		}
+
+		let timer: ReturnType< typeof setTimeout > | undefined;
+		let cancelled = false;
+
+		const schedule = () => {
+			if ( cancelled ) {
+				return;
+			}
+
+			timer = setTimeout( async () => {
+				if ( document.visibilityState === 'visible' ) {
+					await loadBatches();
+				}
+				schedule();
+			}, 10_000 );
+		};
+
+		const onVisibilityChange = () => {
+			if ( document.visibilityState === 'visible' ) {
+				void loadBatches();
+			}
+		};
+
+		document.addEventListener( 'visibilitychange', onVisibilityChange );
+		schedule();
+
+		return () => {
+			cancelled = true;
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+			document.removeEventListener(
+				'visibilitychange',
+				onVisibilityChange
+			);
+		};
+	}, [ loadBatches, response ] );
 
 	const loadMore = async () => {
 		if ( ! response?.next_cursor ) {
@@ -794,7 +896,7 @@ function BatchListScreen() {
 	};
 
 	return (
-		<main aria-labelledby="returntag-list-title">
+		<section aria-labelledby="returntag-list-title">
 			<header className="returntag-page-header returntag-list-header">
 				<div>
 					<h1 id="returntag-list-title">
@@ -882,11 +984,42 @@ function BatchListScreen() {
 											{ batch.requested_quantity.toLocaleString() }
 										</td>
 										<td>
-											{ batch.generated_quantity.toLocaleString() }
+											<div className="returntag-list-progress">
+												<span>
+													{ sprintf(
+														/* translators: 1: Generated quantity. 2: Requested quantity. */
+														__(
+															'%1$s of %2$s',
+															'tagcore'
+														),
+														batch.generated_quantity.toLocaleString(),
+														batch.requested_quantity.toLocaleString()
+													) }
+												</span>
+												<progress
+													max={ 100 }
+													value={ calculateProgressPercent(
+														batch.generated_quantity,
+														batch.requested_quantity
+													) }
+													aria-label={ sprintf(
+														/* translators: %s: Batch Code. */
+														__(
+															'Generation progress for %s',
+															'tagcore'
+														),
+														batch.batch_code
+													) }
+												/>
+											</div>
 										</td>
 										<td>
 											<span className="returntag-status-label">
-												{ batch.batch_status }
+												{
+													batchStatusLabels[
+														batch.batch_status
+													]
+												}
 											</span>
 										</td>
 										<td>
@@ -912,19 +1045,183 @@ function BatchListScreen() {
 					) }
 				</>
 			) }
-		</main>
+		</section>
+	);
+}
+
+function queueStateLabel( progress: BatchGenerationProgress ): string {
+	const labels = {
+		idle: __( 'Ready', 'tagcore' ),
+		scheduled: __( 'Scheduled', 'tagcore' ),
+		running: __( 'Running', 'tagcore' ),
+		needs_attention: __( 'Needs attention', 'tagcore' ),
+		complete: __( 'Complete', 'tagcore' ),
+		unavailable: __( 'Queue status unavailable', 'tagcore' ),
+	};
+
+	return labels[ progress.queue_state ];
+}
+
+function GenerationProgressPanel( {
+	progress,
+}: {
+	progress: BatchGenerationProgress;
+} ) {
+	const facts = [
+		{
+			label: __( 'Target quantity', 'tagcore' ),
+			value: progress.requested_quantity.toLocaleString(),
+		},
+		{
+			label: __( 'Generated quantity', 'tagcore' ),
+			value: progress.generated_quantity.toLocaleString(),
+		},
+		{
+			label: __( 'Remaining quantity', 'tagcore' ),
+			value: progress.remaining_quantity.toLocaleString(),
+		},
+		{
+			label: __( 'Failed IDs', 'tagcore' ),
+			value: progress.failed_quantity.toLocaleString(),
+		},
+		{
+			label: __( 'Started (UTC)', 'tagcore' ),
+			value: progress.started_at
+				? formatDate( progress.started_at )
+				: __( 'Not started', 'tagcore' ),
+		},
+		{
+			label: __( 'Completed (UTC)', 'tagcore' ),
+			value: progress.completed_at
+				? formatDate( progress.completed_at )
+				: __( 'Not completed', 'tagcore' ),
+		},
+		{
+			label: __( 'Last progress (UTC)', 'tagcore' ),
+			value: formatDate( progress.last_progress_at ),
+		},
+		{
+			label: __( 'Queue state', 'tagcore' ),
+			value: queueStateLabel( progress ),
+		},
+	];
+
+	return (
+		<section
+			className="returntag-generation-panel"
+			aria-labelledby="returntag-generation-title"
+		>
+			<div className="returntag-generation-heading">
+				<div>
+					<h2 id="returntag-generation-title">
+						{ __( 'Tag ID generation', 'tagcore' ) }
+					</h2>
+					<p>
+						{ __(
+							'Progress counts only Tag IDs committed safely to this Batch.',
+							'tagcore'
+						) }
+					</p>
+				</div>
+				<strong className="returntag-generation-percentage">
+					{ sprintf(
+						/* translators: %d: Generation percentage. */
+						__( '%d%% complete', 'tagcore' ),
+						progress.progress_percent
+					) }
+				</strong>
+			</div>
+			<progress
+				className="returntag-generation-progress"
+				max={ 100 }
+				value={ progress.progress_percent }
+				aria-label={ __(
+					'Batch Tag ID generation progress',
+					'tagcore'
+				) }
+			/>
+			<div className="returntag-generation-count">
+				{ sprintf(
+					/* translators: 1: Generated quantity. 2: Requested quantity. */
+					__( '%1$s of %2$s Tag IDs generated', 'tagcore' ),
+					progress.generated_quantity.toLocaleString(),
+					progress.requested_quantity.toLocaleString()
+				) }
+			</div>
+			<dl className="returntag-generation-facts">
+				{ facts.map( ( fact ) => (
+					<div key={ fact.label }>
+						<dt>{ fact.label }</dt>
+						<dd>{ fact.value }</dd>
+					</div>
+				) ) }
+			</dl>
+			<p className="returntag-generation-note">
+				{ __(
+					'Remaining IDs are pending work, not failed IDs. Queue interruptions can be resumed without regenerating committed IDs.',
+					'tagcore'
+				) }
+			</p>
+		</section>
 	);
 }
 
 function BatchDetailScreen( { batchId }: { batchId: string } ) {
 	const [ batch, setBatch ] = useState< BatchRecord | null >( null );
+	const [ progress, setProgress ] =
+		useState< BatchGenerationProgress | null >( null );
 	const [ error, setError ] = useState< string | null >( null );
+	const [ progressError, setProgressError ] = useState< string | null >(
+		null
+	);
+	const [ notice, setNotice ] = useState< string | null >( null );
+	const [ confirmOpen, setConfirmOpen ] = useState( false );
+	const [ starting, setStarting ] = useState( false );
+
+	const loadProgress = useCallback( async () => {
+		try {
+			const next = await apiFetch< BatchGenerationProgress >( {
+				path: `${ config.restPath }/batches/${ batchId }/generation`,
+			} );
+			setProgress( next );
+			setProgressError( null );
+			setBatch( ( current ) =>
+				current
+					? {
+							...current,
+							batch_status: next.batch_status,
+							generated_quantity: next.generated_quantity,
+							updated_at: next.last_progress_at,
+					  }
+					: current
+			);
+			return next;
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setProgressError(
+				apiError.message ??
+					__(
+						'TagCore could not load generation progress.',
+						'tagcore'
+					)
+			);
+			return null;
+		}
+	}, [ batchId ] );
 
 	useEffect( () => {
-		apiFetch< BatchRecord >( {
-			path: `${ config.restPath }/batches/${ batchId }`,
-		} )
-			.then( setBatch )
+		Promise.all( [
+			apiFetch< BatchRecord >( {
+				path: `${ config.restPath }/batches/${ batchId }`,
+			} ),
+			apiFetch< BatchGenerationProgress >( {
+				path: `${ config.restPath }/batches/${ batchId }/generation`,
+			} ),
+		] )
+			.then( ( [ loadedBatch, loadedProgress ] ) => {
+				setBatch( loadedBatch );
+				setProgress( loadedProgress );
+			} )
 			.catch( ( reason: ApiError ) => {
 				setError(
 					reason.message ??
@@ -932,6 +1229,92 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 				);
 			} );
 	}, [ batchId ] );
+
+	useEffect( () => {
+		if (
+			! progress ||
+			! shouldPollGeneration(
+				progress,
+				document.visibilityState === 'visible'
+			)
+		) {
+			return;
+		}
+
+		let cancelled = false;
+		let timer: ReturnType< typeof setTimeout > | undefined;
+
+		const schedule = ( current: BatchGenerationProgress ) => {
+			timer = setTimeout( async () => {
+				if ( cancelled || document.visibilityState !== 'visible' ) {
+					return;
+				}
+
+				const next = await loadProgress();
+
+				if ( next && shouldPollGeneration( next, true ) ) {
+					schedule( next );
+				}
+			}, generationPollDelay( current.poll_after_ms ) );
+		};
+
+		const onVisibilityChange = () => {
+			if ( document.visibilityState === 'visible' ) {
+				void loadProgress();
+			}
+		};
+
+		document.addEventListener( 'visibilitychange', onVisibilityChange );
+		schedule( progress );
+
+		return () => {
+			cancelled = true;
+			if ( timer ) {
+				clearTimeout( timer );
+			}
+			document.removeEventListener(
+				'visibilitychange',
+				onVisibilityChange
+			);
+		};
+	}, [ loadProgress, progress ] );
+
+	const startGeneration = async () => {
+		setStarting( true );
+		setProgressError( null );
+		setNotice( null );
+
+		try {
+			await apiFetch( {
+				path: `${ config.restPath }/batches/${ batchId }/generation`,
+				method: 'POST',
+			} );
+			setConfirmOpen( false );
+			setNotice(
+				progress?.can_retry
+					? __(
+							'Generation was safely rescheduled from its last committed checkpoint.',
+							'tagcore'
+					  )
+					: __(
+							'Tag ID generation was scheduled successfully.',
+							'tagcore'
+					  )
+			);
+			await loadProgress();
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setProgressError(
+				apiError.message ??
+					__(
+						'TagCore could not schedule Tag ID generation.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setStarting( false );
+		}
+	};
 
 	if ( error ) {
 		return (
@@ -941,7 +1324,7 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 		);
 	}
 
-	if ( ! batch ) {
+	if ( ! batch || ! progress ) {
 		return (
 			<div className="returntag-loading">
 				<Spinner />
@@ -951,13 +1334,13 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 	}
 
 	return (
-		<main aria-labelledby="returntag-detail-title">
+		<section aria-labelledby="returntag-detail-title">
 			<header className="returntag-page-header returntag-list-header">
 				<div>
 					<h1 id="returntag-detail-title">{ batch.batch_code }</h1>
 					<p>
 						{ __(
-							'Read-only Batch details. RT-201 does not generate IDs or change lifecycle state.',
+							'Review manufacturing details and monitor committed Tag ID generation.',
 							'tagcore'
 						) }
 					</p>
@@ -966,7 +1349,89 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 					{ __( 'Back to batches', 'tagcore' ) }
 				</Button>
 			</header>
-			<StatusBand createdAt={ batch.created_at } />
+
+			{ notice && (
+				<Notice status="success" onRemove={ () => setNotice( null ) }>
+					{ notice }
+				</Notice>
+			) }
+
+			{ progressError && (
+				<Notice status="error" isDismissible={ false }>
+					{ progressError }
+				</Notice>
+			) }
+
+			{ progress.queue_state === 'needs_attention' && (
+				<Notice status="warning" isDismissible={ false }>
+					<p>
+						{ __(
+							'Generation is paused because no pending worker is available. Committed Tag IDs remain safe.',
+							'tagcore'
+						) }
+					</p>
+					<Button
+						variant="secondary"
+						onClick={ startGeneration }
+						disabled={ starting }
+						isBusy={ starting }
+					>
+						{ starting
+							? __( 'Rescheduling…', 'tagcore' )
+							: __( 'Retry generation', 'tagcore' ) }
+					</Button>
+				</Notice>
+			) }
+
+			{ progress.queue_state === 'unavailable' && (
+				<Notice status="warning" isDismissible={ false }>
+					{ __(
+						'Queue status is temporarily unavailable. No generation action is offered until TagCore can verify the worker state.',
+						'tagcore'
+					) }
+				</Notice>
+			) }
+
+			{ progress.queue_state === 'complete' && (
+				<Notice status="success" isDismissible={ false }>
+					{ __(
+						'All requested Tag IDs were generated and committed successfully.',
+						'tagcore'
+					) }
+				</Notice>
+			) }
+
+			<StatusBand
+				status={ batch.batch_status }
+				generatedQuantity={ batch.generated_quantity }
+				activationEnabled={ batch.activation_enabled }
+				createdAt={ batch.created_at }
+			/>
+
+			{ progress.can_start && (
+				<div className="returntag-generation-start">
+					<div>
+						<h2>
+							{ __( 'Ready to generate Tag IDs', 'tagcore' ) }
+						</h2>
+						<p>
+							{ __(
+								'Generation runs safely in the background. Activation remains disabled.',
+								'tagcore'
+							) }
+						</p>
+					</div>
+					<Button
+						variant="primary"
+						onClick={ () => setConfirmOpen( true ) }
+					>
+						{ __( 'Generate Tag IDs', 'tagcore' ) }
+					</Button>
+				</div>
+			) }
+
+			<GenerationProgressPanel progress={ progress } />
+
 			<dl className="returntag-created-details">
 				<div>
 					<dt>{ __( 'Tag type', 'tagcore' ) }</dt>
@@ -997,7 +1462,91 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 					<dd>{ batch.notes || '—' }</dd>
 				</div>
 			</dl>
-		</main>
+
+			<div className="screen-reader-text" aria-live="polite">
+				{ sprintf(
+					/* translators: 1: Generated quantity. 2: Requested quantity. */
+					__( '%1$s of %2$s Tag IDs generated.', 'tagcore' ),
+					progress.generated_quantity.toLocaleString(),
+					progress.requested_quantity.toLocaleString()
+				) }
+			</div>
+
+			{ confirmOpen && (
+				<Modal
+					title={ __( 'Confirm Tag ID generation', 'tagcore' ) }
+					onRequestClose={ () => setConfirmOpen( false ) }
+				>
+					<div className="returntag-generation-confirm">
+						<div className="returntag-generation-warning">
+							<Icon icon={ cautionFilled } size={ 24 } />
+							<p>
+								<strong>
+									{ __(
+										'This creates permanent public Tag IDs.',
+										'tagcore'
+									) }
+								</strong>
+								<span>
+									{ __(
+										'Generated IDs are also activation IDs and can never be reused.',
+										'tagcore'
+									) }
+								</span>
+							</p>
+						</div>
+						<dl>
+							<div>
+								<dt>{ __( 'Batch Code', 'tagcore' ) }</dt>
+								<dd>{ batch.batch_code }</dd>
+							</div>
+							<div>
+								<dt>{ __( 'Tag type', 'tagcore' ) }</dt>
+								<dd>{ tagTypeLabels[ batch.tag_type ] }</dd>
+							</div>
+							<div>
+								<dt>
+									{ __( 'Requested quantity', 'tagcore' ) }
+								</dt>
+								<dd>
+									{ batch.requested_quantity.toLocaleString() }
+								</dd>
+							</div>
+							<div>
+								<dt>{ __( 'Activation', 'tagcore' ) }</dt>
+								<dd>{ __( 'Remains disabled', 'tagcore' ) }</dd>
+							</div>
+						</dl>
+						<div className="returntag-modal-actions">
+							<Button
+								variant="tertiary"
+								onClick={ () => setConfirmOpen( false ) }
+								disabled={ starting }
+							>
+								{ __( 'Cancel', 'tagcore' ) }
+							</Button>
+							<Button
+								variant="primary"
+								onClick={ startGeneration }
+								disabled={ starting }
+								isBusy={ starting }
+							>
+								{ starting
+									? __( 'Scheduling…', 'tagcore' )
+									: sprintf(
+											/* translators: %s: Requested quantity. */
+											__(
+												'Generate %s Tag IDs',
+												'tagcore'
+											),
+											batch.requested_quantity.toLocaleString()
+									  ) }
+							</Button>
+						</div>
+					</div>
+				</Modal>
+			) }
+		</section>
 	);
 }
 

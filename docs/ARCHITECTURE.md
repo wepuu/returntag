@@ -362,6 +362,16 @@ the materialized counter. The final transaction also sets `generated` and
 appends one `batch_generation_completed` Event. Queue arguments contain no Tag
 IDs, and public requests never perform generation.
 
+RT-205 adds the read side of that workflow. Application combines a narrow
+progress-reader port with a provider-neutral queue-monitor port and derives
+stable `idle`, `scheduled`, `running`, `needs_attention`, `complete`, and
+`unavailable` states. Infrastructure reads only Batch counters and the two
+generation lifecycle Event timestamps, and inspects Action Scheduler without
+returning action arguments or errors. Admin exposes one capability-protected
+no-store GET endpoint and renders the existing WordPress-native React detail
+screen with a second confirmation, committed progress, bounded visibility-aware
+polling, and idempotent recovery.
+
 ### Runtime dependency rationale
 
 | Package | Purpose and boundary | License and maintenance |
