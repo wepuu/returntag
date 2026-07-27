@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 1 — Database and Migration
 
-\* Current workstream: Milestone 1 acceptance (RT-110 implemented; schema target version `8`)
+\* Current workstream: Milestone 2 Batch administration (RT-201 completed; schema remains `8`)
 
 
 
@@ -65,6 +65,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-109 — Typed Repository interfaces, sensitive-value and Event policy hardening, `$wpdb` adapters, and transaction boundary
 
 \* RT-110 — Fresh installation, partial upgrade, uninstall, query-plan, and database-engine acceptance
+
+\* RT-201 — Batch administration create/list experience, capability boundary, and audited draft creation
 
 
 
@@ -328,12 +330,11 @@ The new session must not assume that account-level chat history is available.
 
 
 
-The next planned ticket after RT-110 is RT-201 (Batch administration).
-It has not been authorized by this status file.
+RT-201 (Batch administration) has been implemented and validated. It keeps
+Schema version `8` and project/plugin version `0.2.0`. RT-202 and later
+Milestone 2 tickets have not been authorized by this status file.
 
 
 
 Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.
-
-
 

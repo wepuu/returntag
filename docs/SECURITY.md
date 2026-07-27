@@ -61,6 +61,13 @@ prefetch links. Token exchange requires an explicit confirmation such as POST.
 - Controllers and templates do not implement authorization policy themselves;
   they invoke application services and map safe results.
 
+RT-201 installs the site-scoped, non-autoloaded capability contract version
+`1`. Only users with `manage_returntag_batches` can see the Batch admin page or
+use the `tagcore/v1/batches` routes. The browser uses WordPress REST cookie
+authentication and the `wp_rest` nonce; route permission callbacks enforce the
+capability server-side. Responses are marked `no-store, private`, and failures
+do not expose SQL or raw exception text.
+
 ## 6. Private finder relay
 
 Finder email must be verified before the owner is notified. Owners never see a
@@ -113,6 +120,12 @@ conversations.
 ## 9. Manufacturing and activation controls
 
 - New production batches default to activation disabled.
+- RT-201 accepts only bounded manufacturing metadata. It ignores submitted
+  status, generated quantity, activation, actor, and timestamps; these values
+  are fixed by the Application service.
+- Each successful RT-201 create appends a metadata-free `batch.created` Event
+  whose actor is the authenticated internal User ID and whose target is the
+  numeric Batch ID.
 - Export access is restricted and every export is audited by version, row
   count, operator, timestamp, and SHA-256 checksum.
 - A leaked batch can have new activation suspended without silently disabling

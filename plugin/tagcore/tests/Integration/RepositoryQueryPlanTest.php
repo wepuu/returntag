@@ -63,6 +63,16 @@ final class RepositoryQueryPlanTest extends WP_UnitTestCase {
 		$this->assert_possible_index(
 			$wpdb,
 			$wpdb->prepare(
+				'SELECT batch_id, batch_code, tag_type, model_code, requested_quantity, generated_quantity, batch_status, activation_enabled, created_at FROM %i WHERE batch_id < %d ORDER BY batch_id DESC LIMIT %d',
+				$tables->batches(),
+				100,
+				51
+			),
+			'PRIMARY'
+		);
+		$this->assert_possible_index(
+			$wpdb,
+			$wpdb->prepare(
 				'SELECT * FROM %i WHERE batch_id = %d ORDER BY tag_status ASC, tag_id ASC LIMIT %d',
 				$tables->tags(),
 				1,

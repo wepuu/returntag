@@ -1,0 +1,73 @@
+<?php
+/**
+ * TagCore administration composition root.
+ *
+ * @package ReturnTag\TagCore
+ */
+
+declare(strict_types=1);
+
+namespace ReturnTag\TagCore\Admin;
+
+use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Batch\CreateBatch;
+use ReturnTag\TagCore\Application\Batch\GetBatch;
+use ReturnTag\TagCore\Application\Batch\ListBatches;
+use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
+use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
+use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
+use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
+use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
+use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\SystemClock;
+use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
+use wpdb;
+
+/**
+ * Wires RT-201 administrative adapters to application services.
+ */
+final class AdminBootstrap {
+	/**
+	 * Register RT-201 hooks for the current WordPress site.
+	 *
+	 * @param string $plugin_file Absolute plugin bootstrap path.
+	 */
+	public static function register( string $plugin_file ): void {
+		global $wpdb;
+
+		if ( ! $wpdb instanceof wpdb ) {
+			return;
+		}
+
+		$tables       = new TableNames( $wpdb->prefix );
+		$gateway      = new WpdbGateway( $wpdb );
+		$dates        = new DatabaseDateTimeCodec();
+		$batches      = new WpdbBatchRepository( $gateway, $tables, $dates );
+		$events       = new WpdbEventRepository(
+			$gateway,
+			$tables,
+			$dates,
+			new DenyAllEventMetadataPolicy(),
+			new BatchEventIdentityPolicy()
+		);
+		$transactions = new WpdbTransactionManager( $wpdb );
+		$schema_state = new SchemaState(
+			new WordPressSchemaVersionStore(),
+			( new MigrationRegistryFactory( $wpdb ) )->create()
+		);
+		$create       = new CreateBatch( $batches, $events, $transactions, new SystemClock() );
+		$list         = new ListBatches( $batches );
+		$get          = new GetBatch( $batches );
+
+		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
+		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
+
+		$controller = new BatchRestController( $create, $list, $get, $schema_state );
+		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
+	}
+}

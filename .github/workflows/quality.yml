@@ -192,6 +192,9 @@ jobs:
           composer install --working-dir=plugin/tagcore --no-interaction --prefer-dist
           npx playwright install --with-deps chromium firefox webkit
 
+      - name: Build browser assets
+        run: npm run build
+
       - name: Start WordPress
         run: npx wp-env start
 
