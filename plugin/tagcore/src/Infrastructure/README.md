@@ -62,4 +62,12 @@ error stack while wpdb output remains suppressed and never exposes the
 database message, SQL, or rejected value. All other failures retain the generic
 privacy-safe persistence exception.
 
+RT-204 adds a locking Batch-generation Repository, Action Scheduler adapter,
+bounded retry handler, and worker composition root. Each worker action commits
+at most 100 Tags, with one short transaction per Tag so insertion and
+conditional Batch progress succeed or roll back together. Queue arguments are
+integer-only, duplicate pending actions are unique, and retry delays are
+bounded. Production must drive Action Scheduler with real Cron or WP-CLI and
+monitor the `returntag-tag-generation` group.
+
 No product provider adapter is implemented.

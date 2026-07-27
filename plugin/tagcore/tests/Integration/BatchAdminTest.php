@@ -15,6 +15,7 @@ use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -44,6 +45,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		$this->clear_schema( $wpdb );
 		$this->migrate( $wpdb );
+		$this->clear_generation_actions();
 		$this->administrator_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->administrator_id );
 
@@ -65,6 +67,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		}
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
+		$this->clear_generation_actions();
 		$this->clear_schema( $wpdb );
 		wp_set_current_user( 0 );
 
@@ -104,10 +107,76 @@ final class BatchAdminTest extends WP_UnitTestCase {
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
+				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
 			) as $request
 		) {
 			self::assertSame( 403, rest_do_request( $request )->get_status() );
 		}
+	}
+
+	/**
+	 * Starting generation is idempotent and queues only one checkpoint action.
+	 */
+	public function test_generation_route_starts_and_resumes_without_duplicate_event_or_action(): void {
+		global $wpdb;
+
+		$created = rest_do_request( $this->create_request( 'RT-204-START' ) )->get_data();
+		self::assertIsArray( $created );
+
+		$request = new WP_REST_Request(
+			'POST',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		$request->set_body_params(
+			array(
+				'checkpoint'         => 999999,
+				'retry_attempt'      => 999999,
+				'generated_quantity' => 999999,
+				'batch_status'       => 'released',
+				'activation_enabled' => true,
+				'tag_id'             => 'N7R2W8',
+			)
+		);
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 202, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame( 'generating', $data['batch_status'] );
+		self::assertSame( 0, $data['generated_quantity'] );
+		self::assertSame( 'queued', $data['queue_status'] );
+		self::assertSame(
+			array( 'batch_id', 'batch_status', 'generated_quantity', 'queue_status' ),
+			array_keys( $data )
+		);
+		self::assertTrue(
+			as_has_scheduled_action(
+				ActionSchedulerBatchGenerationScheduler::HOOK,
+				array(
+					'batch_id'      => $created['batch_id'],
+					'checkpoint'    => 0,
+					'retry_attempt' => 0,
+				),
+				ActionSchedulerBatchGenerationScheduler::GROUP
+			)
+		);
+
+		$resume      = rest_do_request( $request );
+		$resume_data = $resume->get_data();
+
+		self::assertSame( 202, $resume->get_status() );
+		self::assertIsArray( $resume_data );
+		self::assertSame( 'already_scheduled', $resume_data['queue_status'] );
+
+		$tables      = new TableNames( $wpdb->prefix );
+		$event_query = $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE event_type = %s AND target_id = %s',
+			$tables->events(),
+			'batch_generation_started',
+			(string) $created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Verifying one audit Event in an isolated test table.
+		self::assertSame( '1', $wpdb->get_var( $event_query ) );
 	}
 
 	/**
@@ -366,5 +435,18 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		}
 
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+	}
+
+	/**
+	 * Cancel only pending RT-204 actions in the isolated test site.
+	 */
+	private function clear_generation_actions(): void {
+		if ( function_exists( 'as_unschedule_all_actions' ) ) {
+			as_unschedule_all_actions(
+				'',
+				array(),
+				ActionSchedulerBatchGenerationScheduler::GROUP
+			);
+		}
 	}
 }
