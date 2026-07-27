@@ -209,6 +209,14 @@ Batch plus `batch.created` Event. Code rollback may leave
 in place; the previous `0.2.0` code does not use them. Disabling TagCore removes
 the admin page and routes without deleting Batch or Event data.
 
+RT-202 also leaves plugin version `0.2.0` and Schema version `8` unchanged. It
+adds pure Domain/Application contracts and a PHP secure-random Infrastructure
+adapter without activation work, DDL, Options, Hooks, routes, queues, external
+side effects, or persisted data. Deployment requires only the normal PHP
+quality gate. Code rollback removes the candidate generator while preserving
+all existing tables, Options, Batches, Events, and Tag IDs; no data repair or
+feature-flag action is required.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -238,8 +246,10 @@ those tables without registering a production consumer. RT-110 verifies the
 production Migration composition and closes the data milestone at `0.2.0`.
 RT-201 adds the first capability-protected Batch create/list/detail
 administrative workflow without changing the release version or Schema.
+RT-202 adds the canonical secure in-memory candidate ID generator without
+changing the administration interface, release version, or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because there is no public route, ID
-generation, batch queue, export, activation, email-provider adapter, finder
-relay, or WooCommerce business workflow.
+production-ready product release because there is no public route, collision
+retry or persisted batch generation, batch queue, export, activation,
+email-provider adapter, finder relay, or WooCommerce business workflow.

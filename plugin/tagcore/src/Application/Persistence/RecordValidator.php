@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Application\Persistence;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
+use ReturnTag\TagCore\Domain\Tag\TagId;
 
 /**
  * Validates storage-shape constraints without implementing business workflows.
@@ -143,11 +144,7 @@ final class RecordValidator {
 	 * @throws InvalidArgumentException When the value is not canonical.
 	 */
 	public static function tag_id( string $value ): string {
-		if ( 1 !== preg_match( '/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/D', $value ) ) {
-			throw new InvalidArgumentException( 'tag_id must be a canonical six-character ReturnTag ID.' );
-		}
-
-		return $value;
+		return TagId::from_canonical( $value )->value;
 	}
 
 	/**

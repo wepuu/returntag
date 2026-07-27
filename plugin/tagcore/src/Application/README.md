@@ -20,3 +20,8 @@ cross-use but do not perform or prove encryption or hashing; approved
 cryptographic adapters remain responsible for producing them. The ports expose
 no generic CRUD, delete, state transition, authentication, token exchange,
 activation, export, relay, or WooCommerce behavior.
+
+RT-202 adds the `TagIdGenerator` and `RandomIntegerSource` ports plus the pure
+alphabet-mapping generator. It returns one candidate only and deliberately has
+no Repository, transaction, queue, collision retry, Batch transition, or
+logging dependency.

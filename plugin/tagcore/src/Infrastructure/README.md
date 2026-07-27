@@ -51,4 +51,9 @@ read. Migration inspection distinguishes a successful absent-table result from
 query failure or malformed metadata and stops before DDL on failure. These
 adapters are not registered by the plugin bootstrap and implement no product
 workflow.
+
+RT-202 adds `PhpSecureRandomIntegerSource` under `Random/`. It uses PHP
+`random_int()` and has no WordPress, database, queue, HTTP, or logging side
+effect. It is not composed into the RT-201 administration workflow.
+
 No product provider adapter is implemented.
