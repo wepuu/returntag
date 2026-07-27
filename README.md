@@ -17,9 +17,10 @@ boundary for those eight tables. It also makes schema inspection failures
 explicit and keeps Event writes disabled until an identity allowlist is
 provided. RT-201 adds the first narrowly scoped product workflow: authorized
 administrators can create, list, and inspect disabled draft production
-Batches. RT-202 adds secure in-memory Tag ID candidate generation. Collision
-retry, persisted batch generation, queues, exports, and Batch state changes
-remain future work.
+Batches. RT-202 adds secure in-memory Tag ID candidate generation, and RT-203
+persists one generated Tag with bounded duplicate-key collision retry.
+Persisted batch generation, queues, exports, and Batch state changes remain
+future work.
 
 ## Canonical naming
 
@@ -74,8 +75,8 @@ Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. RT-201 registers capability-protected
 `tagcore/v1/batches` administration routes and a WordPress-native Batch
 administration page. The repository still defines no email provider, OTP flow,
-activation flow, finder relay, WooCommerce business hook, collision retry,
-persisted batch generation, export, or Batch state transition. The only product
+activation flow, finder relay, WooCommerce business hook, persisted batch
+generation, export, or Batch state transition. The only product
 tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
@@ -163,6 +164,14 @@ and an injectable generator that maps six uniform indexes to the exact
 PHP `random_int()`. RT-202 generates one in-memory candidate only; it does not
 query or write the Tags table, retry collisions, schedule work, mutate Batch
 state, expose an API, or change the RT-201 administration interface.
+
+RT-203 keeps Schema version `8` and plugin version `0.2.0`. Its Application
+service generates a candidate and attempts insertion directly against the
+existing `tag_id` primary key. Only database error `1062` is classified as a
+retryable duplicate key, with a fixed maximum of ten attempts. Other
+persistence and Batch-snapshot failures stop immediately. Exhaustion never
+deletes, replaces, exposes, or reuses an existing Tag ID. RT-203 adds no UI,
+route, Hook, queue, Batch state transition, generated counter update, or Event.
 
 ## Repository layout
 

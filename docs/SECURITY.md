@@ -131,8 +131,13 @@ conversations.
   `I`, and `O`, and rejects any random adapter output outside the requested
   bounds.
 - RT-202 does not log, export, persist, reserve, retry, or expose generated
-  candidates. Database uniqueness and bounded collision handling remain
-  mandatory at the RT-203 persistence boundary.
+  candidates.
+- RT-203 attempts insertion without a uniqueness pre-query and retries only
+  numeric database error `1062`, for at most ten total candidates. Database
+  messages are discarded at the wpdb boundary because they can contain SQL or
+  Tag IDs. Failed candidate history is neither returned nor logged.
+- Non-duplicate persistence and Batch-snapshot failures fail immediately.
+  Exhaustion cannot delete, overwrite, or return an existing Tag ID.
 - Export access is restricted and every export is audited by version, row
   count, operator, timestamp, and SHA-256 checksum.
 - A leaked batch can have new activation suspended without silently disabling

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Application\Persistence\Repository;
 
+use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceDuplicateKeyException;
 use ReturnTag\TagCore\Application\Persistence\Pagination\PageSize;
 use ReturnTag\TagCore\Application\Persistence\Pagination\TagCursor;
 use ReturnTag\TagCore\Application\Persistence\Pagination\TagPage;
@@ -23,6 +24,7 @@ interface TagRepository {
 	 * Insert one Tag after Batch-snapshot verification.
 	 *
 	 * @param NewTagRecord $record New Tag data.
+	 * @throws PersistenceDuplicateKeyException When the Tag ID already exists.
 	 */
 	public function insert( NewTagRecord $record ): TagRecord;
 

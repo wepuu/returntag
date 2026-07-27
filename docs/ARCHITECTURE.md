@@ -331,9 +331,17 @@ value object. Application owns the generator and inclusive random-integer
 contracts plus the deterministic alphabet-mapping algorithm. Infrastructure
 implements the production random source with PHP `random_int()`. The generator
 returns one candidate and has no Repository, transaction, queue, WordPress,
-HTTP, logging, or Batch-state dependency. RT-203 must add collision handling
-around the `TagIdGenerator` contract; RT-204 must separately own background
-chunking and resumability.
+HTTP, logging, or Batch-state dependency.
+
+RT-203 adds the narrow Application orchestration boundary around
+`TagIdGenerator` and `TagRepository`. It performs insert-first allocation and
+retries only the explicit `PersistenceDuplicateKeyException`, up to ten total
+candidates. Infrastructure classifies only MySQL/MariaDB error `1062` as that
+exception and discards the database message so SQL and candidate values do not
+cross the persistence boundary. Snapshot, mapping, connection, and all other
+persistence failures stop immediately. The service owns no transaction because
+RT-204 must own the surrounding chunk transaction, progress update, Batch state
+transition, audit Event, scheduling, and resumability.
 
 ### Runtime dependency rationale
 

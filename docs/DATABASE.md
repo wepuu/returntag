@@ -394,6 +394,26 @@ primary key remains the final uniqueness constraint. RT-203 must implement
 bounded collision retry around insertion without deleting, replacing, or
 reusing any existing ID.
 
+### 3.12 RT-203 bounded collision retry
+
+RT-203 leaves Schema version `8` unchanged. `InsertGeneratedTag` generates one
+candidate, constructs an unowned `unregistered` Tag record with server-controlled
+defaults, and immediately attempts `TagRepository::insert()`. It does not issue
+a uniqueness pre-query. The Tags primary key is the authority for uniqueness.
+
+The wpdb gateway reads the numeric connection error code after a failed
+application-supplied-key insert. Only MySQL/MariaDB error `1062` becomes
+`PersistenceDuplicateKeyException`; the database message is discarded. The
+Application service retries that exception only and makes at most ten total
+insert attempts. Batch-snapshot, mapping, connection, and other persistence
+errors fail immediately. Retry exhaustion inserts no replacement and never
+updates, deletes, or reuses existing rows.
+
+The operation intentionally does not open a transaction. RT-204 must place
+per-Tag insertion inside the transaction boundary for its resumable chunk and
+must own `generated_quantity`, Batch state, progress, and audit Events. RT-203
+does not update those values independently.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:
@@ -420,9 +440,10 @@ activation identifier must not be added.
 - `tag_id` must have a database uniqueness constraint.
 - Tag IDs are uppercase and exactly six characters after normalization.
 - Candidate IDs are generated through the RT-202 cryptographically secure
-  random source; later batch-generation tickets persist them by production
-  Batch.
-- A collision is retried without modifying or deleting an existing ID.
+  random source and RT-203 persists each candidate against the database primary
+  key for a trusted production Batch snapshot.
+- A duplicate-key collision is retried up to ten total attempts without a
+  uniqueness pre-query and without modifying or deleting an existing ID.
 - Generated, exported, voided, suspended, and retired IDs are never reused.
 - Re-export reads the original immutable ID set and never regenerates it.
 
