@@ -275,7 +275,9 @@ RT-203 adds bounded insert-first collision retry without changing the
 administration interface, release version, or Schema.
 RT-204 adds resumable 100-Tag Action Scheduler chunks, atomic Batch progress,
 and audited start/completion transitions without changing release version or
-Schema. RT-205 remains responsible for visible confirmation and progress UI.
+Schema. RT-205 adds the second confirmation, authenticated aggregate progress
+query, queue-health projection, bounded admin polling, and idempotent recovery
+UI without changing release version or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because there is no public route, export, activation,

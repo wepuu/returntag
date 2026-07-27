@@ -446,6 +446,32 @@ Exact duplicate actions collapse. Retries use fixed delays of `60`, `300`,
 `900`, `3600`, and `21600` seconds. No migration, foreign key, trigger, new
 Option, temporary ID reservation, or reusable ID pool is introduced.
 
+### 3.14 RT-205 administrative progress projection
+
+RT-205 leaves Schema version `8` unchanged and performs no write. The
+administrative detail query reads the Batch primary key projection:
+
+```text
+batch_id
+requested_quantity
+generated_quantity
+batch_status
+activation_enabled
+updated_at
+```
+
+It then reads at most three matching lifecycle rows from
+`returntag_events`, constrained by `target_type=batch`, the numeric Batch target
+ID, and the `batch_generation_started` and `batch_generation_completed` Event
+types. The existing `target_type_target_id_created_at` index supports this
+bounded query. More than one start or completion Event, an active Batch without
+a start Event, or a generated Batch without a completion Event fails closed.
+
+`remaining_quantity` and whole-number percentage are derived from committed
+counters. `failed_quantity` remains zero because failed candidates are rolled
+back and have no persisted Tag record. Queue health is operational state, not a
+database failure count.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:

@@ -33,6 +33,13 @@ only the stored Tag and aggregate collision count, and fails closed for every
 other error. It does not own a transaction, queue, progress update, Batch state,
 counter, Event, log, route, or UI.
 
+RT-205 adds `GetBatchGenerationProgress`, a narrow progress-reader port, and a
+provider-neutral queue-monitor port. The query validates audited lifecycle
+timestamps, derives committed percentage and remaining work, maps missing
+active work to `needs_attention`, and keeps the persisted failed-ID count at
+zero because RT-204 never stores a failed Tag. It performs no write, generation,
+queue scheduling, or provider inspection directly.
+
 RT-204 adds `StartBatchGeneration` and `GenerateBatchChunk` plus narrow Batch
 progress and scheduler ports. Application owns state eligibility, checkpoint
 and counter integrity, the 100-Tag action bound, aggregate lifecycle Event

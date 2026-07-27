@@ -106,12 +106,63 @@ final class BatchAdminTest extends WP_UnitTestCase {
 			array(
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1' ),
+				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/generation' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
 			) as $request
 		) {
 			self::assertSame( 403, rest_do_request( $request )->get_status() );
 		}
+	}
+
+	/**
+	 * Draft progress is a safe aggregate and can start only while disabled.
+	 */
+	public function test_generation_progress_returns_draft_aggregate(): void {
+		$created = rest_do_request( $this->create_request( 'RT-205-DRAFT' ) )->get_data();
+		self::assertIsArray( $created );
+
+		$request  = new WP_REST_Request(
+			'GET',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame(
+			array(
+				'batch_id',
+				'batch_status',
+				'requested_quantity',
+				'generated_quantity',
+				'remaining_quantity',
+				'failed_quantity',
+				'progress_percent',
+				'started_at',
+				'completed_at',
+				'last_progress_at',
+				'queue_state',
+				'can_start',
+				'can_retry',
+				'poll_after_ms',
+			),
+			array_keys( $data )
+		);
+		self::assertSame( 'draft', $data['batch_status'] );
+		self::assertSame( 2500, $data['requested_quantity'] );
+		self::assertSame( 0, $data['generated_quantity'] );
+		self::assertSame( 2500, $data['remaining_quantity'] );
+		self::assertSame( 0, $data['failed_quantity'] );
+		self::assertSame( 0, $data['progress_percent'] );
+		self::assertNull( $data['started_at'] );
+		self::assertNull( $data['completed_at'] );
+		self::assertSame( 'idle', $data['queue_state'] );
+		self::assertTrue( $data['can_start'] );
+		self::assertFalse( $data['can_retry'] );
+		self::assertSame( 0, $data['poll_after_ms'] );
+		$this->assert_no_store_after_serving( $response, $request );
 	}
 
 	/**
@@ -168,6 +219,22 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertIsArray( $resume_data );
 		self::assertSame( 'already_scheduled', $resume_data['queue_status'] );
 
+		$progress_request  = new WP_REST_Request(
+			'GET',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		$progress_response = rest_do_request( $progress_request );
+		$progress          = $progress_response->get_data();
+
+		self::assertSame( 200, $progress_response->get_status() );
+		self::assertIsArray( $progress );
+		self::assertSame( 'generating', $progress['batch_status'] );
+		self::assertSame( 'scheduled', $progress['queue_state'] );
+		self::assertNotNull( $progress['started_at'] );
+		self::assertNull( $progress['completed_at'] );
+		self::assertSame( 3000, $progress['poll_after_ms'] );
+		self::assertFalse( $progress['can_retry'] );
+
 		$tables      = new TableNames( $wpdb->prefix );
 		$event_query = $wpdb->prepare(
 			'SELECT COUNT(*) FROM %i WHERE event_type = %s AND target_id = %s',
@@ -177,6 +244,141 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		);
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Verifying one audit Event in an isolated test table.
 		self::assertSame( '1', $wpdb->get_var( $event_query ) );
+	}
+
+	/**
+	 * A generating Batch without queued work exposes an idempotent recovery action.
+	 */
+	public function test_generation_progress_needs_attention_without_scheduled_work(): void {
+		$created = rest_do_request( $this->create_request( 'RT-205-RETRY' ) )->get_data();
+		self::assertIsArray( $created );
+
+		$start = new WP_REST_Request(
+			'POST',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		self::assertSame( 202, rest_do_request( $start )->get_status() );
+
+		as_unschedule_all_actions(
+			ActionSchedulerBatchGenerationScheduler::HOOK,
+			array(
+				'batch_id'      => $created['batch_id'],
+				'checkpoint'    => 0,
+				'retry_attempt' => 0,
+			),
+			ActionSchedulerBatchGenerationScheduler::GROUP
+		);
+
+		$progress = rest_do_request(
+			new WP_REST_Request(
+				'GET',
+				'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+			)
+		)->get_data();
+
+		self::assertIsArray( $progress );
+		self::assertSame( 'needs_attention', $progress['queue_state'] );
+		self::assertTrue( $progress['can_retry'] );
+		self::assertSame( 0, $progress['poll_after_ms'] );
+	}
+
+	/**
+	 * Completed generation returns audited terminal progress without queue details.
+	 */
+	public function test_generation_progress_returns_completed_state(): void {
+		$request = $this->create_request( 'RT-205-COMPLETE' );
+		$request->set_param( 'requested_quantity', 1 );
+		$created = rest_do_request( $request )->get_data();
+		self::assertIsArray( $created );
+
+		$start = new WP_REST_Request(
+			'POST',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		self::assertSame( 202, rest_do_request( $start )->get_status() );
+
+		as_unschedule_all_actions(
+			ActionSchedulerBatchGenerationScheduler::HOOK,
+			array(
+				'batch_id'      => $created['batch_id'],
+				'checkpoint'    => 0,
+				'retry_attempt' => 0,
+			),
+			ActionSchedulerBatchGenerationScheduler::GROUP
+		);
+		do_action(
+			ActionSchedulerBatchGenerationScheduler::HOOK,
+			$created['batch_id'],
+			0,
+			0
+		);
+
+		$response = rest_do_request(
+			new WP_REST_Request(
+				'GET',
+				'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+			)
+		);
+		$progress = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $progress );
+		self::assertSame( 'generated', $progress['batch_status'] );
+		self::assertSame( 1, $progress['generated_quantity'] );
+		self::assertSame( 0, $progress['remaining_quantity'] );
+		self::assertSame( 100, $progress['progress_percent'] );
+		self::assertSame( 'complete', $progress['queue_state'] );
+		self::assertNotNull( $progress['started_at'] );
+		self::assertNotNull( $progress['completed_at'] );
+		self::assertFalse( $progress['can_start'] );
+		self::assertFalse( $progress['can_retry'] );
+		self::assertSame( 0, $progress['poll_after_ms'] );
+	}
+
+	/**
+	 * Queue matching must not confuse work for another Batch.
+	 */
+	public function test_generation_queue_monitor_is_scoped_to_batch_id(): void {
+		$first  = rest_do_request( $this->create_request( 'RT-205-SCOPE-1' ) )->get_data();
+		$second = rest_do_request( $this->create_request( 'RT-205-SCOPE-2' ) )->get_data();
+		self::assertIsArray( $first );
+		self::assertIsArray( $second );
+
+		foreach ( array( $first, $second ) as $batch ) {
+			$request = new WP_REST_Request(
+				'POST',
+				'/tagcore/v1/batches/' . $batch['batch_id'] . '/generation'
+			);
+			self::assertSame( 202, rest_do_request( $request )->get_status() );
+		}
+
+		as_unschedule_all_actions(
+			ActionSchedulerBatchGenerationScheduler::HOOK,
+			array(
+				'batch_id'      => $first['batch_id'],
+				'checkpoint'    => 0,
+				'retry_attempt' => 0,
+			),
+			ActionSchedulerBatchGenerationScheduler::GROUP
+		);
+
+		$first_progress  = rest_do_request(
+			new WP_REST_Request(
+				'GET',
+				'/tagcore/v1/batches/' . $first['batch_id'] . '/generation'
+			)
+		)->get_data();
+		$second_progress = rest_do_request(
+			new WP_REST_Request(
+				'GET',
+				'/tagcore/v1/batches/' . $second['batch_id'] . '/generation'
+			)
+		)->get_data();
+
+		self::assertIsArray( $first_progress );
+		self::assertIsArray( $second_progress );
+		self::assertSame( 'needs_attention', $first_progress['queue_state'] );
+		self::assertSame( 'scheduled', $second_progress['queue_state'] );
 	}
 
 	/**

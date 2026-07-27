@@ -18,6 +18,7 @@ use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationNotFound;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationQueueUnavailable;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchCodeAlreadyExists;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
+use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\Pagination\BatchCursor;
@@ -43,15 +44,17 @@ final readonly class BatchRestController {
 	/**
 	 * Create the controller.
 	 *
-	 * @param CreateBatch          $create_batch Create use case.
-	 * @param StartBatchGeneration $start_generation Start generation use case.
-	 * @param ListBatches          $list_batches List query.
-	 * @param GetBatch             $get_batch Detail query.
-	 * @param SchemaState          $schema_state Schema readiness.
+	 * @param CreateBatch                $create_batch Create use case.
+	 * @param StartBatchGeneration       $start_generation Start generation use case.
+	 * @param GetBatchGenerationProgress $get_generation_progress Progress query.
+	 * @param ListBatches                $list_batches List query.
+	 * @param GetBatch                   $get_batch Detail query.
+	 * @param SchemaState                $schema_state Schema readiness.
 	 */
 	public function __construct(
 		private CreateBatch $create_batch,
 		private StartBatchGeneration $start_generation,
+		private GetBatchGenerationProgress $get_generation_progress,
 		private ListBatches $list_batches,
 		private GetBatch $get_batch,
 		private SchemaState $schema_state
@@ -93,9 +96,16 @@ final readonly class BatchRestController {
 			self::NAMESPACE,
 			'/batches/(?P<batch_id>[1-9][0-9]*)/generation',
 			array(
-				'methods'             => WP_REST_Server::CREATABLE,
-				'callback'            => array( $this, 'start_generation' ),
-				'permission_callback' => array( $this, 'authorize' ),
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_generation_progress' ),
+					'permission_callback' => array( $this, 'authorize' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'start_generation' ),
+					'permission_callback' => array( $this, 'authorize' ),
+				),
 			)
 		);
 	}
@@ -213,6 +223,62 @@ final readonly class BatchRestController {
 		}
 
 		return $this->no_store( new WP_REST_Response( $this->prepare_record( $batch ) ) );
+	}
+
+	/**
+	 * Return aggregate generation progress and queue health.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 */
+	public function get_generation_progress( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		if ( ! $this->schema_state->is_current() ) {
+			return $this->schema_unavailable();
+		}
+
+		$batch_id = $this->positive_integer( $request->get_param( 'batch_id' ) );
+
+		if ( null === $batch_id ) {
+			return $this->invalid_request( array( 'batch_id' => __( 'The Batch identifier is invalid.', 'tagcore' ) ) );
+		}
+
+		try {
+			$progress = $this->get_generation_progress->execute( $batch_id );
+		} catch ( BatchGenerationNotFound ) {
+			return new WP_Error(
+				'returntag_batch_not_found',
+				__( 'The requested Batch was not found.', 'tagcore' ),
+				array( 'status' => 404 )
+			);
+		} catch ( BatchGenerationIntegrityViolation ) {
+			return new WP_Error(
+				'returntag_batch_generation_inconsistent',
+				__( 'Batch generation is paused because its stored progress is inconsistent.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( Throwable ) {
+			return $this->operation_failed();
+		}
+
+		return $this->no_store(
+			new WP_REST_Response(
+				array(
+					'batch_id'           => $progress->batch_id,
+					'batch_status'       => $progress->batch_status->value,
+					'requested_quantity' => $progress->requested_quantity,
+					'generated_quantity' => $progress->generated_quantity,
+					'remaining_quantity' => $progress->remaining_quantity,
+					'failed_quantity'    => $progress->failed_quantity,
+					'progress_percent'   => $progress->progress_percent,
+					'started_at'         => $progress->started_at?->format( DATE_ATOM ),
+					'completed_at'       => $progress->completed_at?->format( DATE_ATOM ),
+					'last_progress_at'   => $progress->last_progress_at->format( DATE_ATOM ),
+					'queue_state'        => $progress->queue_state->value,
+					'can_start'          => $progress->can_start,
+					'can_retry'          => $progress->can_retry,
+					'poll_after_ms'      => $progress->poll_after_ms,
+				)
+			)
+		);
 	}
 
 	/**

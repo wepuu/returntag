@@ -151,6 +151,14 @@ conversations.
 - RT-204 emits one metadata-free start Event with the authenticated internal
   User ID and one metadata-free completion Event with a system actor. It emits
   no per-Tag or per-chunk Event.
+- RT-205 requires the same dedicated capability for its no-store progress GET
+  endpoint. It exposes only committed counters, audited lifecycle times,
+  normalized queue health, and action availability; it never returns Tag IDs,
+  queue arguments, SQL, provider errors, or Event metadata.
+- The browser polls only a visible active generation view, never faster than
+  the server's three-second minimum. Queue inspection failure disables recovery
+  actions until state can be verified. A missing worker exposes an idempotent
+  retry without deleting or regenerating committed IDs.
 - Export access is restricted and every export is audited by version, row
   count, operator, timestamp, and SHA-256 checksum.
 - A leaked batch can have new activation suspended without silently disabling
