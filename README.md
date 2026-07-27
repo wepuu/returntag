@@ -17,10 +17,11 @@ boundary for those eight tables. It also makes schema inspection failures
 explicit and keeps Event writes disabled until an identity allowlist is
 provided. RT-201 adds the first narrowly scoped product workflow: authorized
 administrators can create, list, and inspect disabled draft production
-Batches. RT-202 adds secure in-memory Tag ID candidate generation, and RT-203
-persists one generated Tag with bounded duplicate-key collision retry.
-Persisted batch generation, queues, exports, and Batch state changes remain
-future work.
+  Batches. RT-202 adds secure in-memory Tag ID candidate generation, RT-203
+  persists one generated Tag with bounded duplicate-key collision retry, and
+  RT-204 adds resumable 100-Tag background generation with atomic progress and
+  lifecycle Events. Exports and later Batch lifecycle controls remain future
+  work.
 
 ## Canonical naming
 
@@ -71,12 +72,11 @@ packages at runtime; they are not bundled into TagCore assets. Admin and public
 styles use separate `returntag-` roots and do not use Tailwind or global CSS
 resets.
 
-Action Scheduler is available as queue infrastructure, but TagCore does not
-schedule business jobs yet. RT-201 registers capability-protected
+Action Scheduler runs RT-204 generation chunks through a provider-neutral
+Application scheduler port. RT-201 registers capability-protected
 `tagcore/v1/batches` administration routes and a WordPress-native Batch
 administration page. The repository still defines no email provider, OTP flow,
-activation flow, finder relay, WooCommerce business hook, persisted batch
-generation, export, or Batch state transition. The only product
+activation flow, finder relay, WooCommerce business hook, or export. The only product
 tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
@@ -140,7 +140,7 @@ back on exceptions, reject nesting, and do not retry automatically. These
 adapters are not registered by the plugin bootstrap and add no product route,
 hook, state transition, ID generation, OTP, activation, Finder relay, email,
 export, or WooCommerce behavior. Schema remains `8` and the plugin remains
-`0.1.0`.
+`0.2.0`.
 
 RT-110 closes Milestone 1 at plugin and project version `0.2.0`. It adds
 production-composition acceptance tests for fresh activation, partial upgrade,
@@ -172,6 +172,16 @@ retryable duplicate key, with a fixed maximum of ten attempts. Other
 persistence and Batch-snapshot failures stop immediately. Exhaustion never
 deletes, replaces, exposes, or reuses an existing Tag ID. RT-203 adds no UI,
 route, Hook, queue, Batch state transition, generated counter update, or Event.
+
+RT-204 keeps Schema version `8` and plugin version `0.2.0`. Authorized
+administrators may POST to
+`tagcore/v1/batches/{batch_id}/generation` to start or resume a disabled Batch.
+The request records one start Event and schedules Action Scheduler work; it
+does not generate IDs synchronously. Workers commit at most 100 Tags per action
+and wrap each RT-203 insert, conditional progress update, final status
+transition, and completion Event in short database transactions. Exact
+duplicate queue actions collapse, delayed retries are bounded, and stale work
+resumes from committed progress without exposing Tag IDs.
 
 ## Repository layout
 

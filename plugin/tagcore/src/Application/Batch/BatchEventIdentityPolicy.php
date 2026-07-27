@@ -12,7 +12,7 @@ namespace ReturnTag\TagCore\Application\Batch;
 use ReturnTag\TagCore\Application\Persistence\EventIdentityPolicy;
 
 /**
- * Allows only the privacy-safe RT-201 Batch creation Event identity.
+ * Allows only approved privacy-safe Batch lifecycle Event identities.
  */
 final class BatchEventIdentityPolicy implements EventIdentityPolicy {
 	/**
@@ -33,12 +33,22 @@ final class BatchEventIdentityPolicy implements EventIdentityPolicy {
 		string $target_id,
 		?string $correlation_id
 	): bool {
-		return 'batch.created' === $event_type
-			&& 'user' === $actor_type
-			&& null !== $actor_id
-			&& $actor_id > 0
-			&& 'batch' === $target_type
-			&& 1 === preg_match( '/^[1-9][0-9]*$/D', $target_id )
-			&& null === $correlation_id;
+		if (
+			'batch' !== $target_type
+			|| 1 !== preg_match( '/^[1-9][0-9]*$/D', $target_id )
+			|| null !== $correlation_id
+		) {
+			return false;
+		}
+
+		if ( in_array( $event_type, array( 'batch.created', 'batch_generation_started' ), true ) ) {
+			return 'user' === $actor_type
+				&& null !== $actor_id
+				&& $actor_id > 0;
+		}
+
+		return 'batch_generation_completed' === $event_type
+			&& 'system' === $actor_type
+			&& null === $actor_id;
 	}
 }

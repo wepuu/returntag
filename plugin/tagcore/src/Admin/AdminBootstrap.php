@@ -13,6 +13,7 @@ use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
+use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
@@ -20,19 +21,21 @@ use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
 use wpdb;
 
 /**
- * Wires RT-201 administrative adapters to application services.
+ * Wires RT-201 and RT-204 administrative adapters to application services.
  */
 final class AdminBootstrap {
 	/**
-	 * Register RT-201 hooks for the current WordPress site.
+	 * Register Batch administration hooks for the current WordPress site.
 	 *
 	 * @param string $plugin_file Absolute plugin bootstrap path.
 	 */
@@ -47,6 +50,7 @@ final class AdminBootstrap {
 		$gateway      = new WpdbGateway( $wpdb );
 		$dates        = new DatabaseDateTimeCodec();
 		$batches      = new WpdbBatchRepository( $gateway, $tables, $dates );
+		$generation   = new WpdbBatchGenerationRepository( $gateway, $tables, $dates );
 		$events       = new WpdbEventRepository(
 			$gateway,
 			$tables,
@@ -60,13 +64,20 @@ final class AdminBootstrap {
 			( new MigrationRegistryFactory( $wpdb ) )->create()
 		);
 		$create       = new CreateBatch( $batches, $events, $transactions, new SystemClock() );
+		$start        = new StartBatchGeneration(
+			$generation,
+			$events,
+			$transactions,
+			new ActionSchedulerBatchGenerationScheduler(),
+			new SystemClock()
+		);
 		$list         = new ListBatches( $batches );
 		$get          = new GetBatch( $batches );
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 
-		$controller = new BatchRestController( $create, $list, $get, $schema_state );
+		$controller = new BatchRestController( $create, $start, $list, $get, $schema_state );
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
 	}

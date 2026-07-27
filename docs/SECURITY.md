@@ -138,6 +138,19 @@ conversations.
   Tag IDs. Failed candidate history is neither returned nor logged.
 - Non-duplicate persistence and Batch-snapshot failures fail immediately.
   Exhaustion cannot delete, overwrite, or return an existing Tag ID.
+- RT-204 starts generation only through an authenticated POST request guarded
+  by `manage_returntag_batches`; WordPress cookie requests require the REST
+  nonce. The endpoint accepts no requested status, checkpoint, quantity, retry,
+  or Tag ID input and returns only aggregate Batch and queue status.
+- Queue payloads contain only the internal Batch ID and integer progress
+  counters. Generated Tag IDs, candidate history, SQL, database errors, and
+  manufacturing notes are not placed in Action Scheduler arguments or Events.
+- Every Tag insert and counter advance share a short transaction and locked
+  Batch row. Counter drift, future checkpoints, invalid states, or failed
+  conditional writes stop work without deleting or exposing committed IDs.
+- RT-204 emits one metadata-free start Event with the authenticated internal
+  User ID and one metadata-free completion Event with a system actor. It emits
+  no per-Tag or per-chunk Event.
 - Export access is restricted and every export is audited by version, row
   count, operator, timestamp, and SHA-256 checksum.
 - A leaked batch can have new activation suspended without silently disabling

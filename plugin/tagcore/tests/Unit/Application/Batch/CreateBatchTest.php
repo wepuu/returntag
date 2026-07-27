@@ -117,15 +117,18 @@ final class CreateBatchTest extends TestCase {
 	}
 
 	/**
-	 * The Event policy must allow only the exact RT-201 identity shape.
+	 * The Event policy must allow only approved Batch lifecycle identities.
 	 */
 	public function test_event_identity_policy_is_narrow(): void {
 		$policy = new BatchEventIdentityPolicy();
 
 		self::assertTrue( $policy->allows( 'batch.created', 'user', 42, 'batch', '7', null ) );
+		self::assertTrue( $policy->allows( 'batch_generation_started', 'user', 42, 'batch', '7', null ) );
+		self::assertTrue( $policy->allows( 'batch_generation_completed', 'system', null, 'batch', '7', null ) );
 		self::assertFalse( $policy->allows( 'batch.created', 'user', 42, 'batch', '7', 'token-like' ) );
 		self::assertFalse( $policy->allows( 'batch.deleted', 'user', 42, 'batch', '7', null ) );
 		self::assertFalse( $policy->allows( 'batch.created', 'user', 42, 'batch', 'finder@example.test', null ) );
+		self::assertFalse( $policy->allows( 'batch_generation_completed', 'user', 42, 'batch', '7', null ) );
 	}
 
 	/**
