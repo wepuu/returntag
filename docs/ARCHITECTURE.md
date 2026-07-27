@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 1 data foundation complete at version 0.2.0 and Schema version 8; product workflows pending
+**Status:** Milestone 2 Batch generation in progress at version 0.2.0 and Schema version 8
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -133,9 +133,9 @@ and dependency direction.
 `plugin/tagcore/tagcore.php` remains small. It defines stable
 `RETURNTAG_TAGCORE_` constants, loads Composer when available, makes the bundled
 Action Scheduler runtime available early enough for version negotiation, and
-delegates Migration lifecycle registration to its Infrastructure composition
-root. It does not contain schema SQL or register product hooks, routes,
-services, or workflows.
+delegates Migration, Batch worker, and administration registration to
+composition roots. It contains no schema SQL, request handling, queue logic, or
+business workflow.
 
 RT-101 lifecycle hooks are limited to activation, completed plugin upgrade, and
 authorized admin compensation. Domain workflows, database queries, email
@@ -246,9 +246,9 @@ request.
 
 ## 9. Public contracts
 
-The engineering foundation introduces no REST route, product hook, emitted
-business event, or business service; RT-102 through RT-108 add only the current
-product tables and RT-109 adds internal persistence contracts and adapters.
+The original engineering foundation introduced no product route or workflow;
+RT-102 through RT-108 add the current product tables and RT-109 adds internal
+persistence contracts and adapters.
 RT-007 introduces only the four approved global option names and a read
 contract; it neither creates nor writes those options. RT-008 adds
 engineering-only logging contracts and a disabled adapter without emitting
@@ -279,6 +279,11 @@ routes plus the WordPress-native TagCore Batch admin page. The REST controller
 validates and normalizes input, invokes Application services, maps privacy-safe
 responses, and applies no-store headers. The `CreateBatch` service owns fixed
 draft defaults and atomically persists the Batch with a `batch.created` Event.
+RT-204 adds the POST generation command and internal
+`returntag_generate_batch_chunk` Action Scheduler hook. These are internal
+product contracts: the command accepts only a route Batch ID, and the hook
+accepts only numeric Batch ID, checkpoint, and retry-attempt arguments. The
+worker emits only aggregate lifecycle Events and never returns Tag IDs.
 The Composer package, PSR-4 namespace, plugin headers, build entry points, and
 quality commands are also engineering contracts. Product names documented in
 the PRD remain future contracts and must not be implemented or changed outside
@@ -322,8 +327,8 @@ RT-201 composes only the Batch and Event repositories required by its
 administrative workflow. Its React interface uses WordPress-provided packages,
 the dedicated `manage_returntag_batches` capability, REST cookie
 authentication with the WordPress REST nonce, and plugin-scoped CSS. It does
-not compose Action Scheduler or add an ID generator, export, Batch transition,
-email, public route, or WooCommerce integration.
+not add an ID generator, export, email, public route, or WooCommerce
+integration.
 
 RT-202 adds one inward-facing Tag ID generation boundary without changing the
 RT-201 interface. Domain owns the exact alphabet, length, and strict canonical
@@ -339,16 +344,30 @@ retries only the explicit `PersistenceDuplicateKeyException`, up to ten total
 candidates. Infrastructure classifies only MySQL/MariaDB error `1062` as that
 exception and discards the database message so SQL and candidate values do not
 cross the persistence boundary. Snapshot, mapping, connection, and all other
-persistence failures stop immediately. The service owns no transaction because
-RT-204 must own the surrounding chunk transaction, progress update, Batch state
-transition, audit Event, scheduling, and resumability.
+persistence failures stop immediately. The service owns no transaction.
+
+RT-204 supplies the surrounding orchestration. Application owns start/resume,
+100-Tag chunk limits, checkpoint validation, Batch transition requests, audit
+Event requests, and the provider-neutral scheduler port. Infrastructure owns
+the `$wpdb` row locks and conditional progress updates, short per-Tag
+transactions, Action Scheduler adapter, delayed retry handler, and worker
+composition root. Admin adds one capability-protected POST command and returns
+only aggregate status. The React page is unchanged; RT-205 owns confirmation
+and progress presentation.
+
+The start transaction changes a pristine disabled `draft` Batch to
+`generating` and appends one `batch_generation_started` Event. Every worker
+transaction locks that Batch, runs RT-203 insertion, then conditionally advances
+the materialized counter. The final transaction also sets `generated` and
+appends one `batch_generation_completed` Event. Queue arguments contain no Tag
+IDs, and public requests never perform generation.
 
 ### Runtime dependency rationale
 
 | Package | Purpose and boundary | License and maintenance |
 |---|---|---|
 | `psr/log` | Defines the logging interface extended by `ApplicationLogger`; RT-008 supplies a default-disabled WordPress adapter without selecting production transport or retention. | MIT; interface-only dependency included in the release artifact. |
-| `woocommerce/action-scheduler` | Supplies retryable WordPress queue infrastructure. TagCore loads the library for version negotiation but does not schedule product jobs in this foundation. | GPL-3.0-or-later, compatible with TagCore's GPL-2.0-or-later declaration; its distributed license files must remain in the artifact. |
+| `woocommerce/action-scheduler` | Runs RT-204 resumable Batch chunks behind an Application scheduler port; production requires a real Cron or WP-CLI runner and failed-action monitoring. | GPL-3.0-or-later, compatible with TagCore's GPL-2.0-or-later declaration; its distributed license files must remain in the artifact. |
 
 Composer locks both packages and Dependabot proposes updates. Runtime updates
 must pass the PHP, WordPress, WooCommerce, queue-idempotency, and release

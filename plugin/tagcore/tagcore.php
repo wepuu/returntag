@@ -40,6 +40,10 @@ if ( class_exists( ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap
 	ReturnTag\TagCore\Infrastructure\Migration\MigrationBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }
 
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstrap::register();
+}
+
 if ( class_exists( ReturnTag\TagCore\Admin\AdminBootstrap::class ) ) {
 	ReturnTag\TagCore\Admin\AdminBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }

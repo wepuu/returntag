@@ -12,9 +12,14 @@ namespace ReturnTag\TagCore\Admin;
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\CreateBatchInput;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationIntegrityViolation;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationNotAllowed;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationNotFound;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationQueueUnavailable;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchCodeAlreadyExists;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
+use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\Pagination\BatchCursor;
 use ReturnTag\TagCore\Application\Persistence\Pagination\PageSize;
 use ReturnTag\TagCore\Application\Persistence\Record\BatchRecord;
@@ -30,7 +35,7 @@ use WP_REST_Response;
 use WP_REST_Server;
 
 /**
- * Maps authorized REST requests to RT-201 application services.
+ * Maps authorized REST requests to Batch application services.
  */
 final readonly class BatchRestController {
 	private const NAMESPACE = 'tagcore/v1';
@@ -38,13 +43,15 @@ final readonly class BatchRestController {
 	/**
 	 * Create the controller.
 	 *
-	 * @param CreateBatch $create_batch Create use case.
-	 * @param ListBatches $list_batches List query.
-	 * @param GetBatch    $get_batch Detail query.
-	 * @param SchemaState $schema_state Schema readiness.
+	 * @param CreateBatch          $create_batch Create use case.
+	 * @param StartBatchGeneration $start_generation Start generation use case.
+	 * @param ListBatches          $list_batches List query.
+	 * @param GetBatch             $get_batch Detail query.
+	 * @param SchemaState          $schema_state Schema readiness.
 	 */
 	public function __construct(
 		private CreateBatch $create_batch,
+		private StartBatchGeneration $start_generation,
 		private ListBatches $list_batches,
 		private GetBatch $get_batch,
 		private SchemaState $schema_state
@@ -78,6 +85,16 @@ final readonly class BatchRestController {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_item' ),
+				'permission_callback' => array( $this, 'authorize' ),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/batches/(?P<batch_id>[1-9][0-9]*)/generation',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'start_generation' ),
 				'permission_callback' => array( $this, 'authorize' ),
 			)
 		);
@@ -235,6 +252,68 @@ final readonly class BatchRestController {
 		$response->header( 'Location', rest_url( self::NAMESPACE . '/batches/' . $batch->batch_id ) );
 
 		return $this->no_store( $response );
+	}
+
+	/**
+	 * Start or resume background ID generation.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 */
+	public function start_generation( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		if ( ! $this->schema_state->is_current() ) {
+			return $this->schema_unavailable();
+		}
+
+		$batch_id = $this->positive_integer( $request->get_param( 'batch_id' ) );
+		$user_id  = get_current_user_id();
+
+		if ( null === $batch_id || $user_id < 1 ) {
+			return $this->invalid_request( array( 'batch_id' => __( 'The Batch identifier is invalid.', 'tagcore' ) ) );
+		}
+
+		try {
+			$result = $this->start_generation->execute( $batch_id, $user_id );
+		} catch ( BatchGenerationNotFound ) {
+			return new WP_Error(
+				'returntag_batch_not_found',
+				__( 'The requested Batch was not found.', 'tagcore' ),
+				array( 'status' => 404 )
+			);
+		} catch ( BatchGenerationNotAllowed ) {
+			return new WP_Error(
+				'returntag_batch_generation_conflict',
+				__( 'This Batch cannot start ID generation in its current state.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( BatchGenerationIntegrityViolation ) {
+			return new WP_Error(
+				'returntag_batch_generation_inconsistent',
+				__( 'Batch generation is paused because its stored progress is inconsistent.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( BatchGenerationQueueUnavailable ) {
+			return new WP_Error(
+				'returntag_batch_generation_queue_unavailable',
+				__( 'Batch generation could not be queued. Please try again.', 'tagcore' ),
+				array( 'status' => 503 )
+			);
+		} catch ( Throwable ) {
+			return $this->operation_failed();
+		}
+
+		$status = null === $result->schedule_status ? 200 : 202;
+
+		return $this->no_store(
+			new WP_REST_Response(
+				array(
+					'batch_id'           => $result->batch_id,
+					'batch_status'       => $result->batch_status->value,
+					'generated_quantity' => $result->generated_quantity,
+					'queue_status'       => $result->schedule_status?->value,
+				),
+				$status
+			)
+		);
 	}
 
 	/**

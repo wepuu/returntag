@@ -225,6 +225,21 @@ the unused orchestration code while preserving every Tag row. If collision
 exhaustion or unexpected persistence failures occur during later batch work,
 disable that future worker; do not delete or reuse Tags.
 
+RT-204 leaves plugin version `0.2.0` and Schema version `8` unchanged. It adds
+one capability-protected REST command, the internal
+`returntag_generate_batch_chunk` Action Scheduler hook, conditional Batch
+progress writes, and two aggregate lifecycle Event types. It adds no DDL,
+Option, dependency, export, activation, public route, email, or WooCommerce
+behavior. Deployment must confirm Action Scheduler has a real Cron or WP-CLI
+runner and failed-action monitoring.
+
+Code rollback preserves every committed Tag, Batch counter, status, and Event.
+Stop risk first by disabling TagCore or pausing the
+`returntag-tag-generation` group. Restore compatible code and repost the
+generation command to resume from committed progress. Never decrement the
+counter, delete generated Tags, or reuse IDs. A Batch left in `generating`
+after a queue failure is recoverable through the idempotent POST command.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -258,8 +273,10 @@ RT-202 adds the canonical secure in-memory candidate ID generator without
 changing the administration interface, release version, or Schema.
 RT-203 adds bounded insert-first collision retry without changing the
 administration interface, release version, or Schema.
+RT-204 adds resumable 100-Tag Action Scheduler chunks, atomic Batch progress,
+and audited start/completion transitions without changing release version or
+Schema. RT-205 remains responsible for visible confirmation and progress UI.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because there is no public route, persisted
-batch generation, batch queue, export, activation,
+production-ready product release because there is no public route, export, activation,
 email-provider adapter, finder relay, or WooCommerce business workflow.
