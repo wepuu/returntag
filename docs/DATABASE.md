@@ -409,10 +409,42 @@ insert attempts. Batch-snapshot, mapping, connection, and other persistence
 errors fail immediately. Retry exhaustion inserts no replacement and never
 updates, deletes, or reuses existing rows.
 
-The operation intentionally does not open a transaction. RT-204 must place
-per-Tag insertion inside the transaction boundary for its resumable chunk and
-must own `generated_quantity`, Batch state, progress, and audit Events. RT-203
+The operation intentionally does not open a transaction. RT-204 places each
+insertion inside its own transaction with the Batch progress update. RT-203
 does not update those values independently.
+
+### 3.13 RT-204 resumable background generation
+
+RT-204 leaves Schema version `8` unchanged. Starting a pristine disabled
+`draft` Batch locks its row, verifies `generated_quantity` against the committed
+Tag count, changes status to `generating`, and appends one
+`batch_generation_started` Event in one transaction. Repeating the command for
+a `generating` Batch schedules its current checkpoint without another start
+Event. A `generated` Batch is an idempotent no-op.
+
+Each Action Scheduler execution processes at most `100` Tags. Before work, it
+locks and verifies the Batch and rejects a checkpoint ahead of committed
+progress. Each Tag then uses a separate transaction:
+
+```text
+SELECT Batch FOR UPDATE
+-> RT-203 insert-first Tag generation
+-> conditional generated_quantity increment
+-> final status and completion Event when target is reached
+-> COMMIT
+```
+
+The conditional update requires the expected prior counter and `generating`
+status. A failed update rolls back the Tag insert. The final Tag changes status
+to `generated` and appends one metadata-free
+`batch_generation_completed` Event in that same transaction. The worker also
+checks that `COUNT(tags)` equals the materialized counter at chunk boundaries;
+any mismatch fails closed for investigation.
+
+Action arguments contain only numeric Batch ID, checkpoint, and retry attempt.
+Exact duplicate actions collapse. Retries use fixed delays of `60`, `300`,
+`900`, `3600`, and `21600` seconds. No migration, foreign key, trigger, new
+Option, temporary ID reservation, or reusable ID pool is introduced.
 
 ## 4. Forbidden relationships and fields
 
@@ -444,6 +476,8 @@ activation identifier must not be added.
   key for a trusted production Batch snapshot.
 - A duplicate-key collision is retried up to ten total attempts without a
   uniqueness pre-query and without modifying or deleting an existing ID.
+- RT-204 commits the generated Tag and its Batch counter atomically; partial
+  chunks resume from committed quantity and never regenerate committed rows.
 - Generated, exported, voided, suspended, and retired IDs are never reused.
 - Re-export reads the original immutable ID set and never regenerates it.
 

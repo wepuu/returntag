@@ -32,3 +32,9 @@ narrow `TagRepository` port. It retries only
 only the stored Tag and aggregate collision count, and fails closed for every
 other error. It does not own a transaction, queue, progress update, Batch state,
 counter, Event, log, route, or UI.
+
+RT-204 adds `StartBatchGeneration` and `GenerateBatchChunk` plus narrow Batch
+progress and scheduler ports. Application owns state eligibility, checkpoint
+and counter integrity, the 100-Tag action bound, aggregate lifecycle Event
+requests, and resume decisions. It does not call Action Scheduler or WordPress
+globals, expose generated IDs, perform DDL, export CSV, or add a visible UI.
