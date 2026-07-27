@@ -56,4 +56,10 @@ RT-202 adds `PhpSecureRandomIntegerSource` under `Random/`. It uses PHP
 `random_int()` and has no WordPress, database, queue, HTTP, or logging side
 effect. It is not composed into the RT-201 administration workflow.
 
+RT-203 hardens `WpdbGateway::insert_without_id()` to classify only numeric
+MySQL/MariaDB error `1062` as a duplicate key. It reads the fixed connection
+error stack while wpdb output remains suppressed and never exposes the
+database message, SQL, or rejected value. All other failures retain the generic
+privacy-safe persistence exception.
+
 No product provider adapter is implemented.

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Infrastructure\Persistence;
 
+use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceDuplicateKeyException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceMappingException;
 use wpdb;
@@ -19,6 +20,11 @@ use wpdb;
  * This is an internal Infrastructure helper, not a generic Repository API.
  */
 final class WpdbGateway {
+	/**
+	 * MySQL and MariaDB duplicate-key error number.
+	 */
+	private const DUPLICATE_KEY_ERROR = 1062;
+
 	/**
 	 * Create the gateway.
 	 *
@@ -140,19 +146,31 @@ final class WpdbGateway {
 	 * @param array<string, mixed> $data Typed record data.
 	 * @param array                $formats wpdb value formats.
 	 * @phpstan-param list<string> $formats
-	 * @throws PersistenceException When the insert fails.
+	 * @throws PersistenceDuplicateKeyException When a unique key already exists.
+	 * @throws PersistenceException When another insert failure occurs.
 	 */
 	public function insert_without_id( string $table, array $data, array $formats ): void {
-		$result = $this->with_suppressed_errors(
-			function () use ( $table, $data, $formats ): int|false {
+		$outcome = $this->with_suppressed_errors(
+			function () use ( $table, $data, $formats ): array {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Explicit write to a trusted custom product table.
-				return $this->database->insert( $table, $data, $formats );
+				$result = $this->database->insert( $table, $data, $formats );
+
+				return array(
+					'result'     => $result,
+					'error_code' => 1 === $result ? null : $this->read_database_error_code(),
+				);
 			}
 		);
 
-		if ( 1 !== $result ) {
-			throw new PersistenceException( 'Persistence operation failed.' );
+		if ( 1 === $outcome['result'] ) {
+			return;
 		}
+
+		if ( self::DUPLICATE_KEY_ERROR === $outcome['error_code'] ) {
+			throw new PersistenceDuplicateKeyException( 'Persistence operation failed because a unique key already exists.' );
+		}
+
+		throw new PersistenceException( 'Persistence operation failed.' );
 	}
 
 	/**
@@ -186,6 +204,33 @@ final class WpdbGateway {
 		if ( '' !== $this->database->last_error ) {
 			throw new PersistenceException( 'Persistence operation failed.' );
 		}
+	}
+
+	/**
+	 * Read only the numeric code from the current connection error stack.
+	 *
+	 * The database message can contain SQL or record values and must never cross
+	 * this boundary.
+	 */
+	private function read_database_error_code(): ?int {
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixed diagnostic statement on the active connection.
+		$error = $this->database->get_row( 'SHOW ERRORS LIMIT 1', ARRAY_A );
+
+		if ( ! is_array( $error ) || ! array_key_exists( 'Code', $error ) ) {
+			return null;
+		}
+
+		$code = $error['Code'];
+
+		if ( is_int( $code ) ) {
+			return $code;
+		}
+
+		if ( is_string( $code ) && ctype_digit( $code ) ) {
+			return (int) $code;
+		}
+
+		return null;
 	}
 
 	/**

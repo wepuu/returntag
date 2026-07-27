@@ -217,6 +217,14 @@ quality gate. Code rollback removes the candidate generator while preserving
 all existing tables, Options, Batches, Events, and Tag IDs; no data repair or
 feature-flag action is required.
 
+RT-203 leaves plugin version `0.2.0` and Schema version `8` unchanged. It adds
+an Application collision-retry service and duplicate-key classification for
+application-supplied primary-key inserts. There is no DDL, Option, Hook, route,
+queue, UI, dependency, Batch-state, counter, or Event change. Rollback removes
+the unused orchestration code while preserving every Tag row. If collision
+exhaustion or unexpected persistence failures occur during later batch work,
+disable that future worker; do not delete or reuse Tags.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -248,8 +256,10 @@ RT-201 adds the first capability-protected Batch create/list/detail
 administrative workflow without changing the release version or Schema.
 RT-202 adds the canonical secure in-memory candidate ID generator without
 changing the administration interface, release version, or Schema.
+RT-203 adds bounded insert-first collision retry without changing the
+administration interface, release version, or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because there is no public route, collision
-retry or persisted batch generation, batch queue, export, activation,
+production-ready product release because there is no public route, persisted
+batch generation, batch queue, export, activation,
 email-provider adapter, finder relay, or WooCommerce business workflow.

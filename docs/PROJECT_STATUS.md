@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 1 — Database and Migration
 
-\* Current workstream: Milestone 2 Batch and ID production (RT-201 and RT-202 completed; schema remains `8`)
+\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-203 completed; schema remains `8`)
 
 
 
@@ -69,6 +69,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-201 — Batch administration create/list experience, capability boundary, and audited draft creation
 
 \* RT-202 — Canonical six-character Tag ID value and cryptographically secure candidate generator
+
+\* RT-203 — Insert-first Tag ID collision handling with duplicate-only bounded retry
 
 
 
@@ -332,10 +334,10 @@ The new session must not assume that account-level chat history is available.
 
 
 
-RT-201 (Batch administration) and RT-202 (secure candidate Tag ID generation)
-have been implemented. They keep Schema version `8` and project/plugin version
-`0.2.0`. RT-203 and later Milestone 2 tickets have not been authorized by this
-status file.
+RT-201 (Batch administration), RT-202 (secure candidate Tag ID generation), and
+RT-203 (bounded duplicate-key collision retry) have been implemented. They keep
+Schema version `8` and project/plugin version `0.2.0`. RT-204 and later
+Milestone 2 tickets have not been authorized by this status file.
 
 
 

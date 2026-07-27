@@ -25,3 +25,10 @@ RT-202 adds the `TagIdGenerator` and `RandomIntegerSource` ports plus the pure
 alphabet-mapping generator. It returns one candidate only and deliberately has
 no Repository, transaction, queue, collision retry, Batch transition, or
 logging dependency.
+
+RT-203 adds `InsertGeneratedTag`, which combines `TagIdGenerator` with the
+narrow `TagRepository` port. It retries only
+`PersistenceDuplicateKeyException`, makes at most ten total attempts, returns
+only the stored Tag and aggregate collision count, and fails closed for every
+other error. It does not own a transaction, queue, progress update, Batch state,
+counter, Event, log, route, or UI.
