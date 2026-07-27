@@ -126,6 +126,13 @@ conversations.
 - Each successful RT-201 create appends a metadata-free `batch.created` Event
   whose actor is the authenticated internal User ID and whose target is the
   numeric Batch ID.
+- RT-202 generates candidates from exactly six independent `random_int()`
+  selections over the canonical 32-character alphabet. It excludes `0`, `1`,
+  `I`, and `O`, and rejects any random adapter output outside the requested
+  bounds.
+- RT-202 does not log, export, persist, reserve, retry, or expose generated
+  candidates. Database uniqueness and bounded collision handling remain
+  mandatory at the RT-203 persistence boundary.
 - Export access is restricted and every export is audited by version, row
   count, operator, timestamp, and SHA-256 checksum.
 - A leaked batch can have new activation suspended without silently disabling

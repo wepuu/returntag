@@ -325,6 +325,16 @@ authentication with the WordPress REST nonce, and plugin-scoped CSS. It does
 not compose Action Scheduler or add an ID generator, export, Batch transition,
 email, public route, or WooCommerce integration.
 
+RT-202 adds one inward-facing Tag ID generation boundary without changing the
+RT-201 interface. Domain owns the exact alphabet, length, and strict canonical
+value object. Application owns the generator and inclusive random-integer
+contracts plus the deterministic alphabet-mapping algorithm. Infrastructure
+implements the production random source with PHP `random_int()`. The generator
+returns one candidate and has no Repository, transaction, queue, WordPress,
+HTTP, logging, or Batch-state dependency. RT-203 must add collision handling
+around the `TagIdGenerator` contract; RT-204 must separately own background
+chunking and resumability.
+
 ### Runtime dependency rationale
 
 | Package | Purpose and boundary | License and maintenance |

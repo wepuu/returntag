@@ -17,8 +17,9 @@ boundary for those eight tables. It also makes schema inspection failures
 explicit and keeps Event writes disabled until an identity allowlist is
 provided. RT-201 adds the first narrowly scoped product workflow: authorized
 administrators can create, list, and inspect disabled draft production
-Batches. Tag ID generation, queues, exports, and Batch state changes remain
-future work.
+Batches. RT-202 adds secure in-memory Tag ID candidate generation. Collision
+retry, persisted batch generation, queues, exports, and Batch state changes
+remain future work.
 
 ## Canonical naming
 
@@ -73,8 +74,9 @@ Action Scheduler is available as queue infrastructure, but TagCore does not
 schedule business jobs yet. RT-201 registers capability-protected
 `tagcore/v1/batches` administration routes and a WordPress-native Batch
 administration page. The repository still defines no email provider, OTP flow,
-activation flow, finder relay, WooCommerce business hook, ID generator, export,
-or Batch state transition. The only product tables are the RT-102 batches schema,
+activation flow, finder relay, WooCommerce business hook, collision retry,
+persisted batch generation, export, or Batch state transition. The only product
+tables are the RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
 the RT-107 access token schema, and the RT-108 business event schema.
@@ -153,6 +155,14 @@ create-draft operations through `tagcore/v1/batches`. Creation fixes status to
 `draft`, generated quantity to `0`, activation to disabled, actor to the current
 user, and timestamps to UTC. The Batch row and privacy-safe `batch.created`
 Event are committed in one transaction.
+
+RT-202 keeps Schema version `8` and plugin version `0.2.0`. It defines the
+canonical six-character `TagId` value object, a candidate-generator contract,
+and an injectable generator that maps six uniform indexes to the exact
+`23456789ABCDEFGHJKLMNPQRSTUVWXYZ` alphabet. The production random adapter uses
+PHP `random_int()`. RT-202 generates one in-memory candidate only; it does not
+query or write the Tags table, retry collisions, schedule work, mutate Batch
+state, expose an API, or change the RT-201 administration interface.
 
 ## Repository layout
 
