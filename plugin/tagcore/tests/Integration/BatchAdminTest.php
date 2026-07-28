@@ -416,10 +416,11 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		$request  = new WP_REST_Request( 'POST', $route );
 		$response = rest_do_request( $request );
 		$headers  = $response->get_headers();
-		$csv      = $this->serve_csv_response( $response, $request );
-		$lines    = explode( "\r\n", rtrim( $csv, "\r\n" ) );
+		self::assertSame( 200, $response->get_status(), wp_json_encode( $response->get_data() ) );
 
-		self::assertSame( 200, $response->get_status() );
+		$csv   = $this->serve_csv_response( $response, $request );
+		$lines = explode( "\r\n", rtrim( $csv, "\r\n" ) );
+
 		self::assertSame( 'text/csv; charset=UTF-8', $headers['Content-Type'] );
 		self::assertSame( 'no-store, private', $headers['Cache-Control'] );
 		self::assertSame( '1', $headers['X-ReturnTag-Export-Version'] );
@@ -499,11 +500,15 @@ final class BatchAdminTest extends WP_UnitTestCase {
 
 		$first_request  = new WP_REST_Request( 'POST', $route );
 		$first_response = rest_do_request( $first_request );
-		$first_csv      = $this->serve_csv_response( $first_response, $first_request );
+		self::assertSame( 200, $first_response->get_status(), wp_json_encode( $first_response->get_data() ) );
+
+		$first_csv = $this->serve_csv_response( $first_response, $first_request );
 
 		$second_request  = new WP_REST_Request( 'POST', $route );
 		$second_response = rest_do_request( $second_request );
-		$second_csv      = $this->serve_csv_response( $second_response, $second_request );
+		self::assertSame( 200, $second_response->get_status(), wp_json_encode( $second_response->get_data() ) );
+
+		$second_csv = $this->serve_csv_response( $second_response, $second_request );
 
 		self::assertSame( $first_csv, $second_csv );
 		self::assertSame( '1', $first_response->get_headers()['X-ReturnTag-Export-Version'] );
