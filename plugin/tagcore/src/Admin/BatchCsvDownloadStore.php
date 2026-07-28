@@ -9,47 +9,54 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Admin;
 
-use WeakMap;
-use WP_REST_Request;
-
 /**
- * Keeps private download carriers outside REST response-data normalization.
+ * Keeps private download carriers outside REST response normalization.
  */
 final class BatchCsvDownloadStore {
 	/**
 	 * Downloads awaiting the REST serving phase.
 	 *
-	 * @var WeakMap<WP_REST_Request, BatchCsvDownload>
+	 * @var array<string, BatchCsvDownload>
 	 */
-	private WeakMap $downloads;
+	private array $downloads = array();
 
 	/**
-	 * Create an empty request-scoped store.
-	 */
-	public function __construct() {
-		$this->downloads = new WeakMap();
-	}
-
-	/**
-	 * Attach one prepared download to its exact REST request.
+	 * Attach one prepared download to its immutable export identity.
 	 *
-	 * @param WP_REST_Request  $request REST request.
+	 * @param int              $batch_id Batch identifier.
+	 * @param int              $export_version Export version.
 	 * @param BatchCsvDownload $download Prepared download.
 	 */
-	public function attach( WP_REST_Request $request, BatchCsvDownload $download ): void {
-		$this->downloads[ $request ] = $download;
+	public function attach(
+		int $batch_id,
+		int $export_version,
+		BatchCsvDownload $download
+	): void {
+		$this->downloads[ $this->key( $batch_id, $export_version ) ] = $download;
 	}
 
 	/**
 	 * Remove and return one prepared download.
 	 *
-	 * @param WP_REST_Request $request REST request.
+	 * @param int $batch_id Batch identifier.
+	 * @param int $export_version Export version.
 	 */
-	public function take( WP_REST_Request $request ): ?BatchCsvDownload {
-		$download = $this->downloads[ $request ] ?? null;
+	public function take( int $batch_id, int $export_version ): ?BatchCsvDownload {
+		$key      = $this->key( $batch_id, $export_version );
+		$download = $this->downloads[ $key ] ?? null;
 
-		unset( $this->downloads[ $request ] );
+		unset( $this->downloads[ $key ] );
 
 		return $download;
+	}
+
+	/**
+	 * Build one collision-free key for a committed export version.
+	 *
+	 * @param int $batch_id Batch identifier.
+	 * @param int $export_version Export version.
+	 */
+	private function key( int $batch_id, int $export_version ): string {
+		return $batch_id . ':' . $export_version;
 	}
 }
