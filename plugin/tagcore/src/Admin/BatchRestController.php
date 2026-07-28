@@ -479,11 +479,14 @@ final readonly class BatchRestController {
 				__( 'The export was stopped because the Batch data did not match its immutable manufacturing record.', 'tagcore' ),
 				array( 'status' => 409 )
 			);
-		} catch ( BatchExportArtifactFailure ) {
+		} catch ( BatchExportArtifactFailure $exception ) {
 			return new WP_Error(
 				'returntag_batch_export_unavailable',
 				__( 'TagCore could not prepare the CSV export. Please try again.', 'tagcore' ),
-				array( 'status' => 500 )
+				array(
+					'status' => 500,
+					'stage'  => $this->artifact_failure_stage( $exception ),
+				)
 			);
 		} catch ( Throwable ) {
 			return $this->operation_failed();
@@ -931,6 +934,20 @@ final readonly class BatchRestController {
 		$response->header( 'X-ReturnTag-Download-Key', $key );
 
 		return $this->no_store( $response );
+	}
+
+	/**
+	 * Map fixed internal artifact failures to a privacy-safe support stage.
+	 *
+	 * @param BatchExportArtifactFailure $exception Artifact failure.
+	 */
+	private function artifact_failure_stage( BatchExportArtifactFailure $exception ): string {
+		return match ( $exception->getMessage() ) {
+			'Batch export artifact could not be written.' => 'write',
+			'Batch export artifact could not be finalized.' => 'finalize',
+			'Batch export artifact could not be verified.' => 'verify',
+			default => 'prepare',
+		};
 	}
 
 	/**
