@@ -531,6 +531,50 @@
 	margin: 14px 0 0;
 }
 
+.returntag-inventory-panel {
+	margin-bottom: 20px;
+	padding: 20px;
+	border: 1px solid var(--returntag-color-border);
+	background: #fff;
+}
+
+.returntag-inventory-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 24px;
+	margin-bottom: 16px;
+}
+
+.returntag-inventory-heading h2,
+.returntag-inventory-heading p {
+	margin: 0;
+}
+
+.returntag-inventory-heading p {
+	margin-top: 4px;
+	color: var(--returntag-color-text-subtle);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.returntag-inventory-heading strong {
+	flex: 0 0 auto;
+	font-size: 13px;
+}
+
+.returntag-inventory-table code {
+	color: #1d2327;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+}
+
+.returntag-inventory-table tr:focus {
+	outline: 2px solid var(--returntag-color-focus);
+	outline-offset: -2px;
+}
+
 .returntag-admin .components-notice .components-button {
 	margin-top: 8px;
 }
@@ -685,7 +729,8 @@
 	}
 
 	.returntag-generation-start,
-	.returntag-generation-heading {
+	.returntag-generation-heading,
+	.returntag-inventory-heading {
 		display: block;
 	}
 
@@ -702,6 +747,52 @@
 
 	.returntag-generation-count {
 		text-align: left;
+	}
+
+	.returntag-inventory-heading strong {
+		display: block;
+		margin-top: 10px;
+	}
+
+	.returntag-inventory-table,
+	.returntag-inventory-table tbody,
+	.returntag-inventory-table tr,
+	.returntag-inventory-table td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.returntag-inventory-table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.returntag-inventory-table tr {
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--returntag-color-border-subtle);
+	}
+
+	.returntag-inventory-table td {
+		display: grid;
+		grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+		gap: 12px;
+		padding: 8px 0;
+		border: 0;
+	}
+
+	.returntag-inventory-table td::before {
+		content: attr(data-label);
+		color: var(--returntag-color-text-subtle);
+		font-size: 12px;
+		font-weight: 600;
 	}
 
 	.returntag-generation-confirm {

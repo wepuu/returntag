@@ -36,6 +36,12 @@ import {
 	shouldPollGeneration,
 } from './admin/batch-generation';
 import {
+	appendInventoryItems,
+	type BatchTagInventoryResponse,
+	type TagStatus,
+	shouldShowBatchInventory,
+} from './admin/batch-inventory';
+import {
 	type BatchFormValues,
 	type SalesChannel,
 	type SmartNetwork,
@@ -137,6 +143,13 @@ const batchStatusLabels: Record< BatchStatus, string > = {
 	released: __( 'Released', 'tagcore' ),
 	suspended: __( 'Suspended', 'tagcore' ),
 	voided: __( 'Voided', 'tagcore' ),
+};
+
+const tagStatusLabels: Record< TagStatus, string > = {
+	unregistered: __( 'Unregistered', 'tagcore' ),
+	active: __( 'Active', 'tagcore' ),
+	suspended: __( 'Suspended', 'tagcore' ),
+	retired: __( 'Retired', 'tagcore' ),
 };
 
 const fieldLabels: Record< string, string > = {
@@ -1166,6 +1179,245 @@ function GenerationProgressPanel( {
 	);
 }
 
+function BatchTagInventoryPanel( {
+	batchId,
+	total,
+}: {
+	batchId: string;
+	total: number;
+} ) {
+	const [ response, setResponse ] =
+		useState< BatchTagInventoryResponse | null >( null );
+	const [ error, setError ] = useState< string | null >( null );
+	const [ loadingMore, setLoadingMore ] = useState( false );
+	const [ focusTagId, setFocusTagId ] = useState< string | null >( null );
+
+	useEffect( () => {
+		let cancelled = false;
+
+		apiFetch< BatchTagInventoryResponse >( {
+			path: `${ config.restPath }/batches/${ batchId }/tags?per_page=50`,
+		} )
+			.then( ( next ) => {
+				if ( ! cancelled ) {
+					setResponse( next );
+					setError( null );
+				}
+			} )
+			.catch( ( reason: ApiError ) => {
+				if ( ! cancelled ) {
+					setError(
+						reason.message ??
+							__(
+								'TagCore could not load generated Tag IDs.',
+								'tagcore'
+							)
+					);
+				}
+			} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ batchId ] );
+
+	useEffect( () => {
+		if ( ! focusTagId ) {
+			return;
+		}
+
+		document.getElementById( `returntag-tag-row-${ focusTagId }` )?.focus();
+		setFocusTagId( null );
+	}, [ focusTagId, response ] );
+
+	const loadMore = async () => {
+		if ( ! response?.next_cursor ) {
+			return;
+		}
+
+		setLoadingMore( true );
+		setError( null );
+
+		try {
+			const next = await apiFetch< BatchTagInventoryResponse >( {
+				path: `${
+					config.restPath
+				}/batches/${ batchId }/tags?per_page=50&cursor=${ encodeURIComponent(
+					response.next_cursor
+				) }`,
+			} );
+			const firstNewTagId = next.items[ 0 ]?.tag_id ?? null;
+
+			setResponse( {
+				items: appendInventoryItems( response.items, next.items ),
+				next_cursor: next.next_cursor,
+			} );
+			setFocusTagId( firstNewTagId );
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__(
+						'TagCore could not load more generated Tag IDs.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setLoadingMore( false );
+		}
+	};
+
+	return (
+		<section
+			className="returntag-inventory-panel"
+			aria-labelledby="returntag-inventory-title"
+		>
+			<div className="returntag-inventory-heading">
+				<div>
+					<h2 id="returntag-inventory-title">
+						{ __( 'Generated Tag IDs', 'tagcore' ) }
+					</h2>
+					<p>
+						{ __(
+							'Complete manufacturing inventory in deterministic Tag ID order.',
+							'tagcore'
+						) }
+					</p>
+				</div>
+				{ response && (
+					<strong>
+						{ sprintf(
+							/* translators: 1: Loaded Tag IDs. 2: Total generated Tag IDs. */
+							__( '%1$s of %2$s loaded', 'tagcore' ),
+							response.items.length.toLocaleString(),
+							total.toLocaleString()
+						) }
+					</strong>
+				) }
+			</div>
+
+			{ error && (
+				<Notice status="error" isDismissible={ false }>
+					{ error }
+				</Notice>
+			) }
+
+			{ ! response && ! error && (
+				<div className="returntag-loading">
+					<Spinner />
+					<span>
+						{ __( 'Loading generated Tag IDs…', 'tagcore' ) }
+					</span>
+				</div>
+			) }
+
+			{ response && response.items.length === 0 && (
+				<div className="returntag-empty">
+					<h3>{ __( 'No generated Tag IDs found', 'tagcore' ) }</h3>
+					<p>
+						{ __(
+							'The Batch inventory is empty. Generation data should be reviewed before export.',
+							'tagcore'
+						) }
+					</p>
+				</div>
+			) }
+
+			{ response && response.items.length > 0 && (
+				<>
+					<div
+						id="returntag-inventory-table"
+						className="returntag-table-wrap"
+					>
+						<table className="widefat striped returntag-inventory-table">
+							<thead>
+								<tr>
+									<th scope="col">
+										{ __( 'Tag ID', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'Tag Status', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __(
+											'Generated at (UTC)',
+											'tagcore'
+										) }
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{ response.items.map( ( item ) => (
+									<tr
+										id={ `returntag-tag-row-${ item.tag_id }` }
+										key={ item.tag_id }
+										tabIndex={ -1 }
+									>
+										<td
+											data-label={ __(
+												'Tag ID',
+												'tagcore'
+											) }
+										>
+											<code>{ item.tag_id }</code>
+										</td>
+										<td
+											data-label={ __(
+												'Tag Status',
+												'tagcore'
+											) }
+										>
+											<span className="returntag-status-label">
+												{
+													tagStatusLabels[
+														item.tag_status
+													]
+												}
+											</span>
+										</td>
+										<td
+											data-label={ __(
+												'Generated at (UTC)',
+												'tagcore'
+											) }
+										>
+											{ formatDate( item.created_at ) }
+										</td>
+									</tr>
+								) ) }
+							</tbody>
+						</table>
+					</div>
+
+					{ response.next_cursor && (
+						<Button
+							className="returntag-load-more"
+							variant="secondary"
+							onClick={ loadMore }
+							disabled={ loadingMore }
+							isBusy={ loadingMore }
+							aria-controls="returntag-inventory-table"
+						>
+							{ loadingMore
+								? __( 'Loading…', 'tagcore' )
+								: __( 'Load more Tag IDs', 'tagcore' ) }
+						</Button>
+					) }
+
+					<p className="screen-reader-text" aria-live="polite">
+						{ sprintf(
+							/* translators: 1: Loaded Tag IDs. 2: Total generated Tag IDs. */
+							__( '%1$s of %2$s Tag IDs loaded.', 'tagcore' ),
+							response.items.length.toLocaleString(),
+							total.toLocaleString()
+						) }
+					</p>
+				</>
+			) }
+		</section>
+	);
+}
+
 function BatchDetailScreen( { batchId }: { batchId: string } ) {
 	const [ batch, setBatch ] = useState< BatchRecord | null >( null );
 	const [ progress, setProgress ] =
@@ -1431,6 +1683,17 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 			) }
 
 			<GenerationProgressPanel progress={ progress } />
+
+			{ shouldShowBatchInventory(
+				batch.batch_status,
+				progress.generated_quantity,
+				progress.requested_quantity
+			) && (
+				<BatchTagInventoryPanel
+					batchId={ batchId }
+					total={ progress.generated_quantity }
+				/>
+			) }
 
 			<dl className="returntag-created-details">
 				<div>

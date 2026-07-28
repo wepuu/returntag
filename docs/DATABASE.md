@@ -472,6 +472,33 @@ counters. `failed_quantity` remains zero because failed candidates are rolled
 back and have no persisted Tag record. Queue health is operational state, not a
 database failure count.
 
+### 3.15 RT-206 Batch Tag inventory projection
+
+RT-206 leaves Schema version `8` unchanged and performs no write. A Batch must
+exist, must no longer be `draft` or `generating`, and must have
+`generated_quantity = requested_quantity` before its manufacturing inventory
+can be read.
+
+The dedicated reader selects exactly:
+
+```text
+tag_id
+tag_status
+created_at
+```
+
+It constrains `batch_id`, applies `tag_id > cursor` after the first page, orders
+by `tag_id ASC`, and reads one extra row to determine whether a next page
+exists. Page size defaults to `50` and is limited to `100`. The reader neither
+hydrates the complete Tag record nor returns owner, item, Lost Mode, scan, or
+smart-network data.
+
+The stable ordering is the approved source order for future export work, but
+RT-206 creates no CSV, export version, checksum, file, or audit record. Query
+plans are recorded in the Query Catalog without asserting optimizer-specific
+costs. A new compound index, if capacity evidence requires one, must use a new
+numbered Migration rather than modifying Migration `0002`.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:

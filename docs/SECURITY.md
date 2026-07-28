@@ -343,6 +343,22 @@ They do not log bound ciphertext, hashes, OTPs, Tokens, email addresses, or
 message content. The Query Catalog marks complete-record reads so future public
 and administrative lists must use explicit privacy-reviewed projections.
 
+RT-206 treats a complete Batch Tag ID list as sensitive manufacturing
+operations data even though each six-character identifier is public when
+attached to a physical Tag. Access requires `manage_returntag_batches`, current
+Schema state, REST cookie authentication and nonce handling, and no-store
+responses. The endpoint returns only `tag_id`, canonical `tag_status`, and UTC
+`created_at`; it excludes owner IDs, private item names, public labels, Lost
+Mode content, scan times, emails, orders, Claim IDs, tokens, device data, and
+location data.
+
+The opaque cursor is pagination state only. It grants no authority, contains no
+PII or secret, and is strictly versioned and validated before reaching the
+reader. Invalid cursors receive a fixed validation response, and persistence
+failures retain the existing privacy-safe generic error without SQL or bound
+values. RT-206 performs no logging and introduces no external side effect or
+new kill switch; disabling TagCore removes the read surface.
+
 ## 12. Review requirements
 
 Security-sensitive changes must include automated negative tests, a review of

@@ -240,6 +240,15 @@ generation command to resume from committed progress. Never decrement the
 counter, delete generated Tags, or reuse IDs. A Batch left in `generating`
 after a queue failure is recoverable through the idempotent POST command.
 
+RT-205 and RT-206 leave plugin version `0.2.0` and Schema version `8`
+unchanged. RT-205 adds aggregate progress and queue visibility. RT-206 adds a
+read-only, capability-protected Batch Tag inventory projection with no DDL,
+Option, dependency, file, checksum, audit append, download, or external side
+effect. Deployment must verify no-store headers, complete-Batch gating,
+50/100-row keyset pagination, deterministic Tag ID order, and exclusion of
+private Tag fields. Code rollback removes the projection while preserving all
+Tags, Batches, Events, counters, and statuses.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -278,6 +287,8 @@ and audited start/completion transitions without changing release version or
 Schema. RT-205 adds the second confirmation, authenticated aggregate progress
 query, queue-health projection, bounded admin polling, and idempotent recovery
 UI without changing release version or Schema.
+RT-206 adds the authenticated deterministic Batch Tag inventory and paginated
+admin list without enabling CSV export or changing release version or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because there is no public route, export, activation,
