@@ -108,3 +108,24 @@ The RT-206 integration fixture inserts 2,500 synthetic non-PII rows, executes
 both prepared EXPLAIN statements, verifies that each reports indexed
 candidates, and reads two bounded 50-row pages without offset pagination. The
 selected key, access type, estimates, and cost remain deliberately unfrozen.
+
+## 8. RT-207 audited Batch CSV export
+
+| Read or write shape | Predicate, ordering, and bound | Candidate index |
+|---|---|---|
+| Export source first chunk | `batch_id = ?`, `ORDER BY tag_id ASC`, limit `500` | `PRIMARY` or `batch_id_status`, optimizer-selected |
+| Export source continuation | `batch_id = ? AND tag_id > ?`, `ORDER BY tag_id ASC`, limit `500` | `PRIMARY` or `batch_id_status`, optimizer-selected |
+| Locked Batch state | `batch_id = ? FOR UPDATE` | `PRIMARY` |
+| Batch Tag count | `batch_id = ?` | `batch_id_status` |
+| Latest export audit | `batch_id = ?`, `ORDER BY export_version DESC`, limit `1` | `batch_export_version_unique` |
+| Export history | `batch_id = ? AND export_version < ?`, `ORDER BY export_version DESC`, bounded limit | `batch_export_version_unique` |
+| First-export transition | `batch_id = ? AND batch_status = 'generated' AND generated_quantity = requested_quantity` | `PRIMARY` |
+
+The export source names only `tag_id`, `tag_type`, and `model_code`; it does not
+hydrate complete Tag records. Version allocation is serialized by the parent
+Batch row rather than `MAX(export_version)` without a lock. The existing unique
+Batch/version index remains the final concurrency constraint.
+
+RT-207 intentionally does not add a `(batch_id, tag_id)` index. Its chunked
+query extends the RT-206 plan already assigned to RT-210 capacity validation.
+No test should freeze an optimizer-specific key, cost, or row estimate.

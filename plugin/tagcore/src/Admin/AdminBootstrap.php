@@ -11,9 +11,11 @@ namespace ReturnTag\TagCore\Admin;
 
 use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
+use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
 use ReturnTag\TagCore\Application\Batch\ListBatchTagInventory;
+use ReturnTag\TagCore\Application\Batch\ListBatchExports;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
@@ -21,7 +23,12 @@ use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
+use ReturnTag\TagCore\Infrastructure\Export\TemporaryCsvBatchExportBuilder;
+use ReturnTag\TagCore\Infrastructure\Export\WordPressPublicTagUrlBuilder;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportSourceReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportWorkflowRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationProgressReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
@@ -36,7 +43,7 @@ use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
 use wpdb;
 
 /**
- * Wires RT-201 and RT-204 administrative adapters to application services.
+ * Wires Batch administration adapters through RT-207 to application services.
  */
 final class AdminBootstrap {
 	/**
@@ -86,6 +93,18 @@ final class AdminBootstrap {
 			$batches,
 			new WpdbBatchTagInventoryReader( $gateway, $tables, $dates )
 		);
+		$exports      = new WpdbBatchExportRepository( $gateway, $tables, $dates );
+		$export       = new ExportBatchCsv(
+			$batches,
+			new WpdbBatchExportSourceReader( $gateway, $tables ),
+			new TemporaryCsvBatchExportBuilder( new WordPressPublicTagUrlBuilder() ),
+			new WpdbBatchExportWorkflowRepository( $gateway, $tables, $dates ),
+			$exports,
+			$events,
+			$transactions,
+			new SystemClock()
+		);
+		$list_exports = new ListBatchExports( $batches, $exports );
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
@@ -95,12 +114,16 @@ final class AdminBootstrap {
 			$start,
 			$get_progress,
 			$list_tags,
+			$export,
+			$list_exports,
 			$list,
 			$get,
 			new BatchTagInventoryCursorCodec(),
+			new BatchExportCursorCodec(),
 			$schema_state
 		);
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
+		add_filter( 'rest_pre_serve_request', array( $controller, 'serve_csv_download' ), 10, 4 );
 	}
 }

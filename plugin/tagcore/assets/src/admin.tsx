@@ -21,6 +21,7 @@ import {
 	box,
 	cautionFilled,
 	check,
+	download,
 	file,
 	Icon,
 	lock,
@@ -28,6 +29,14 @@ import {
 	scheduled,
 } from '@wordpress/icons';
 
+import {
+	appendExportRecords,
+	type BatchExportDownloadMetadata,
+	type BatchExportHistoryResponse,
+	canExportBatch,
+	isReExport,
+	readDownloadMetadata,
+} from './admin/batch-export';
 import {
 	type BatchGenerationProgress,
 	type BatchStatus,
@@ -1179,6 +1188,419 @@ function GenerationProgressPanel( {
 	);
 }
 
+function BatchExportPanel( {
+	batch,
+	onStatusChange,
+}: {
+	batch: BatchRecord;
+	onStatusChange: ( status: BatchStatus ) => void;
+} ) {
+	const [ history, setHistory ] =
+		useState< BatchExportHistoryResponse | null >( null );
+	const [ historyError, setHistoryError ] = useState< string | null >( null );
+	const [ loadingMore, setLoadingMore ] = useState( false );
+	const [ exporting, setExporting ] = useState( false );
+	const [ confirmOpen, setConfirmOpen ] = useState( false );
+	const [ completed, setCompleted ] =
+		useState< BatchExportDownloadMetadata | null >( null );
+
+	const loadHistory = useCallback( async () => {
+		try {
+			const response = await apiFetch< BatchExportHistoryResponse >( {
+				path: `${ config.restPath }/batches/${ batch.batch_id }/exports?per_page=20`,
+			} );
+			setHistory( response );
+			setHistoryError( null );
+			return response;
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setHistoryError(
+				apiError.message ??
+					__( 'TagCore could not load export history.', 'tagcore' )
+			);
+			return null;
+		}
+	}, [ batch.batch_id ] );
+
+	useEffect( () => {
+		void loadHistory();
+	}, [ loadHistory ] );
+
+	const loadMore = async () => {
+		if ( ! history?.next_cursor ) {
+			return;
+		}
+
+		setLoadingMore( true );
+		setHistoryError( null );
+
+		try {
+			const next = await apiFetch< BatchExportHistoryResponse >( {
+				path: `${ config.restPath }/batches/${
+					batch.batch_id
+				}/exports?per_page=20&cursor=${ encodeURIComponent(
+					history.next_cursor
+				) }`,
+			} );
+			setHistory( {
+				items: appendExportRecords( history.items, next.items ),
+				next_cursor: next.next_cursor,
+			} );
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setHistoryError(
+				apiError.message ??
+					__(
+						'TagCore could not load more export history.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setLoadingMore( false );
+		}
+	};
+
+	const exportCsv = async () => {
+		setExporting( true );
+		setCompleted( null );
+		setHistoryError( null );
+
+		try {
+			const response = await apiFetch< never, false >( {
+				path: `${ config.restPath }/batches/${ batch.batch_id }/exports`,
+				method: 'POST',
+				parse: false,
+			} );
+			const metadata = readDownloadMetadata( response );
+			const blob = await response.blob();
+
+			if ( blob.size === 0 ) {
+				throw new Error( 'Batch export response is empty.' );
+			}
+
+			const objectUrl = URL.createObjectURL( blob );
+			const anchor = document.createElement( 'a' );
+			anchor.href = objectUrl;
+			anchor.download = metadata.filename;
+			anchor.hidden = true;
+			document.body.appendChild( anchor );
+			anchor.click();
+			anchor.remove();
+			window.setTimeout( () => URL.revokeObjectURL( objectUrl ), 0 );
+
+			setCompleted( metadata );
+			setConfirmOpen( false );
+			onStatusChange( metadata.batchStatus );
+			await loadHistory();
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setHistoryError(
+				apiError.message ??
+					__(
+						'TagCore could not complete the CSV export.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setExporting( false );
+		}
+	};
+
+	const allowed = canExportBatch(
+		batch.batch_status,
+		batch.generated_quantity,
+		batch.requested_quantity
+	);
+	const reExport = isReExport( batch.batch_status );
+	let confirmationLabel: string = reExport
+		? __( 'Re-export CSV', 'tagcore' )
+		: __( 'Export CSV', 'tagcore' );
+
+	if ( exporting ) {
+		confirmationLabel = __( 'Preparing CSV…', 'tagcore' );
+	}
+
+	return (
+		<section
+			className="returntag-export-panel"
+			aria-labelledby="returntag-export-title"
+		>
+			<div className="returntag-export-heading">
+				<div className="returntag-export-title">
+					<Icon icon={ download } size={ 24 } />
+					<div>
+						<h2 id="returntag-export-title">
+							{ __( 'Production export', 'tagcore' ) }
+						</h2>
+						<p>
+							{ __(
+								'Create a deterministic, checksummed CSV for manufacturing.',
+								'tagcore'
+							) }
+						</p>
+					</div>
+				</div>
+				{ allowed && (
+					<Button
+						variant={ reExport ? 'secondary' : 'primary' }
+						onClick={ () => setConfirmOpen( true ) }
+						disabled={ exporting }
+						isBusy={ exporting }
+					>
+						{ reExport
+							? __( 'Re-export CSV', 'tagcore' )
+							: __( 'Export CSV', 'tagcore' ) }
+					</Button>
+				) }
+			</div>
+
+			{ ! allowed &&
+				[ 'suspended', 'voided' ].includes( batch.batch_status ) && (
+					<Notice status="warning" isDismissible={ false }>
+						{ __(
+							'Manufacturing export is unavailable while this Batch is suspended or voided. Existing audit history remains visible.',
+							'tagcore'
+						) }
+					</Notice>
+				) }
+
+			{ completed && (
+				<Notice
+					status="success"
+					onRemove={ () => setCompleted( null ) }
+				>
+					<p>
+						{ sprintf(
+							/* translators: 1: Export version. 2: Export row count. */
+							__(
+								'CSV version %1$s was prepared with %2$s Tag IDs and the download has started.',
+								'tagcore'
+							),
+							completed.version.toLocaleString(),
+							completed.rowCount.toLocaleString()
+						) }
+					</p>
+					<p>
+						<strong>{ __( 'SHA-256:', 'tagcore' ) }</strong>{ ' ' }
+						<code className="returntag-checksum">
+							{ completed.checksum }
+						</code>
+					</p>
+				</Notice>
+			) }
+
+			{ historyError && (
+				<Notice status="error" isDismissible={ false }>
+					{ historyError }
+				</Notice>
+			) }
+
+			<h3>{ __( 'Export history', 'tagcore' ) }</h3>
+
+			{ ! history && ! historyError && (
+				<div className="returntag-export-loading">
+					<Spinner />
+					<span>{ __( 'Loading export history…', 'tagcore' ) }</span>
+				</div>
+			) }
+
+			{ history && history.items.length === 0 && (
+				<p className="returntag-export-empty">
+					{ __(
+						'No manufacturing CSV has been exported for this Batch.',
+						'tagcore'
+					) }
+				</p>
+			) }
+
+			{ history && history.items.length > 0 && (
+				<>
+					<div
+						id="returntag-export-history-table"
+						className="returntag-table-wrap"
+					>
+						<table className="widefat striped returntag-export-table">
+							<thead>
+								<tr>
+									<th scope="col">
+										{ __( 'Version', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'Rows', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'Format', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'Operator', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'Exported at (UTC)', 'tagcore' ) }
+									</th>
+									<th scope="col">
+										{ __( 'SHA-256', 'tagcore' ) }
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{ history.items.map( ( item ) => (
+									<tr key={ item.export_version }>
+										<td
+											data-label={ __(
+												'Version',
+												'tagcore'
+											) }
+										>
+											{ item.export_version }
+										</td>
+										<td
+											data-label={ __(
+												'Rows',
+												'tagcore'
+											) }
+										>
+											{ item.row_count.toLocaleString() }
+										</td>
+										<td
+											data-label={ __(
+												'Format',
+												'tagcore'
+											) }
+										>
+											{ item.file_format.toUpperCase() }
+										</td>
+										<td
+											data-label={ __(
+												'Operator',
+												'tagcore'
+											) }
+										>
+											{ item.created_by_name }
+										</td>
+										<td
+											data-label={ __(
+												'Exported at (UTC)',
+												'tagcore'
+											) }
+										>
+											{ formatDate( item.created_at ) }
+										</td>
+										<td
+											data-label={ __(
+												'SHA-256',
+												'tagcore'
+											) }
+										>
+											<code className="returntag-checksum">
+												{ item.file_checksum }
+											</code>
+										</td>
+									</tr>
+								) ) }
+							</tbody>
+						</table>
+					</div>
+
+					{ history.next_cursor && (
+						<Button
+							className="returntag-load-more"
+							variant="secondary"
+							onClick={ loadMore }
+							disabled={ loadingMore }
+							isBusy={ loadingMore }
+							aria-controls="returntag-export-history-table"
+						>
+							{ loadingMore
+								? __( 'Loading…', 'tagcore' )
+								: __( 'Load more exports', 'tagcore' ) }
+						</Button>
+					) }
+				</>
+			) }
+
+			{ confirmOpen && (
+				<Modal
+					title={
+						reExport
+							? __( 'Confirm CSV re-export', 'tagcore' )
+							: __( 'Confirm CSV export', 'tagcore' )
+					}
+					onRequestClose={ () => setConfirmOpen( false ) }
+				>
+					<div className="returntag-generation-confirm">
+						<div className="returntag-generation-warning">
+							<Icon icon={ cautionFilled } size={ 24 } />
+							<p>
+								<strong>
+									{ reExport
+										? __(
+												'This creates a new immutable export audit version.',
+												'tagcore'
+										  )
+										: __(
+												'This marks the Batch as exported.',
+												'tagcore'
+										  ) }
+								</strong>
+								<span>
+									{ __(
+										'The same permanent Tag IDs are used. No IDs are generated, replaced, or made reusable.',
+										'tagcore'
+									) }
+								</span>
+							</p>
+						</div>
+						<dl>
+							<div>
+								<dt>{ __( 'Batch Code', 'tagcore' ) }</dt>
+								<dd>{ batch.batch_code }</dd>
+							</div>
+							<div>
+								<dt>{ __( 'Rows', 'tagcore' ) }</dt>
+								<dd>
+									{ batch.generated_quantity.toLocaleString() }
+								</dd>
+							</div>
+							<div>
+								<dt>{ __( 'Ordering', 'tagcore' ) }</dt>
+								<dd>{ __( 'Tag ID ascending', 'tagcore' ) }</dd>
+							</div>
+							<div>
+								<dt>{ __( 'Activation', 'tagcore' ) }</dt>
+								<dd>
+									{ batch.activation_enabled
+										? __( 'Unchanged (enabled)', 'tagcore' )
+										: __(
+												'Unchanged (disabled)',
+												'tagcore'
+										  ) }
+								</dd>
+							</div>
+						</dl>
+						<div className="returntag-modal-actions">
+							<Button
+								variant="tertiary"
+								onClick={ () => setConfirmOpen( false ) }
+								disabled={ exporting }
+							>
+								{ __( 'Cancel', 'tagcore' ) }
+							</Button>
+							<Button
+								variant="primary"
+								onClick={ exportCsv }
+								disabled={ exporting }
+								isBusy={ exporting }
+							>
+								{ confirmationLabel }
+							</Button>
+						</div>
+					</div>
+				</Modal>
+			) }
+		</section>
+	);
+}
+
 function BatchTagInventoryPanel( {
 	batchId,
 	total,
@@ -1689,10 +2111,25 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 				progress.generated_quantity,
 				progress.requested_quantity
 			) && (
-				<BatchTagInventoryPanel
-					batchId={ batchId }
-					total={ progress.generated_quantity }
-				/>
+				<>
+					<BatchExportPanel
+						batch={ batch }
+						onStatusChange={ ( status ) =>
+							setBatch( ( current ) =>
+								current
+									? {
+											...current,
+											batch_status: status,
+									  }
+									: current
+							)
+						}
+					/>
+					<BatchTagInventoryPanel
+						batchId={ batchId }
+						total={ progress.generated_quantity }
+					/>
+				</>
 			) }
 
 			<dl className="returntag-created-details">

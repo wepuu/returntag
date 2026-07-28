@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 1 — Database and Migration
 
-\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-206 implemented; schema remains `8`)
+\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-207 implemented; schema remains `8`)
 
 
 
@@ -128,31 +128,79 @@ The required Node.js version is also recorded in `.nvmrc`.
 
 
 
-At handoff time, the wp-env Docker containers were running, but a normal PowerShell session previously could not resolve `node`, `npm`, or `npx`.
+The Windows system environment does not provide `node`, `npm`, or `npx` on
+`PATH`. Codex Desktop supplies a workspace-scoped runtime instead. It was
+verified on 2026-07-28 from workspace bundle `26.727.11326` as:
 
 
 
-Before destroying, resetting, or recreating wp-env, verify that Node.js 24 and npm are available:
+```text
 
+Node.js: v24.14.0
 
+pnpm: 11.9.0
 
-```powershell
+TypeScript: 6.0.3
 
-node --version
-
-npm --version
-
-npx --version
+@wordpress/env: 11.11.0
 
 ```
 
 
 
-The Node.js version must begin with `v24.`.
+The current workspace paths are:
 
 
 
-Do not destroy the current Docker environment merely to fix a missing PATH entry.
+```text
+
+Node.js:
+C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe
+
+pnpm:
+C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback\pnpm.cmd
+
+```
+
+
+
+The workspace runtime does not include npm. Although it exposes pnpm, the
+repository remains npm-oriented and contains an npm-installed `node_modules`.
+Do not invoke `pnpm run` or `pnpm install` in this repository: pnpm may try to
+reconcile or replace the existing modules tree and access the package registry.
+Do not install dependencies, regenerate locks, or change package-manager policy
+as part of ordinary ticket work.
+
+
+
+For the existing dependency tree, prepend only the workspace Node directory to
+the current PowerShell process and call project-owned Node entry points or
+local `.cmd` tools directly. These commands were verified:
+
+
+
+```powershell
+
+$workspaceDeps = 'C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies'
+
+$env:Path = "$workspaceDeps\node\bin;$env:Path"
+
+node scripts/check-release-version.mjs
+
+& '.\node_modules\.bin\tsc.cmd' --noEmit
+
+```
+
+
+
+The aggregate `npm run check` command is unavailable until npm is deliberately
+provided. Other checks may be translated from `package.json` into direct calls
+to the existing `node_modules\.bin` tools, without running an install.
+
+
+
+Do not destroy the current Docker environment merely to fix PATH or package
+manager availability.
 
 
 
@@ -344,11 +392,30 @@ The new session must not assume that account-level chat history is available.
 
 RT-201 (Batch administration), RT-202 (secure candidate Tag ID generation),
 RT-203 (bounded duplicate-key collision retry), RT-204 (resumable background
-generation), RT-205 (administrative generation progress), and RT-206
-(complete Batch Tag inventory projection) have been implemented. They keep
-Schema version `8` and project/plugin version `0.2.0`. RT-206 does not enable
-CSV download; audited export remains RT-207. Later Milestone 2 tickets have not
-been authorized by this status file.
+generation), RT-205 (administrative generation progress), RT-206 (complete
+Batch Tag inventory projection), and RT-207 (audited deterministic CSV export)
+have been implemented. They keep Schema version `8` and project/plugin version
+`0.2.0`.
+
+The PRD milestone allocation was reconciled on 2026-07-28: RT-206 is the Batch
+Tag ID inventory and deterministic export-source foundation; RT-207 is the
+audited CSV export including version, row count, format, operator, timestamp,
+and SHA-256 checksum.
+
+RT-207 adds:
+
+- capability-protected CSV creation and bounded export-history REST routes;
+- UTF-8, BOM-free, CRLF CSV ordered by `tag_id ASC`;
+- exact row-count and SHA-256 verification;
+- append-only export versions and `batch_exported` Events;
+- atomic first-export `generated -> exported`;
+- exact-byte re-export checks without regenerating Tag IDs;
+- private temporary artifact streaming and cleanup;
+- WordPress-native confirmation, download feedback, and responsive audit
+  history in Batch detail.
+
+RT-208 and later Milestone 2 tickets have not been authorized by this status
+file.
 
 
 

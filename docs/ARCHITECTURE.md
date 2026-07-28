@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 2 Batch generation in progress at version 0.2.0 and Schema version 8
+**Status:** Milestone 2 Batch manufacturing administration at version 0.2.0 and Schema version 8
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -380,6 +380,23 @@ keyset order. Admin encodes the internal keyset as a validated versioned opaque
 cursor and maps only those three fields through the capability-protected
 no-store route. React renders the list only after complete generation and does
 not add CSV, search, edit, delete, copy, or state-transition behavior.
+
+RT-207 builds on that ordering with an explicit export use case. Application
+coordinates a narrow streaming source, an artifact-builder port, a Batch-row
+locking Repository, the append-only Batch Export Repository, the Event
+Repository, and a short transaction. Infrastructure writes exact CSV bytes to
+a private temporary artifact in bounded chunks. Admin maps an authorized POST
+to the export command and uses `rest_pre_serve_request` only for the resulting
+internal download object so WordPress does not JSON-encode the file.
+
+The file is prepared before the short write transaction. The transaction locks
+the parent Batch, revalidates the immutable manufacturing snapshot and Tag
+count, serializes version allocation, appends the audit row and
+`batch_exported` Event, and performs the first `generated -> exported`
+transition. A re-export must match the previous row count, format, and SHA-256
+before another version can be committed. The temporary path never crosses the
+Application or REST response contract and is deleted after streaming or
+failure.
 
 ### Runtime dependency rationale
 

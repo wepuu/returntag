@@ -359,6 +359,29 @@ failures retain the existing privacy-safe generic error without SQL or bound
 values. RT-206 performs no logging and introduces no external side effect or
 new kill switch; disabling TagCore removes the read surface.
 
+RT-207 treats the complete CSV as the same sensitive manufacturing operations
+data. Export creation and history require `manage_returntag_batches`, current
+Schema state, WordPress REST cookie authentication and nonce handling, and
+`no-store, private`. Download responses also set `nosniff`, `no-referrer`, and
+`noindex` controls.
+
+The export reader selects no owner, email, item, Lost Mode, scan, order,
+shipment, Claim, credential, message, device, pairing, or location field. CSV
+formula prefixes in operator-controlled cells are neutralized before encoding.
+The filename is derived only from the already validated Batch Code and the
+server-allocated positive version.
+
+The temporary file is outside the public product data contract, is never
+stored in the database, and is removed after streaming or any failure. REST
+responses and ordinary logs expose neither the temporary path nor CSV content.
+SHA-256 and export history are visible only to authorized Batch operators.
+
+First export, audit append, `generated -> exported`, and the privacy-safe
+`batch_exported` Event commit atomically after integrity validation. Re-export
+must reproduce the previous exact digest and row count; a site URL, Batch
+snapshot, Tag snapshot, count, or formatter drift fails closed. Suspended and
+voided Batches cannot issue new manufacturing files.
+
 ## 12. Review requirements
 
 Security-sensitive changes must include automated negative tests, a review of
