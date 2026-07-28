@@ -24,11 +24,23 @@ use Throwable;
  */
 final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifactBuilder {
 	/**
+	 * WordPress file API loader.
+	 *
+	 * @var WordPressFileApiLoader
+	 */
+	private WordPressFileApiLoader $file_api;
+
+	/**
 	 * Create the builder.
 	 *
-	 * @param PublicTagUrlBuilder $urls Trusted QR URL builder.
+	 * @param PublicTagUrlBuilder         $urls Trusted QR URL builder.
+	 * @param WordPressFileApiLoader|null $file_api WordPress file API loader.
 	 */
-	public function __construct( private PublicTagUrlBuilder $urls ) {
+	public function __construct(
+		private PublicTagUrlBuilder $urls,
+		?WordPressFileApiLoader $file_api = null
+	) {
+		$this->file_api = $file_api ?? new WordPressFileApiLoader();
 	}
 
 	/**
@@ -41,11 +53,11 @@ final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifa
 	 * @throws Throwable When a source or URL dependency fails.
 	 */
 	public function build( BatchRecord $batch, iterable $tags ): BatchExportArtifact {
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_tempnam -- Native tempnam creates the private file atomically in the trusted system temp directory.
-		$path = tempnam( sys_get_temp_dir(), 'tagcore-' );
+		$this->file_api->ensure_loaded();
+		$path = wp_tempnam( 'tagcore-batch-export.csv' );
 
-		if ( false === $path ) {
-			throw new BatchExportArtifactFailure( 'Batch export artifact could not be allocated.' );
+		if ( '' === $path ) {
+			throw new BatchExportArtifactFailure( 'Batch export artifact could not be prepared.' );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private temporary artifact requires an exact byte stream.
@@ -53,7 +65,7 @@ final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifa
 
 		if ( false === $handle ) {
 			wp_delete_file( $path );
-			throw new BatchExportArtifactFailure( 'Batch export artifact could not be opened.' );
+			throw new BatchExportArtifactFailure( 'Batch export artifact could not be prepared.' );
 		}
 
 		$row_count = 0;

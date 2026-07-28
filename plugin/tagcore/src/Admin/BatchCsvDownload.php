@@ -1,6 +1,6 @@
 <?php
 /**
- * Prepared Batch CSV download.
+ * Prepared Batch CSV download response data.
  *
  * @package ReturnTag\TagCore
  */

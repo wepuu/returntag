@@ -67,7 +67,6 @@ final readonly class BatchRestController {
 	 * @param GetBatch                     $get_batch Detail query.
 	 * @param BatchTagInventoryCursorCodec $inventory_cursors REST cursor codec.
 	 * @param BatchExportCursorCodec       $export_cursors Export-history cursor codec.
-	 * @param BatchCsvDownloadStore        $csv_downloads Request-scoped download store.
 	 * @param SchemaState                  $schema_state Schema readiness.
 	 */
 	public function __construct(
@@ -81,7 +80,6 @@ final readonly class BatchRestController {
 		private GetBatch $get_batch,
 		private BatchTagInventoryCursorCodec $inventory_cursors,
 		private BatchExportCursorCodec $export_cursors,
-		private BatchCsvDownloadStore $csv_downloads,
 		private SchemaState $schema_state
 	) {
 	}
@@ -213,21 +211,13 @@ final readonly class BatchRestController {
 		WP_REST_Request $request,
 		WP_REST_Server $server
 	): bool {
-		unset( $server );
+		unset( $request, $server );
 
 		if ( $served ) {
 			return true;
 		}
 
-		unset( $request );
-
-		$headers = $response->get_headers();
-
-		if ( ! isset( $headers['X-ReturnTag-Download-Key'] ) || ! is_string( $headers['X-ReturnTag-Download-Key'] ) ) {
-			return false;
-		}
-
-		$download = $this->csv_downloads->take( $headers['X-ReturnTag-Download-Key'] );
+		$download = $response->get_data();
 
 		if ( ! $download instanceof BatchCsvDownload ) {
 			return false;
@@ -479,14 +469,11 @@ final readonly class BatchRestController {
 				__( 'The export was stopped because the Batch data did not match its immutable manufacturing record.', 'tagcore' ),
 				array( 'status' => 409 )
 			);
-		} catch ( BatchExportArtifactFailure $exception ) {
+		} catch ( BatchExportArtifactFailure ) {
 			return new WP_Error(
 				'returntag_batch_export_unavailable',
 				__( 'TagCore could not prepare the CSV export. Please try again.', 'tagcore' ),
-				array(
-					'status' => 500,
-					'stage'  => $this->artifact_failure_stage( $exception ),
-				)
+				array( 'status' => 500 )
 			);
 		} catch ( Throwable ) {
 			return $this->operation_failed();
@@ -917,8 +904,7 @@ final readonly class BatchRestController {
 	private function download_response( BatchExportResult $result ): WP_REST_Response {
 		$download = new BatchCsvDownload( $result );
 		$record   = $result->record->data;
-		$response = new WP_REST_Response( array() );
-		$key      = $this->csv_downloads->attach( $download );
+		$response = new WP_REST_Response( $download );
 
 		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
 		$response->header( 'Content-Disposition', 'attachment; filename="' . $download->filename() . '"' );
@@ -931,25 +917,8 @@ final readonly class BatchRestController {
 		$response->header( 'X-ReturnTag-SHA256', $record->file_checksum );
 		$response->header( 'X-ReturnTag-Created-At', $record->created_at->format( DATE_ATOM ) );
 		$response->header( 'X-ReturnTag-Batch-Status', $result->batch_status->value );
-		$response->header( 'X-ReturnTag-Download-Key', $key );
 
 		return $this->no_store( $response );
-	}
-
-	/**
-	 * Map fixed internal artifact failures to a privacy-safe support stage.
-	 *
-	 * @param BatchExportArtifactFailure $exception Artifact failure.
-	 */
-	private function artifact_failure_stage( BatchExportArtifactFailure $exception ): string {
-		return match ( $exception->getMessage() ) {
-			'Batch export artifact could not be allocated.' => 'allocate',
-			'Batch export artifact could not be opened.' => 'open',
-			'Batch export artifact could not be written.' => 'write',
-			'Batch export artifact could not be finalized.' => 'finalize',
-			'Batch export artifact could not be verified.' => 'verify',
-			default => 'prepare',
-		};
 	}
 
 	/**

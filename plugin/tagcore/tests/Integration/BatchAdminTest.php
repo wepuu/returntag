@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Admin\BatchCsvDownload;
-use ReturnTag\TagCore\Admin\BatchCsvDownloadStore;
 use ReturnTag\TagCore\Admin\Capability;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
@@ -1068,11 +1067,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Resolve the normalized REST headers and capture exact CSV bytes.
-	 *
-	 * Browser coverage verifies the production rest_pre_serve_request hook.
-	 * This database suite resolves the one-time carrier directly because the
-	 * WordPress core test harness restores global hooks between test cases.
+	 * Run the REST binary serving filter and capture exact CSV bytes.
 	 *
 	 * @param WP_REST_Response $response Prepared response.
 	 * @param WP_REST_Request  $request Original request.
@@ -1081,23 +1076,23 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		WP_REST_Response $response,
 		WP_REST_Request $request
 	): string {
-		unset( $request );
-
-		$headers = $response->get_headers();
-		self::assertArrayHasKey( 'X-ReturnTag-Download-Key', $headers );
-		self::assertIsString( $headers['X-ReturnTag-Download-Key'] );
-
-		$download = ( new BatchCsvDownloadStore() )->take( $headers['X-ReturnTag-Download-Key'] );
-		self::assertInstanceOf( BatchCsvDownload::class, $download );
+		self::assertInstanceOf( BatchCsvDownload::class, $response->get_data() );
 		ob_start();
 
 		try {
-			$download->serve();
+			$served = apply_filters(
+				'rest_pre_serve_request',
+				false,
+				$response,
+				$request,
+				rest_get_server()
+			);
 			$output = ob_get_contents();
 		} finally {
 			ob_end_clean();
 		}
 
+		self::assertTrue( $served );
 		self::assertIsString( $output );
 
 		return $output;

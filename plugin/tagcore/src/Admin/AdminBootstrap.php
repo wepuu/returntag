@@ -120,7 +120,6 @@ final class AdminBootstrap {
 			$get,
 			new BatchTagInventoryCursorCodec(),
 			new BatchExportCursorCodec(),
-			new BatchCsvDownloadStore(),
 			$schema_state
 		);
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
