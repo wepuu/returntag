@@ -45,7 +45,7 @@ final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifa
 		$path = tempnam( sys_get_temp_dir(), 'tagcore-' );
 
 		if ( false === $path ) {
-			throw new BatchExportArtifactFailure( 'Batch export artifact could not be prepared.' );
+			throw new BatchExportArtifactFailure( 'Batch export artifact could not be allocated.' );
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Private temporary artifact requires an exact byte stream.
@@ -53,7 +53,7 @@ final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifa
 
 		if ( false === $handle ) {
 			wp_delete_file( $path );
-			throw new BatchExportArtifactFailure( 'Batch export artifact could not be prepared.' );
+			throw new BatchExportArtifactFailure( 'Batch export artifact could not be opened.' );
 		}
 
 		$row_count = 0;

@@ -943,6 +943,8 @@ final readonly class BatchRestController {
 	 */
 	private function artifact_failure_stage( BatchExportArtifactFailure $exception ): string {
 		return match ( $exception->getMessage() ) {
+			'Batch export artifact could not be allocated.' => 'allocate',
+			'Batch export artifact could not be opened.' => 'open',
 			'Batch export artifact could not be written.' => 'write',
 			'Batch export artifact could not be finalized.' => 'finalize',
 			'Batch export artifact could not be verified.' => 'verify',
