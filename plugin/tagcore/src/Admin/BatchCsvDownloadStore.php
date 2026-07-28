@@ -18,45 +18,37 @@ final class BatchCsvDownloadStore {
 	 *
 	 * @var array<string, BatchCsvDownload>
 	 */
-	private array $downloads = array();
+	private static array $downloads = array();
 
 	/**
-	 * Attach one prepared download to its immutable export identity.
+	 * Attach one prepared download and return an opaque one-time key.
 	 *
-	 * @param int              $batch_id Batch identifier.
-	 * @param int              $export_version Export version.
 	 * @param BatchCsvDownload $download Prepared download.
 	 */
-	public function attach(
-		int $batch_id,
-		int $export_version,
-		BatchCsvDownload $download
-	): void {
-		$this->downloads[ $this->key( $batch_id, $export_version ) ] = $download;
+	public function attach( BatchCsvDownload $download ): string {
+		do {
+			$key = bin2hex( random_bytes( 16 ) );
+		} while ( isset( self::$downloads[ $key ] ) );
+
+		self::$downloads[ $key ] = $download;
+
+		return $key;
 	}
 
 	/**
 	 * Remove and return one prepared download.
 	 *
-	 * @param int $batch_id Batch identifier.
-	 * @param int $export_version Export version.
+	 * @param string $key Opaque one-time key.
 	 */
-	public function take( int $batch_id, int $export_version ): ?BatchCsvDownload {
-		$key      = $this->key( $batch_id, $export_version );
-		$download = $this->downloads[ $key ] ?? null;
+	public function take( string $key ): ?BatchCsvDownload {
+		if ( 1 !== preg_match( '/^[a-f0-9]{32}$/D', $key ) ) {
+			return null;
+		}
 
-		unset( $this->downloads[ $key ] );
+		$download = self::$downloads[ $key ] ?? null;
+
+		unset( self::$downloads[ $key ] );
 
 		return $download;
-	}
-
-	/**
-	 * Build one collision-free key for a committed export version.
-	 *
-	 * @param int $batch_id Batch identifier.
-	 * @param int $export_version Export version.
-	 */
-	private function key( int $batch_id, int $export_version ): string {
-		return $batch_id . ':' . $export_version;
 	}
 }

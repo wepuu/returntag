@@ -219,24 +219,15 @@ final readonly class BatchRestController {
 			return true;
 		}
 
-		$route   = $request->get_route();
-		$headers = $response->get_headers();
+		unset( $request );
 
-		if (
-			1 !== preg_match( '#^/' . self::NAMESPACE . '/batches/([1-9][0-9]*)/exports$#D', $route, $matches )
-			|| ! isset( $headers['X-ReturnTag-Export-Version'] )
-		) {
+		$data = $response->get_data();
+
+		if ( ! is_array( $data ) || ! isset( $data['returntag_csv_download'] ) || ! is_string( $data['returntag_csv_download'] ) ) {
 			return false;
 		}
 
-		$batch_id       = $this->positive_integer( $matches[1] );
-		$export_version = $this->positive_integer( $headers['X-ReturnTag-Export-Version'] );
-
-		if ( null === $batch_id || null === $export_version ) {
-			return false;
-		}
-
-		$download = $this->csv_downloads->take( $batch_id, $export_version );
+		$download = $this->csv_downloads->take( $data['returntag_csv_download'] );
 
 		if ( ! $download instanceof BatchCsvDownload ) {
 			return false;
@@ -923,12 +914,10 @@ final readonly class BatchRestController {
 	private function download_response( BatchExportResult $result ): WP_REST_Response {
 		$download = new BatchCsvDownload( $result );
 		$record   = $result->record->data;
-		$response = new WP_REST_Response( array() );
-
-		$this->csv_downloads->attach(
-			$result->record->data->batch_id,
-			$result->record->data->export_version,
-			$download
+		$response = new WP_REST_Response(
+			array(
+				'returntag_csv_download' => $this->csv_downloads->attach( $download ),
+			)
 		);
 
 		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
