@@ -12,10 +12,11 @@ if ( ! function_exists( 'wp_tempnam' ) ) {
 	 * Create a private temporary test file.
 	 *
 	 * @param string $filename Filename hint.
+	 * @param string $dir Explicit temporary directory.
 	 */
-	function wp_tempnam( string $filename = '' ): string {
+	function wp_tempnam( string $filename = '', string $dir = '' ): string {
 		unset( $filename );
-		$path = tempnam( sys_get_temp_dir(), 'returntag-test-' );
+		$path = tempnam( '' === $dir ? sys_get_temp_dir() : $dir, 'returntag-test-' );
 
 		return false === $path ? '' : $path;
 	}

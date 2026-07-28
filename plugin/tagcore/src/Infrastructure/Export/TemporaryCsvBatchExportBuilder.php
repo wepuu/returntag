@@ -54,7 +54,8 @@ final readonly class TemporaryCsvBatchExportBuilder implements BatchExportArtifa
 	 */
 	public function build( BatchRecord $batch, iterable $tags ): BatchExportArtifact {
 		$this->file_api->ensure_loaded();
-		$path = wp_tempnam( 'tagcore-batch-export.csv' );
+		$temp_dir = rtrim( sys_get_temp_dir(), '/\\' ) . DIRECTORY_SEPARATOR;
+		$path     = wp_tempnam( 'tagcore-batch-export.csv', $temp_dir );
 
 		if ( '' === $path ) {
 			throw new BatchExportArtifactFailure( 'Batch export artifact could not be prepared.' );

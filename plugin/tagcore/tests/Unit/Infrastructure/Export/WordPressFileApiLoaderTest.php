@@ -30,7 +30,8 @@ final class WordPressFileApiLoaderTest extends TestCase {
 		( new WordPressFileApiLoader() )->ensure_loaded();
 
 		self::assertTrue( function_exists( 'wp_tempnam' ) );
-		$path = wp_tempnam( 'tagcore-batch-export.csv' );
+		$temp_dir = rtrim( sys_get_temp_dir(), '/\\' ) . DIRECTORY_SEPARATOR;
+		$path     = wp_tempnam( 'tagcore-batch-export.csv', $temp_dir );
 
 		try {
 			self::assertNotSame( '', $path );
