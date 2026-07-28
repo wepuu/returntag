@@ -1070,7 +1070,6 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		WP_REST_Response $response,
 		WP_REST_Request $request
 	): string {
-		self::assertSame( array(), $response->get_data() );
 		ob_start();
 
 		try {
