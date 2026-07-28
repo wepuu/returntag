@@ -531,6 +531,71 @@
 	margin: 14px 0 0;
 }
 
+.returntag-export-panel {
+	margin-bottom: 20px;
+	padding: 20px;
+	border: 1px solid #72aee6;
+	background: #f0f6fc;
+}
+
+.returntag-export-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
+	margin-bottom: 18px;
+}
+
+.returntag-export-title {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.returntag-export-title svg {
+	flex: 0 0 auto;
+	fill: #2271b1;
+}
+
+.returntag-export-title h2,
+.returntag-export-title p {
+	margin: 0;
+}
+
+.returntag-export-title p,
+.returntag-export-empty {
+	margin-top: 4px;
+	color: var(--returntag-color-text-subtle);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.returntag-export-panel h3 {
+	margin: 20px 0 10px;
+	font-size: 14px;
+}
+
+.returntag-export-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 72px;
+	color: var(--returntag-color-text-subtle);
+}
+
+.returntag-export-table th,
+.returntag-export-table td {
+	padding: 10px;
+	vertical-align: top;
+}
+
+.returntag-checksum {
+	color: #1d2327;
+	font-size: 12px;
+	overflow-wrap: anywhere;
+	word-break: break-all;
+}
+
 .returntag-inventory-panel {
 	margin-bottom: 20px;
 	padding: 20px;
@@ -730,11 +795,13 @@
 
 	.returntag-generation-start,
 	.returntag-generation-heading,
+	.returntag-export-heading,
 	.returntag-inventory-heading {
 		display: block;
 	}
 
-	.returntag-generation-start .components-button {
+	.returntag-generation-start .components-button,
+	.returntag-export-heading > .components-button {
 		width: 100%;
 		margin-top: 16px;
 		justify-content: center;
@@ -757,13 +824,18 @@
 	.returntag-inventory-table,
 	.returntag-inventory-table tbody,
 	.returntag-inventory-table tr,
-	.returntag-inventory-table td {
+	.returntag-inventory-table td,
+	.returntag-export-table,
+	.returntag-export-table tbody,
+	.returntag-export-table tr,
+	.returntag-export-table td {
 		display: block;
 		width: 100%;
 		box-sizing: border-box;
 	}
 
-	.returntag-inventory-table thead {
+	.returntag-inventory-table thead,
+	.returntag-export-table thead {
 		position: absolute;
 		width: 1px;
 		height: 1px;
@@ -775,12 +847,14 @@
 		border: 0;
 	}
 
-	.returntag-inventory-table tr {
+	.returntag-inventory-table tr,
+	.returntag-export-table tr {
 		padding: 8px 12px;
 		border-bottom: 1px solid var(--returntag-color-border-subtle);
 	}
 
-	.returntag-inventory-table td {
+	.returntag-inventory-table td,
+	.returntag-export-table td {
 		display: grid;
 		grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
 		gap: 12px;
@@ -788,7 +862,8 @@
 		border: 0;
 	}
 
-	.returntag-inventory-table td::before {
+	.returntag-inventory-table td::before,
+	.returntag-export-table td::before {
 		content: attr(data-label);
 		color: var(--returntag-color-text-subtle);
 		font-size: 12px;

@@ -249,6 +249,16 @@ effect. Deployment must verify no-store headers, complete-Batch gating,
 private Tag fields. Code rollback removes the projection while preserving all
 Tags, Batches, Events, counters, and statuses.
 
+RT-207 also leaves plugin version `0.2.0` and Schema version `8` unchanged. It
+activates the existing Batch Export Repository for capability-protected CSV
+creation and bounded audit history. Deployment must verify deterministic
+`tag_id ASC` bytes, exact row count and SHA-256, first-export
+`generated -> exported`, re-export digest equality, private temporary-file
+cleanup, and exclusion of prohibited fields. Code rollback removes the route
+and UI while preserving Export rows, Events, exported Batch state, and all Tag
+IDs. Do not repair rollback by deleting audit history or changing an exported
+Batch back to generated.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -289,6 +299,9 @@ query, queue-health projection, bounded admin polling, and idempotent recovery
 UI without changing release version or Schema.
 RT-206 adds the authenticated deterministic Batch Tag inventory and paginated
 admin list without enabling CSV export or changing release version or Schema.
+RT-207 adds the capability-protected deterministic CSV download, immutable
+export audit versions, SHA-256 verification, and generated-to-exported
+transition without changing release version or Schema.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
 production-ready product release because there is no public route, export, activation,

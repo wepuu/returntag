@@ -453,10 +453,10 @@ https://returntag.com/t/A7R2W9
 | 搜索引擎收录 | `noindex`、`nofollow`、`noarchive` |
 | 某批次数据泄露 | Batch 级暂停和作废能力 |
 
-该决策应在以下 ADR 中长期记录：
+该决策在以下 ADR 中长期记录：
 
 ```text
-docs/adr/0001-public-tag-id-is-activation-id.md
+docs/adr/0007-public-tag-id-is-activation-id.md
 ```
 
 ---
@@ -1758,8 +1758,8 @@ RT-202 六位安全 ID 生成器
 RT-203 碰撞重试
 RT-204 后台分批生成
 RT-205 生成进度
-RT-206 CSV 导出
-RT-207 导出版本和 SHA-256
+RT-206 Batch Tag ID 清单与确定性导出基础
+RT-207 审计 CSV 导出（版本、行数、格式、操作员、时间和 SHA-256）
 RT-208 Batch Release / Suspend
 RT-209 Tag 搜索
 RT-210 大批量压力测试

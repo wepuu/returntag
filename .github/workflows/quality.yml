@@ -145,6 +145,7 @@ jobs:
       WP_DEVELOP_DIR: ${{ github.workspace }}/.wordpress-develop
       WP_TESTS_DIR: ${{ github.workspace }}/.wordpress-develop/tests/phpunit
       WP_VERSION: 7.0.2
+      WP_ENVIRONMENT_TYPE: local
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

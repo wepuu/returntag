@@ -10,6 +10,11 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Admin;
 
 use InvalidArgumentException;
+use ReturnTag\TagCore\Application\Batch\BatchExportResult;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchExportArtifactFailure;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchExportIntegrityViolation;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchExportNotAllowed;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchExportNotFound;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\CreateBatchInput;
 use ReturnTag\TagCore\Application\Batch\BatchTagInventoryItem;
@@ -22,11 +27,15 @@ use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationQueueUnavailabl
 use ReturnTag\TagCore\Application\Batch\Exception\BatchCodeAlreadyExists;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
+use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
 use ReturnTag\TagCore\Application\Batch\ListBatchTagInventory;
+use ReturnTag\TagCore\Application\Batch\ListBatchExports;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
+use ReturnTag\TagCore\Application\Persistence\Pagination\BatchExportCursor;
 use ReturnTag\TagCore\Application\Persistence\Pagination\BatchCursor;
 use ReturnTag\TagCore\Application\Persistence\Pagination\PageSize;
+use ReturnTag\TagCore\Application\Persistence\Record\BatchExportRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\BatchRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\BatchSummaryRecord;
 use ReturnTag\TagCore\Domain\Tag\SmartNetwork;
@@ -52,9 +61,12 @@ final readonly class BatchRestController {
 	 * @param StartBatchGeneration         $start_generation Start generation use case.
 	 * @param GetBatchGenerationProgress   $get_generation_progress Progress query.
 	 * @param ListBatchTagInventory        $list_batch_tags Inventory query.
+	 * @param ExportBatchCsv               $export_batch Export command.
+	 * @param ListBatchExports             $list_batch_exports Export history query.
 	 * @param ListBatches                  $list_batches List query.
 	 * @param GetBatch                     $get_batch Detail query.
 	 * @param BatchTagInventoryCursorCodec $inventory_cursors REST cursor codec.
+	 * @param BatchExportCursorCodec       $export_cursors Export-history cursor codec.
 	 * @param SchemaState                  $schema_state Schema readiness.
 	 */
 	public function __construct(
@@ -62,9 +74,12 @@ final readonly class BatchRestController {
 		private StartBatchGeneration $start_generation,
 		private GetBatchGenerationProgress $get_generation_progress,
 		private ListBatchTagInventory $list_batch_tags,
+		private ExportBatchCsv $export_batch,
+		private ListBatchExports $list_batch_exports,
 		private ListBatches $list_batches,
 		private GetBatch $get_batch,
 		private BatchTagInventoryCursorCodec $inventory_cursors,
+		private BatchExportCursorCodec $export_cursors,
 		private SchemaState $schema_state
 	) {
 	}
@@ -126,6 +141,23 @@ final readonly class BatchRestController {
 				'permission_callback' => array( $this, 'authorize' ),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/batches/(?P<batch_id>[1-9][0-9]*)/exports',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'list_exports' ),
+					'permission_callback' => array( $this, 'authorize' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'export_batch' ),
+					'permission_callback' => array( $this, 'authorize' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -163,6 +195,37 @@ final readonly class BatchRestController {
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Stream a prepared CSV instead of JSON-encoding its private response object.
+	 *
+	 * @param bool             $served Whether another callback served the response.
+	 * @param WP_HTTP_Response $response REST response.
+	 * @param WP_REST_Request  $request REST request.
+	 * @param WP_REST_Server   $server REST server.
+	 */
+	public function serve_csv_download(
+		bool $served,
+		WP_HTTP_Response $response,
+		WP_REST_Request $request,
+		WP_REST_Server $server
+	): bool {
+		unset( $request, $server );
+
+		if ( $served ) {
+			return true;
+		}
+
+		$download = $response->get_data();
+
+		if ( ! $download instanceof BatchCsvDownload ) {
+			return false;
+		}
+
+		$download->serve();
+
+		return true;
 	}
 
 	/**
@@ -307,6 +370,116 @@ final readonly class BatchRestController {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Return one bounded page of immutable Batch export audit records.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 */
+	public function list_exports( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		if ( ! $this->schema_state->is_current() ) {
+			return $this->schema_unavailable();
+		}
+
+		$batch_id = $this->positive_integer( $request->get_param( 'batch_id' ) );
+		$per_page = $this->positive_integer( $request->get_param( 'per_page' ) ?? 20 );
+
+		if ( null === $batch_id ) {
+			return $this->invalid_request( array( 'batch_id' => __( 'The Batch identifier is invalid.', 'tagcore' ) ) );
+		}
+
+		if ( null === $per_page || $per_page > PageSize::MAXIMUM ) {
+			return $this->invalid_request( array( 'per_page' => __( 'Choose a page size between 1 and 100.', 'tagcore' ) ) );
+		}
+
+		$cursor       = null;
+		$cursor_value = $request->get_param( 'cursor' );
+
+		if ( null !== $cursor_value && '' !== $cursor_value ) {
+			if ( ! is_string( $cursor_value ) ) {
+				return $this->invalid_request( array( 'cursor' => __( 'The export history cursor is invalid.', 'tagcore' ) ) );
+			}
+
+			try {
+				$cursor = $this->export_cursors->decode( $cursor_value );
+			} catch ( InvalidArgumentException ) {
+				return $this->invalid_request( array( 'cursor' => __( 'The export history cursor is invalid.', 'tagcore' ) ) );
+			}
+		}
+
+		try {
+			$page = $this->list_batch_exports->execute( $batch_id, $cursor, new PageSize( $per_page ) );
+		} catch ( BatchExportNotFound ) {
+			return new WP_Error(
+				'returntag_batch_not_found',
+				__( 'The requested Batch was not found.', 'tagcore' ),
+				array( 'status' => 404 )
+			);
+		} catch ( Throwable ) {
+			return $this->operation_failed();
+		}
+
+		return $this->no_store(
+			new WP_REST_Response(
+				array(
+					'items'       => array_map( array( $this, 'prepare_export_record' ), $page->items ),
+					'next_cursor' => null === $page->next_cursor
+						? null
+						: $this->export_cursors->encode( $page->next_cursor ),
+				)
+			)
+		);
+	}
+
+	/**
+	 * Create one audited CSV export and return its exact bytes.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 */
+	public function export_batch( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		if ( ! $this->schema_state->is_current() ) {
+			return $this->schema_unavailable();
+		}
+
+		$batch_id    = $this->positive_integer( $request->get_param( 'batch_id' ) );
+		$operator_id = get_current_user_id();
+
+		if ( null === $batch_id || $operator_id < 1 ) {
+			return $this->invalid_request( array( 'batch_id' => __( 'The Batch identifier is invalid.', 'tagcore' ) ) );
+		}
+
+		try {
+			$result = $this->export_batch->execute( $batch_id, $operator_id );
+		} catch ( BatchExportNotFound ) {
+			return new WP_Error(
+				'returntag_batch_not_found',
+				__( 'The requested Batch was not found.', 'tagcore' ),
+				array( 'status' => 404 )
+			);
+		} catch ( BatchExportNotAllowed ) {
+			return new WP_Error(
+				'returntag_batch_export_conflict',
+				__( 'This Batch cannot be exported in its current state.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( BatchExportIntegrityViolation ) {
+			return new WP_Error(
+				'returntag_batch_export_inconsistent',
+				__( 'The export was stopped because the Batch data did not match its immutable manufacturing record.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( BatchExportArtifactFailure ) {
+			return new WP_Error(
+				'returntag_batch_export_unavailable',
+				__( 'TagCore could not prepare the CSV export. Please try again.', 'tagcore' ),
+				array( 'status' => 500 )
+			);
+		} catch ( Throwable ) {
+			return $this->operation_failed();
+		}
+
+		return $this->download_response( $result );
 	}
 
 	/**
@@ -695,6 +868,57 @@ final readonly class BatchRestController {
 			'tag_status' => $item->tag_status->value,
 			'created_at' => $item->created_at->format( DATE_ATOM ),
 		);
+	}
+
+	/**
+	 * Map one append-only export record to privacy-safe REST data.
+	 *
+	 * @param BatchExportRecord $record Export audit record.
+	 * @return array<string, int|string>
+	 */
+	private function prepare_export_record( BatchExportRecord $record ): array {
+		$user = get_userdata( $record->data->created_by );
+
+		return array(
+			'export_version'  => $record->data->export_version,
+			'row_count'       => $record->data->row_count,
+			'file_format'     => $record->data->file_format,
+			'file_checksum'   => $record->data->file_checksum,
+			'created_by'      => $record->data->created_by,
+			'created_by_name' => false === $user
+				? sprintf(
+					/* translators: %d: WordPress User ID. */
+					__( 'User #%d', 'tagcore' ),
+					$record->data->created_by
+				)
+				: $user->display_name,
+			'created_at'      => $record->data->created_at->format( DATE_ATOM ),
+		);
+	}
+
+	/**
+	 * Build a streamed attachment response for one audited artifact.
+	 *
+	 * @param BatchExportResult $result Audited export result.
+	 */
+	private function download_response( BatchExportResult $result ): WP_REST_Response {
+		$download = new BatchCsvDownload( $result );
+		$record   = $result->record->data;
+		$response = new WP_REST_Response( $download );
+
+		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
+		$response->header( 'Content-Disposition', 'attachment; filename="' . $download->filename() . '"' );
+		$response->header( 'Content-Length', (string) $result->artifact->byte_size() );
+		$response->header( 'X-Content-Type-Options', 'nosniff' );
+		$response->header( 'Referrer-Policy', 'no-referrer' );
+		$response->header( 'X-Robots-Tag', 'noindex, nofollow, noarchive' );
+		$response->header( 'X-ReturnTag-Export-Version', (string) $record->export_version );
+		$response->header( 'X-ReturnTag-Row-Count', (string) $record->row_count );
+		$response->header( 'X-ReturnTag-SHA256', $record->file_checksum );
+		$response->header( 'X-ReturnTag-Created-At', $record->created_at->format( DATE_ATOM ) );
+		$response->header( 'X-ReturnTag-Batch-Status', $result->batch_status->value );
+
+		return $this->no_store( $response );
 	}
 
 	/**

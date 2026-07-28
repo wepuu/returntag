@@ -54,6 +54,9 @@ administrators can create, list, and inspect disabled draft production
 - WordPress table names must use `$wpdb->prefix`; `wp_` is never hard-coded.
 
 The complete product requirements are in [docs/PRD.md](docs/PRD.md).
+The one-public-ID activation decision and its compensating controls are
+recorded in
+[ADR 0007](docs/adr/0007-public-tag-id-is-activation-id.md).
 
 ## Engineering baseline
 
@@ -76,8 +79,9 @@ Action Scheduler runs RT-204 generation chunks through a provider-neutral
 Application scheduler port. RT-201 registers capability-protected
 `tagcore/v1/batches` administration routes and a WordPress-native Batch
 administration page. The repository still defines no email provider, OTP flow,
-activation flow, finder relay, WooCommerce business hook, or export. The only product
-tables are the RT-102 batches schema,
+activation flow, finder relay, or WooCommerce business hook. RT-207 provides
+the first audited manufacturing export. The only product tables are the
+RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
 authentication challenge schema, the RT-106 conversation and message schemas,
 the RT-107 access token schema, and the RT-108 business event schema.
@@ -197,6 +201,17 @@ only Tag ID, Tag Status, and UTC generation time. The capability-protected
 no-store endpoint uses a validated opaque cursor and deterministic `tag_id ASC`
 ordering. It does not expose owner or private Tag fields and does not create,
 audit, or download a CSV; audited exports remain RT-207.
+
+RT-207 keeps Schema version `8` and plugin version `0.2.0`. Authorized
+operators can export a complete `generated` Batch as a deterministic UTF-8 CSV
+and view bounded export history. The first export appends an immutable version,
+row count, `csv` format, operator, UTC time, and SHA-256 checksum, records a
+privacy-safe `batch_exported` Event, and atomically changes the Batch to
+`exported`. Re-export creates a new audit version only when the exact bytes and
+Tag ID set match the previous export. CSV files are prepared in a private
+temporary path, streamed with no-store and download-hardening headers, and
+removed after delivery. No owner, order, Claim, credential, message, device, or
+location data is exported.
 
 ## Repository layout
 

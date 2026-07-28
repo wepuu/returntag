@@ -499,6 +499,37 @@ plans are recorded in the Query Catalog without asserting optimizer-specific
 costs. A new compound index, if capacity evidence requires one, must use a new
 numbered Migration rather than modifying Migration `0002`.
 
+### 3.16 RT-207 audited CSV export workflow
+
+RT-207 leaves Schema version `8` unchanged and uses the existing
+`returntag_batch_exports` append-only contract. It adds no table, column,
+index, Foreign Key, trigger, stored CSV, or file path.
+
+The deterministic source selects `tag_id`, `tag_type`, and `model_code` in
+bounded `tag_id ASC` pages. A private temporary artifact is built before the
+write transaction. The commit transaction then:
+
+1. locks the parent Batch with `FOR UPDATE`;
+2. revalidates Batch status, requested/generated quantity, and manufacturing
+   snapshot;
+3. verifies the stored Tag count equals the CSV data-row count;
+4. reads the latest export version under the Batch lock;
+5. requires re-export format, row count, and SHA-256 to match the latest
+   record;
+6. appends the next positive export version;
+7. atomically changes the first export from `generated` to `exported`;
+8. appends the corresponding business Event.
+
+The parent Batch lock serializes version allocation, while
+`batch_export_version_unique` remains the final duplicate protection. Repeated
+exports intentionally retain the same Batch/checksum pair under different
+versions, which is why `batch_file_checksum` remains non-unique.
+
+CSV `row_count` excludes the header. `file_checksum` is the lowercase SHA-256
+of the exact UTF-8, BOM-free, CRLF-delimited bytes delivered to the REST
+stream. A failed integrity check, transaction, or state transition does not
+advance Batch status or append an export record.
+
 ## 4. Forbidden relationships and fields
 
 Tag and Batch storage must not contain or infer mappings to:

@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
+use ReturnTag\TagCore\Admin\BatchCsvDownload;
 use ReturnTag\TagCore\Admin\Capability;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
@@ -108,8 +109,10 @@ final class BatchAdminTest extends WP_UnitTestCase {
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/generation' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/tags' ),
+				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/exports' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
+				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/exports' ),
 			) as $request
 		) {
 			self::assertSame( 403, rest_do_request( $request )->get_status() );
@@ -402,6 +405,180 @@ final class BatchAdminTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * First export streams exact CSV, records audit, and changes the Batch state.
+	 */
+	public function test_first_csv_export_is_deterministic_audited_and_downloadable(): void {
+		global $wpdb;
+
+		$created  = $this->complete_generation( 'RT-207-FIRST', 3 );
+		$route    = '/tagcore/v1/batches/' . $created['batch_id'] . '/exports';
+		$request  = new WP_REST_Request( 'POST', $route );
+		$response = rest_do_request( $request );
+		$headers  = $response->get_headers();
+		self::assertSame( 200, $response->get_status(), wp_json_encode( $response->get_data() ) );
+
+		$csv   = $this->serve_csv_response( $response, $request );
+		$lines = explode( "\r\n", rtrim( $csv, "\r\n" ) );
+
+		self::assertSame( 'text/csv; charset=UTF-8', $headers['Content-Type'] );
+		self::assertSame( 'no-store, private', $headers['Cache-Control'] );
+		self::assertSame( '1', $headers['X-ReturnTag-Export-Version'] );
+		self::assertSame( '3', $headers['X-ReturnTag-Row-Count'] );
+		self::assertSame( hash( 'sha256', $csv ), $headers['X-ReturnTag-SHA256'] );
+		self::assertSame( 'exported', $headers['X-ReturnTag-Batch-Status'] );
+		self::assertStringContainsString( 'tagcore-RT-207-FIRST-v1.csv', $headers['Content-Disposition'] );
+		self::assertCount( 4, $lines );
+		self::assertSame(
+			'sequence_no,batch_code,tag_id,tag_type,model_code,smart_network,qr_url',
+			$lines[0]
+		);
+
+		$tag_ids = array();
+
+		foreach ( array_slice( $lines, 1 ) as $index => $line ) {
+			$fields = str_getcsv( $line );
+			self::assertCount( 7, $fields );
+			self::assertSame( (string) ( $index + 1 ), $fields[0] );
+			self::assertSame( 'RT-207-FIRST', $fields[1] );
+			self::assertSame( 'smart_tag', $fields[3] );
+			self::assertSame( 'SMART-01', $fields[4] );
+			self::assertSame( 'apple_find_my', $fields[5] );
+			self::assertSame( home_url( '/t/' . $fields[2] ), $fields[6] );
+			$tag_ids[] = $fields[2];
+		}
+
+		$sorted = $tag_ids;
+		sort( $sorted, SORT_STRING );
+		self::assertSame( $sorted, $tag_ids );
+
+		$tables      = new TableNames( $wpdb->prefix );
+		$batch_query = $wpdb->prepare(
+			'SELECT batch_status, activation_enabled FROM %i WHERE batch_id = %d',
+			$tables->batches(),
+			$created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated export state verification.
+		$batch = $wpdb->get_row( $batch_query, ARRAY_A );
+		self::assertIsArray( $batch );
+		self::assertSame( 'exported', $batch['batch_status'] );
+		self::assertSame( '0', $batch['activation_enabled'] );
+
+		$export_query = $wpdb->prepare(
+			'SELECT export_version, row_count, file_format, file_checksum, created_by FROM %i WHERE batch_id = %d',
+			$tables->batch_exports(),
+			$created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated export audit verification.
+		$export = $wpdb->get_row( $export_query, ARRAY_A );
+		self::assertIsArray( $export );
+		self::assertSame( '1', $export['export_version'] );
+		self::assertSame( '3', $export['row_count'] );
+		self::assertSame( 'csv', $export['file_format'] );
+		self::assertSame( hash( 'sha256', $csv ), $export['file_checksum'] );
+		self::assertSame( (string) $this->administrator_id, $export['created_by'] );
+
+		$event_query = $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE event_type = %s AND target_id = %s',
+			$tables->events(),
+			'batch_exported',
+			(string) $created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated audit Event verification.
+		self::assertSame( '1', $wpdb->get_var( $event_query ) );
+	}
+
+	/**
+	 * Re-export creates a new version with identical bytes and no new Tag IDs.
+	 */
+	public function test_csv_reexport_preserves_exact_bytes_and_lists_history(): void {
+		global $wpdb;
+
+		$created = $this->complete_generation( 'RT-207-REEXPORT', 2 );
+		$route   = '/tagcore/v1/batches/' . $created['batch_id'] . '/exports';
+		$before  = $this->count_batch_tags( $wpdb, (int) $created['batch_id'] );
+
+		$first_request  = new WP_REST_Request( 'POST', $route );
+		$first_response = rest_do_request( $first_request );
+		self::assertSame( 200, $first_response->get_status(), wp_json_encode( $first_response->get_data() ) );
+
+		$first_csv = $this->serve_csv_response( $first_response, $first_request );
+
+		$second_request  = new WP_REST_Request( 'POST', $route );
+		$second_response = rest_do_request( $second_request );
+		self::assertSame( 200, $second_response->get_status(), wp_json_encode( $second_response->get_data() ) );
+
+		$second_csv = $this->serve_csv_response( $second_response, $second_request );
+
+		self::assertSame( $first_csv, $second_csv );
+		self::assertSame( '1', $first_response->get_headers()['X-ReturnTag-Export-Version'] );
+		self::assertSame( '2', $second_response->get_headers()['X-ReturnTag-Export-Version'] );
+		self::assertSame(
+			$first_response->get_headers()['X-ReturnTag-SHA256'],
+			$second_response->get_headers()['X-ReturnTag-SHA256']
+		);
+		self::assertSame( $before, $this->count_batch_tags( $wpdb, (int) $created['batch_id'] ) );
+
+		$history_request  = new WP_REST_Request( 'GET', $route );
+		$history_response = rest_do_request( $history_request );
+		$history          = $history_response->get_data();
+
+		self::assertSame( 200, $history_response->get_status() );
+		self::assertIsArray( $history );
+		self::assertCount( 2, $history['items'] );
+		self::assertSame( 2, $history['items'][0]['export_version'] );
+		self::assertSame( 1, $history['items'][1]['export_version'] );
+		self::assertSame( $this->administrator_id, $history['items'][0]['created_by'] );
+		self::assertNotSame( '', $history['items'][0]['created_by_name'] );
+		self::assertNull( $history['next_cursor'] );
+		$this->assert_no_store_after_serving( $history_response, $history_request );
+	}
+
+	/**
+	 * Incomplete and incident-state Batches fail without partial audit writes.
+	 */
+	public function test_csv_export_fails_closed_for_incomplete_and_suspended_batches(): void {
+		global $wpdb;
+
+		$draft = rest_do_request( $this->create_request( 'RT-207-DRAFT' ) )->get_data();
+		self::assertIsArray( $draft );
+		$draft_response = rest_do_request(
+			new WP_REST_Request(
+				'POST',
+				'/tagcore/v1/batches/' . $draft['batch_id'] . '/exports'
+			)
+		);
+		self::assertSame( 409, $draft_response->get_status() );
+
+		$generated = $this->complete_generation( 'RT-207-SUSPENDED', 1 );
+		$tables    = new TableNames( $wpdb->prefix );
+		$update    = $wpdb->prepare(
+			'UPDATE %i SET batch_status = %s WHERE batch_id = %d',
+			$tables->batches(),
+			'suspended',
+			$generated['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated incident-state fixture.
+		self::assertSame( 1, $wpdb->query( $update ) );
+
+		$suspended_response = rest_do_request(
+			new WP_REST_Request(
+				'POST',
+				'/tagcore/v1/batches/' . $generated['batch_id'] . '/exports'
+			)
+		);
+		self::assertSame( 409, $suspended_response->get_status() );
+
+		$count_query = $wpdb->prepare(
+			'SELECT COUNT(*) FROM %i WHERE batch_id IN (%d, %d)',
+			$tables->batch_exports(),
+			$draft['batch_id'],
+			$generated['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated absence verification.
+		self::assertSame( '0', $wpdb->get_var( $count_query ) );
+	}
+
+	/**
 	 * Unknown persisted Tag states fail behind the fixed privacy-safe response.
 	 */
 	public function test_inventory_rejects_unknown_stored_tag_status(): void {
@@ -589,6 +766,11 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		$inventory_response = rest_do_request( $inventory_request );
 		self::assertSame( 503, $inventory_response->get_status() );
 		$this->assert_no_store_after_serving( $inventory_response, $inventory_request );
+
+		$export_request  = new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/exports' );
+		$export_response = rest_do_request( $export_request );
+		self::assertSame( 503, $export_response->get_status() );
+		$this->assert_no_store_after_serving( $export_response, $export_request );
 	}
 
 	/**
@@ -882,6 +1064,55 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Run the REST binary serving filter and capture exact CSV bytes.
+	 *
+	 * @param WP_REST_Response $response Prepared response.
+	 * @param WP_REST_Request  $request Original request.
+	 */
+	private function serve_csv_response(
+		WP_REST_Response $response,
+		WP_REST_Request $request
+	): string {
+		self::assertInstanceOf( BatchCsvDownload::class, $response->get_data() );
+		ob_start();
+
+		try {
+			$served = apply_filters(
+				'rest_pre_serve_request',
+				false,
+				$response,
+				$request,
+				rest_get_server()
+			);
+			$output = ob_get_contents();
+		} finally {
+			ob_end_clean();
+		}
+
+		self::assertTrue( $served );
+		self::assertIsString( $output );
+
+		return $output;
+	}
+
+	/**
+	 * Count Tags assigned to one isolated Batch.
+	 *
+	 * @param wpdb $database Active test database.
+	 * @param int  $batch_id Batch identifier.
+	 */
+	private function count_batch_tags( wpdb $database, int $batch_id ): int {
+		$tables = new TableNames( $database->prefix );
+		$query  = $database->prepare(
+			'SELECT COUNT(*) FROM %i WHERE batch_id = %d',
+			$tables->tags(),
+			$batch_id
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated fixture count.
+		return (int) $database->get_var( $query );
 	}
 
 	/**

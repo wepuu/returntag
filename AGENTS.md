@@ -1,25 +1,3 @@
-## Mandatory project handoff
-
-Before inspecting, planning, or modifying code, read:
-
-1. `docs/PROJECT_STATUS.md`
-2. `README.md`
-3. The relevant PRD and architecture documents
-
-Treat `docs/PROJECT_STATUS.md` as the current handoff record.
-
-Before making changes, report:
-
-- current Git branch and working-tree status;
-- current baseline version;
-- completed RT tickets;
-- applicable validation commands;
-- the scope of the next authorized ticket.
-
-Do not run destructive Git, Docker, wp-env, dependency-update, or database-reset commands without explicit user approval.
-
-
-
 # ReturnTag Repository Instructions
 
 **File scope:** entire `returntag` repository  
