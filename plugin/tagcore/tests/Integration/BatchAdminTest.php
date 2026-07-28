@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Admin\BatchCsvDownload;
 use ReturnTag\TagCore\Admin\Capability;
+use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -68,6 +69,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		}
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
+		delete_option( FeatureFlag::GLOBAL_ACTIVATION->value );
 		$this->clear_generation_actions();
 		$this->clear_schema( $wpdb );
 		wp_set_current_user( 0 );
@@ -110,13 +112,183 @@ final class BatchAdminTest extends WP_UnitTestCase {
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/generation' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/tags' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/exports' ),
+				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/lifecycle' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/exports' ),
+				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/release' ),
+				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/suspend' ),
+				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/void' ),
 			) as $request
 		) {
 			self::assertSame( 403, rest_do_request( $request )->get_status() );
 		}
+	}
+
+	/**
+	 * Release requires complete inventory and an audited export, then enables only the Batch control.
+	 */
+	public function test_release_is_audited_atomic_and_idempotent(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-RELEASE', 'exported', false, 3, 0, true );
+		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '1', false );
+
+		$request = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$request->set_param( 'expected_status', 'exported' );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertTrue( $data['changed'] );
+		self::assertSame( 'released', $data['batch_status'] );
+		self::assertTrue( $data['activation_enabled'] );
+		self::assertTrue( $data['global_activation_enabled'] );
+		self::assertTrue( $data['effective_activation_enabled'] );
+		self::assertTrue( $data['release_ready'] );
+		self::assertSame( 3, $data['tag_counts']['total'] );
+		$this->assert_no_store_after_serving( $response, $request );
+
+		$repeat = rest_do_request( $request );
+		$again  = $repeat->get_data();
+		self::assertSame( 200, $repeat->get_status() );
+		self::assertIsArray( $again );
+		self::assertFalse( $again['changed'] );
+		self::assertSame( 1, $this->count_batch_events( $wpdb, $batch_id, 'batch_released' ) );
+	}
+
+	/**
+	 * A disabled global control remains authoritative after release.
+	 */
+	public function test_release_reports_global_containment_without_rewriting_option(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-GLOBAL', 'exported', false, 2, 0, true );
+		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '0', false );
+
+		$request = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$request->set_param( 'expected_status', 'exported' );
+		$data = rest_do_request( $request )->get_data();
+
+		self::assertIsArray( $data );
+		self::assertTrue( $data['activation_enabled'] );
+		self::assertFalse( $data['global_activation_enabled'] );
+		self::assertFalse( $data['effective_activation_enabled'] );
+		self::assertSame( '0', get_option( FeatureFlag::GLOBAL_ACTIVATION->value ) );
+	}
+
+	/**
+	 * Suspension blocks new Batch activation while preserving active Tag ownership state.
+	 */
+	public function test_suspend_does_not_modify_active_tags(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-SUSPEND', 'released', true, 3, 1, true );
+		$request  = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/suspend" );
+		$request->set_param( 'expected_status', 'released' );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame( 'suspended', $data['batch_status'] );
+		self::assertFalse( $data['activation_enabled'] );
+		self::assertSame( 1, $data['tag_counts']['active'] );
+		self::assertSame( 1, $this->count_batch_tags_by_status( $wpdb, $batch_id, 'active' ) );
+		self::assertSame( 1, $this->count_batch_events( $wpdb, $batch_id, 'batch_suspended' ) );
+	}
+
+	/**
+	 * Void requires exact typed confirmation and never deletes generated identifiers.
+	 */
+	public function test_void_requires_batch_code_and_is_terminal(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-VOID', 'suspended', false, 3, 1, true );
+		$request  = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/void" );
+		$request->set_body_params(
+			array(
+				'expected_status'         => 'suspended',
+				'batch_code_confirmation' => 'rt-208-void',
+			)
+		);
+		self::assertSame( 400, rest_do_request( $request )->get_status() );
+
+		$request->set_param( 'batch_code_confirmation', 'RT-208-VOID' );
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame( 'voided', $data['batch_status'] );
+		self::assertSame( 3, $data['tag_counts']['total'] );
+		self::assertSame( 3, $this->count_batch_tags( $wpdb, $batch_id ) );
+
+		$release = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$release->set_param( 'expected_status', 'voided' );
+		self::assertSame( 409, rest_do_request( $release )->get_status() );
+	}
+
+	/**
+	 * Missing export history or a stale expected state fails without a mutation.
+	 */
+	public function test_release_fails_closed_for_missing_export_and_stale_state(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-NO-EXPORT', 'exported', false, 2, 0, false );
+		$request  = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$request->set_param( 'expected_status', 'exported' );
+		self::assertSame( 409, rest_do_request( $request )->get_status() );
+		self::assertSame( 'exported', $this->read_batch_status( $wpdb, $batch_id ) );
+
+		$lifecycle = rest_do_request(
+			new WP_REST_Request( 'GET', "/tagcore/v1/batches/{$batch_id}/lifecycle" )
+		)->get_data();
+		self::assertIsArray( $lifecycle );
+		self::assertFalse( $lifecycle['release_ready'] );
+
+		$other_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-STALE', 'exported', false, 2, 0, true );
+		$stale    = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$other_id}/release" );
+		$stale->set_param( 'expected_status', 'suspended' );
+		self::assertSame( 409, rest_do_request( $stale )->get_status() );
+		self::assertSame( 'exported', $this->read_batch_status( $wpdb, $other_id ) );
+	}
+
+	/**
+	 * Event persistence failure rolls the lifecycle write back.
+	 */
+	public function test_release_rolls_back_when_audit_append_fails(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-ROLLBACK', 'exported', false, 2, 0, true );
+		$tables   = new TableNames( $wpdb->prefix );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated failure injection.
+		$wpdb->query( "DROP TABLE {$tables->events()}" );
+
+		$request = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$request->set_param( 'expected_status', 'exported' );
+		self::assertSame( 500, rest_do_request( $request )->get_status() );
+		self::assertSame( 'exported', $this->read_batch_status( $wpdb, $batch_id ) );
+		self::assertFalse( $this->read_batch_activation( $wpdb, $batch_id ) );
+	}
+
+	/**
+	 * Lifecycle reads and writes fail closed when the Schema is not current.
+	 */
+	public function test_lifecycle_routes_fail_closed_for_unavailable_schema(): void {
+		global $wpdb;
+
+		$batch_id = $this->insert_lifecycle_batch( $wpdb, 'RT-208-SCHEMA', 'exported', false, 2, 0, true );
+		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+
+		$get = new WP_REST_Request( 'GET', "/tagcore/v1/batches/{$batch_id}/lifecycle" );
+		self::assertSame( 503, rest_do_request( $get )->get_status() );
+
+		$post = new WP_REST_Request( 'POST', "/tagcore/v1/batches/{$batch_id}/release" );
+		$post->set_param( 'expected_status', 'exported' );
+		self::assertSame( 503, rest_do_request( $post )->get_status() );
+		self::assertSame( 'exported', $this->read_batch_status( $wpdb, $batch_id ) );
 	}
 
 	/**
@@ -1096,6 +1268,168 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertIsString( $output );
 
 		return $output;
+	}
+
+	/**
+	 * Insert one complete Batch, immutable Tag inventory, and optional export audit.
+	 *
+	 * @param wpdb   $database Active isolated database.
+	 * @param string $batch_code Unique Batch Code.
+	 * @param string $batch_status Canonical Batch status.
+	 * @param bool   $activation_enabled Batch activation control.
+	 * @param int    $quantity Inventory size.
+	 * @param int    $active_count Number of active Tag fixtures.
+	 * @param bool   $with_export Whether to append one matching export audit.
+	 */
+	private function insert_lifecycle_batch(
+		wpdb $database,
+		string $batch_code,
+		string $batch_status,
+		bool $activation_enabled,
+		int $quantity,
+		int $active_count,
+		bool $with_export
+	): int {
+		$tables = new TableNames( $database->prefix );
+		$time   = '2026-07-28 10:00:00';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated typed fixture insert.
+		self::assertSame(
+			1,
+			$database->insert(
+				$tables->batches(),
+				array(
+					'batch_code'         => $batch_code,
+					'tag_type'           => 'classic_tag',
+					'model_code'         => 'RT208-CLASSIC',
+					'smart_network'      => 'none',
+					'requested_quantity' => $quantity,
+					'generated_quantity' => $quantity,
+					'batch_status'       => $batch_status,
+					'activation_enabled' => $activation_enabled ? 1 : 0,
+					'created_by'         => $this->administrator_id,
+					'created_at'         => $time,
+					'updated_at'         => $time,
+				),
+				array( '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d', '%d', '%s', '%s' )
+			)
+		);
+		$batch_id = (int) $database->insert_id;
+
+		for ( $index = 0; $index < $quantity; ++$index ) {
+			$is_active = $index < $active_count;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated typed fixture insert.
+			self::assertSame(
+				1,
+				$database->insert(
+					$tables->tags(),
+					array(
+						'tag_id'       => $this->fixture_tag_id( 1000 + ( $batch_id * 10 ) + $index ),
+						'batch_id'     => $batch_id,
+						'owner_id'     => $is_active ? $this->administrator_id : null,
+						'tag_type'     => 'classic_tag',
+						'model_code'   => 'RT208-CLASSIC',
+						'tag_status'   => $is_active ? 'active' : 'unregistered',
+						'lost_mode'    => 0,
+						'activated_at' => $is_active ? $time : null,
+						'created_at'   => $time,
+						'updated_at'   => $time,
+					),
+					array( '%s', '%d', '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+				)
+			);
+		}
+
+		if ( $with_export ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated typed fixture insert.
+			self::assertSame(
+				1,
+				$database->insert(
+					$tables->batch_exports(),
+					array(
+						'batch_id'       => $batch_id,
+						'export_version' => 1,
+						'row_count'      => $quantity,
+						'file_format'    => 'csv',
+						'file_checksum'  => str_repeat( 'a', 64 ),
+						'created_by'     => $this->administrator_id,
+						'created_at'     => $time,
+					),
+					array( '%d', '%d', '%d', '%s', '%s', '%d', '%s' )
+				)
+			);
+		}
+
+		return $batch_id;
+	}
+
+	/**
+	 * Count one audit Event type for a Batch.
+	 *
+	 * @param wpdb   $database Active isolated database.
+	 * @param int    $batch_id Batch identifier.
+	 * @param string $event_type Event type.
+	 */
+	private function count_batch_events( wpdb $database, int $batch_id, string $event_type ): int {
+		$tables = new TableNames( $database->prefix );
+		$query  = $database->prepare(
+			"SELECT COUNT(*) FROM {$tables->events()} WHERE target_type = %s AND target_id = %s AND event_type = %s",
+			'batch',
+			(string) $batch_id,
+			$event_type
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Trusted isolated query with prepared values.
+		return (int) $database->get_var( $query );
+	}
+
+	/**
+	 * Count one Tag status inside a Batch.
+	 *
+	 * @param wpdb   $database Active isolated database.
+	 * @param int    $batch_id Batch identifier.
+	 * @param string $tag_status Canonical Tag status.
+	 */
+	private function count_batch_tags_by_status( wpdb $database, int $batch_id, string $tag_status ): int {
+		$tables = new TableNames( $database->prefix );
+		$query  = $database->prepare(
+			"SELECT COUNT(*) FROM {$tables->tags()} WHERE batch_id = %d AND tag_status = %s",
+			$batch_id,
+			$tag_status
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Trusted isolated query with prepared values.
+		return (int) $database->get_var( $query );
+	}
+
+	/**
+	 * Read the persisted Batch status.
+	 *
+	 * @param wpdb $database Active isolated database.
+	 * @param int  $batch_id Batch identifier.
+	 */
+	private function read_batch_status( wpdb $database, int $batch_id ): string {
+		$tables = new TableNames( $database->prefix );
+		$query  = $database->prepare(
+			"SELECT batch_status FROM {$tables->batches()} WHERE batch_id = %d",
+			$batch_id
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Trusted isolated query with prepared value.
+		return (string) $database->get_var( $query );
+	}
+
+	/**
+	 * Read the persisted Batch activation control.
+	 *
+	 * @param wpdb $database Active isolated database.
+	 * @param int  $batch_id Batch identifier.
+	 */
+	private function read_batch_activation( wpdb $database, int $batch_id ): bool {
+		$tables = new TableNames( $database->prefix );
+		$query  = $database->prepare(
+			"SELECT activation_enabled FROM {$tables->batches()} WHERE batch_id = %d",
+			$batch_id
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Trusted isolated query with prepared value.
+		return '1' === (string) $database->get_var( $query );
 	}
 
 	/**

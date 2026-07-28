@@ -259,6 +259,17 @@ and UI while preserving Export rows, Events, exported Batch state, and all Tag
 IDs. Do not repair rollback by deleting audit history or changing an exported
 Batch back to generated.
 
+RT-208 leaves plugin version `0.2.0` and Schema version `8` unchanged. It adds
+capability-protected lifecycle read, Release, Suspend, and Void routes plus
+transactional Event append. Deployment must verify that release requires a
+matching audited export, global activation remains authoritative, stale
+expected states conflict, and Suspend/Void preserve active Tag rows.
+
+Disable TagCore to remove the controls. Code rollback retains resulting Batch
+states, activation controls, all Tags, Export rows, and Events. Never repair a
+rollback by reverting generated counters, deleting audit evidence, or reusing
+voided or suspended identifiers.
+
 ## 9. Incident response and rollback
 
 When a release causes risk:
@@ -302,7 +313,10 @@ admin list without enabling CSV export or changing release version or Schema.
 RT-207 adds the capability-protected deterministic CSV download, immutable
 export audit versions, SHA-256 verification, and generated-to-exported
 transition without changing release version or Schema.
+RT-208 adds audited Batch release, suspension, and permanent void controls
+without changing release version, Schema, or Tag rows.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because there is no public route, export, activation,
-email-provider adapter, finder relay, or WooCommerce business workflow.
+production-ready product release because there is no public scan route, owner
+activation workflow, email-provider adapter, finder relay, or WooCommerce
+business workflow.

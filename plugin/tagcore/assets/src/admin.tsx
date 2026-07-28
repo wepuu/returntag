@@ -38,6 +38,12 @@ import {
 	readDownloadMetadata,
 } from './admin/batch-export';
 import {
+	availableLifecycleActions,
+	type BatchLifecycleAction,
+	type BatchLifecycleResponse,
+	canConfirmVoid,
+} from './admin/batch-lifecycle';
+import {
 	type BatchGenerationProgress,
 	type BatchStatus,
 	calculateProgressPercent,
@@ -1601,6 +1607,340 @@ function BatchExportPanel( {
 	);
 }
 
+function BatchLifecyclePanel( {
+	batch,
+	onChange,
+}: {
+	batch: BatchRecord;
+	onChange: ( lifecycle: BatchLifecycleResponse ) => void;
+} ) {
+	const [ lifecycle, setLifecycle ] =
+		useState< BatchLifecycleResponse | null >( null );
+	const [ error, setError ] = useState< string | null >( null );
+	const [ action, setAction ] = useState< BatchLifecycleAction | null >(
+		null
+	);
+	const [ confirmation, setConfirmation ] = useState( '' );
+	const [ changing, setChanging ] = useState( false );
+
+	useEffect( () => {
+		let cancelled = false;
+
+		apiFetch< BatchLifecycleResponse >( {
+			path: `${ config.restPath }/batches/${ batch.batch_id }/lifecycle`,
+		} )
+			.then( ( response ) => {
+				if ( ! cancelled ) {
+					setLifecycle( response );
+					setError( null );
+				}
+			} )
+			.catch( ( reason: ApiError ) => {
+				if ( ! cancelled ) {
+					setError(
+						reason.message ??
+							__(
+								'TagCore could not load Batch lifecycle controls.',
+								'tagcore'
+							)
+					);
+				}
+			} );
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ batch.batch_id, batch.batch_status ] );
+
+	const closeModal = () => {
+		if ( changing ) {
+			return;
+		}
+
+		setAction( null );
+		setConfirmation( '' );
+	};
+
+	const changeLifecycle = async () => {
+		if ( ! action || ! lifecycle ) {
+			return;
+		}
+
+		setChanging( true );
+		setError( null );
+
+		try {
+			const response = await apiFetch< BatchLifecycleResponse >( {
+				path: `${ config.restPath }/batches/${ batch.batch_id }/${ action }`,
+				method: 'POST',
+				data: {
+					expected_status: lifecycle.batch_status,
+					...( action === 'void'
+						? { batch_code_confirmation: confirmation }
+						: {} ),
+				},
+			} );
+
+			setLifecycle( response );
+			setAction( null );
+			setConfirmation( '' );
+			onChange( response );
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__(
+						'TagCore could not complete the Batch lifecycle action.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setChanging( false );
+		}
+	};
+
+	const actions = lifecycle
+		? availableLifecycleActions(
+				lifecycle.batch_status,
+				lifecycle.release_ready
+		  )
+		: [];
+	const modalTitles: Record< BatchLifecycleAction, string > = {
+		release: __( 'Release Batch', 'tagcore' ),
+		suspend: __( 'Suspend Batch', 'tagcore' ),
+		void: __( 'Void Batch permanently', 'tagcore' ),
+	};
+	const confirmLabels: Record< BatchLifecycleAction, string > = {
+		release: __( 'Release Batch', 'tagcore' ),
+		suspend: __( 'Suspend Batch', 'tagcore' ),
+		void: __( 'Void Batch', 'tagcore' ),
+	};
+	const warningTitles: Record< BatchLifecycleAction, string > = {
+		release: __(
+			'New activation will be enabled for this Batch.',
+			'tagcore'
+		),
+		suspend: __( 'New activation will stop immediately.', 'tagcore' ),
+		void: __( 'This action cannot be reversed.', 'tagcore' ),
+	};
+	const warningMessages: Record< BatchLifecycleAction, string > = {
+		release: __(
+			'Release requires complete inventory and an audited CSV export. The global activation control remains authoritative.',
+			'tagcore'
+		),
+		suspend: __(
+			'Already active owners keep access. Generated Tag IDs and export history remain retained.',
+			'tagcore'
+		),
+		void: __(
+			'Unregistered IDs become permanently unavailable. No Tag ID or audit record will be deleted or reused.',
+			'tagcore'
+		),
+	};
+
+	return (
+		<section
+			className="returntag-lifecycle-panel"
+			aria-labelledby="returntag-lifecycle-title"
+		>
+			<div className="returntag-lifecycle-heading">
+				<div>
+					<h2 id="returntag-lifecycle-title">
+						{ __( 'Release and incident controls', 'tagcore' ) }
+					</h2>
+					<p>
+						{ __(
+							'Control whether unregistered Tags in this Batch may enter activation. Existing active owners are not changed.',
+							'tagcore'
+						) }
+					</p>
+				</div>
+				{ lifecycle && (
+					<span
+						className={ `returntag-activation-state ${
+							lifecycle.effective_activation_enabled
+								? 'is-enabled'
+								: 'is-disabled'
+						}` }
+					>
+						{ lifecycle.effective_activation_enabled
+							? __( 'Activation available', 'tagcore' )
+							: __( 'Activation unavailable', 'tagcore' ) }
+					</span>
+				) }
+			</div>
+
+			{ error && (
+				<Notice status="error" isDismissible={ false }>
+					{ error }
+				</Notice>
+			) }
+
+			{ ! lifecycle && ! error && (
+				<div className="returntag-loading">
+					<Spinner />
+					<span>
+						{ __( 'Loading lifecycle controls…', 'tagcore' ) }
+					</span>
+				</div>
+			) }
+
+			{ lifecycle && (
+				<>
+					{ lifecycle.activation_enabled &&
+						! lifecycle.global_activation_enabled && (
+							<Notice status="warning" isDismissible={ false }>
+								{ __(
+									'This Batch is released, but the global activation control is disabled. New activation remains unavailable until an authorized operator restores the global control.',
+									'tagcore'
+								) }
+							</Notice>
+						) }
+
+					<dl className="returntag-lifecycle-facts">
+						<div>
+							<dt>{ __( 'Unregistered', 'tagcore' ) }</dt>
+							<dd>
+								{ lifecycle.tag_counts.unregistered.toLocaleString() }
+							</dd>
+						</div>
+						<div>
+							<dt>{ __( 'Active', 'tagcore' ) }</dt>
+							<dd>
+								{ lifecycle.tag_counts.active.toLocaleString() }
+							</dd>
+						</div>
+						<div>
+							<dt>{ __( 'Suspended Tags', 'tagcore' ) }</dt>
+							<dd>
+								{ lifecycle.tag_counts.suspended.toLocaleString() }
+							</dd>
+						</div>
+						<div>
+							<dt>{ __( 'Retired', 'tagcore' ) }</dt>
+							<dd>
+								{ lifecycle.tag_counts.retired.toLocaleString() }
+							</dd>
+						</div>
+					</dl>
+
+					{ actions.length > 0 ? (
+						<div className="returntag-lifecycle-actions">
+							{ actions.includes( 'release' ) && (
+								<Button
+									variant="primary"
+									onClick={ () => setAction( 'release' ) }
+								>
+									{ __( 'Release Batch', 'tagcore' ) }
+								</Button>
+							) }
+							{ actions.includes( 'suspend' ) && (
+								<Button
+									variant="secondary"
+									onClick={ () => setAction( 'suspend' ) }
+								>
+									{ __( 'Suspend Batch', 'tagcore' ) }
+								</Button>
+							) }
+							{ actions.includes( 'void' ) && (
+								<Button
+									variant="tertiary"
+									isDestructive
+									onClick={ () => setAction( 'void' ) }
+								>
+									{ __( 'Void Batch', 'tagcore' ) }
+								</Button>
+							) }
+						</div>
+					) : (
+						<p className="returntag-lifecycle-terminal">
+							{ lifecycle.batch_status === 'voided'
+								? __(
+										'This Batch is permanently voided. Its Tag IDs remain retained and can never be reused.',
+										'tagcore'
+								  )
+								: __(
+										'No lifecycle action is available for the current Batch status.',
+										'tagcore'
+								  ) }
+						</p>
+					) }
+				</>
+			) }
+
+			{ action && lifecycle && (
+				<Modal
+					title={ modalTitles[ action ] }
+					onRequestClose={ closeModal }
+					className="returntag-lifecycle-confirm"
+					shouldCloseOnClickOutside={ ! changing }
+				>
+					<div className="returntag-lifecycle-warning">
+						<Icon icon={ cautionFilled } size={ 24 } />
+						<div>
+							<strong>{ warningTitles[ action ] }</strong>
+							<span>{ warningMessages[ action ] }</span>
+						</div>
+					</div>
+
+					{ action === 'void' && (
+						<TextControl
+							label={ sprintf(
+								/* translators: %s: Batch Code. */
+								__(
+									'Enter %s to confirm permanent void',
+									'tagcore'
+								),
+								lifecycle.batch_code
+							) }
+							value={ confirmation }
+							onChange={ setConfirmation }
+							autoComplete="off"
+							disabled={ changing }
+						/>
+					) }
+
+					{ action === 'release' &&
+						! lifecycle.global_activation_enabled && (
+							<Notice status="warning" isDismissible={ false }>
+								{ __(
+									'Global activation is currently disabled. This Batch can be released, but customer activation will remain unavailable.',
+									'tagcore'
+								) }
+							</Notice>
+						) }
+
+					<div className="returntag-modal-actions">
+						<Button
+							variant="tertiary"
+							onClick={ closeModal }
+							disabled={ changing }
+						>
+							{ __( 'Cancel', 'tagcore' ) }
+						</Button>
+						<Button
+							variant="primary"
+							isDestructive={ action === 'void' }
+							onClick={ changeLifecycle }
+							disabled={
+								changing ||
+								( action === 'void' &&
+									! canConfirmVoid(
+										confirmation,
+										lifecycle.batch_code
+									) )
+							}
+							isBusy={ changing }
+						>
+							{ confirmLabels[ action ] }
+						</Button>
+					</div>
+				</Modal>
+			) }
+		</section>
+	);
+}
+
 function BatchTagInventoryPanel( {
 	batchId,
 	total,
@@ -2124,6 +2464,34 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 									: current
 							)
 						}
+					/>
+					<BatchLifecyclePanel
+						batch={ batch }
+						onChange={ ( lifecycle ) => {
+							setBatch( ( current ) =>
+								current
+									? {
+											...current,
+											batch_status:
+												lifecycle.batch_status,
+											activation_enabled:
+												lifecycle.activation_enabled,
+											updated_at: lifecycle.updated_at,
+									  }
+									: current
+							);
+							setProgress( ( current ) =>
+								current
+									? {
+											...current,
+											batch_status:
+												lifecycle.batch_status,
+											last_progress_at:
+												lifecycle.updated_at,
+									  }
+									: current
+							);
+						} }
 					/>
 					<BatchTagInventoryPanel
 						batchId={ batchId }

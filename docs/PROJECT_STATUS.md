@@ -393,9 +393,9 @@ The new session must not assume that account-level chat history is available.
 RT-201 (Batch administration), RT-202 (secure candidate Tag ID generation),
 RT-203 (bounded duplicate-key collision retry), RT-204 (resumable background
 generation), RT-205 (administrative generation progress), RT-206 (complete
-Batch Tag inventory projection), and RT-207 (audited deterministic CSV export)
-have been implemented. They keep Schema version `8` and project/plugin version
-`0.2.0`.
+Batch Tag inventory projection), RT-207 (audited deterministic CSV export),
+and RT-208 (Batch release and incident controls) have been implemented. They
+keep Schema version `8` and project/plugin version `0.2.0`.
 
 The PRD milestone allocation was reconciled on 2026-07-28: RT-206 is the Batch
 Tag ID inventory and deterministic export-source foundation; RT-207 is the
@@ -414,7 +414,19 @@ RT-207 adds:
 - WordPress-native confirmation, download feedback, and responsive audit
   history in Batch detail.
 
-RT-208 and later Milestone 2 tickets have not been authorized by this status
+RT-208 adds:
+
+- capability-protected lifecycle read, Release, Suspend, and Void routes;
+- complete-inventory and audited-export release gates;
+- expected-status concurrency and idempotent repeats;
+- Batch-level activation control with the global flag still authoritative;
+- transactionally appended `batch_released`, `batch_suspended`, and
+  `batch_voided` Events;
+- exact Batch Code confirmation for permanent Void;
+- WordPress-native responsive controls that do not change active Tag owners;
+- no Schema, dependency, lock-file, plugin-version, or Tag-row change.
+
+RT-209 and later Milestone 2 tickets have not been authorized by this status
 file.
 
 

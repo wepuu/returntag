@@ -213,6 +213,14 @@ temporary path, streamed with no-store and download-hardening headers, and
 removed after delivery. No owner, order, Claim, credential, message, device, or
 location data is exported.
 
+RT-208 keeps the same Schema and version while adding explicit Batch release
+and incident controls. Authorized operators can release only a complete Batch
+with a matching audited export, suspend future activation without changing
+active Tag owners, or permanently void a Batch after exact Batch Code
+confirmation. Every changed state and its privacy-safe Event commit in one
+transaction. The global activation flag remains authoritative, and no Tag ID,
+export record, or Event is deleted or reused.
+
 ## Repository layout
 
 ```text

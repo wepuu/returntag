@@ -725,6 +725,16 @@ recorded in `docs/QUERY_CATALOG.md`. EXPLAIN tests require the expected index to
 remain available in `possible_keys` but do not freeze optimizer-specific plans
 or cost estimates.
 
+RT-208 changes Schema version `8` to `8`: no Migration, table, column, index,
+Option, or DDL trigger is added. Lifecycle commands lock one Batch by primary
+key, aggregate its Tags by `(batch_id, tag_status)`, and read the latest export
+through `batch_export_version_unique`. A conditional primary-key update changes
+only `batch_status`, `activation_enabled`, and `updated_at`.
+
+The update and append-only Event commit in one transaction. Suspend and Void
+never update or delete Tag rows. Rollback preserves every Batch state, Tag ID,
+Batch Export record, and Event; previous code does not perform activation.
+
 ## 10. Retention and uninstall
 
 Routine code rollback and plugin uninstall do not delete business data. In
