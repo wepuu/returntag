@@ -86,3 +86,25 @@ benchmarks and production-scale latency budgets remain future operational work.
 The projection returns no Tag row, Event metadata, Action Scheduler argument,
 private manufacturing notes, or personal data. Queue status is inspected
 separately through the provider adapter.
+
+## 7. RT-206 Batch Tag inventory
+
+| Read shape | Predicate, ordering, and bound | Candidate index |
+|---|---|---|
+| First inventory page | `batch_id = ?`, `ORDER BY tag_id ASC`, limit `page_size + 1` | `PRIMARY` or `batch_id_status`, optimizer-selected |
+| Continued inventory page | `batch_id = ? AND tag_id > ?`, `ORDER BY tag_id ASC`, limit `page_size + 1` | `PRIMARY` or `batch_id_status`, optimizer-selected |
+
+The projection names only `tag_id`, `tag_status`, and `created_at`. It does not
+reuse `TagRepository::list_by_batch()` or hydrate TEXT/private columns. The
+cursor is the last Tag ID internally and a versioned opaque Base64URL value at
+the REST boundary.
+
+Schema 8 has no `(batch_id, tag_id)` compound index. RT-206 therefore records
+EXPLAIN output and bounded 2,500-row behavior without asserting an optimizer
+choice or silently changing Schema. RT-210 must evaluate real capacity data
+before proposing a new numbered Migration.
+
+The RT-206 integration fixture inserts 2,500 synthetic non-PII rows, executes
+both prepared EXPLAIN statements, verifies that each reports indexed
+candidates, and reads two bounded 50-row pages without offset pagination. The
+selected key, access type, estimates, and cost remain deliberately unfrozen.

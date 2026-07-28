@@ -45,3 +45,9 @@ progress and scheduler ports. Application owns state eligibility, checkpoint
 and counter integrity, the 100-Tag action bound, aggregate lifecycle Event
 requests, and resume decisions. It does not call Action Scheduler or WordPress
 globals, expose generated IDs, perform DDL, export CSV, or add a visible UI.
+
+RT-206 adds `ListBatchTagInventory` and a dedicated narrow reader contract.
+The use case rejects missing, draft, generating, or counter-incomplete Batches
+before reading a page. Items contain only a typed Tag ID, canonical Tag status,
+and UTC generation time in deterministic Tag ID order. It performs no write,
+export, search, state transition, authorization, or WordPress operation.

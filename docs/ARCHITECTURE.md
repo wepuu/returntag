@@ -372,6 +372,15 @@ no-store GET endpoint and renders the existing WordPress-native React detail
 screen with a second confirmation, committed progress, bounded visibility-aware
 polling, and idempotent recovery.
 
+RT-206 adds a separate read model rather than exposing the complete RT-109 Tag
+Repository record. Application gates the inventory on a complete, non-active
+Batch and defines narrow item/page/cursor contracts. Infrastructure selects
+only Tag ID, status, and UTC creation time in deterministic `tag_id ASC`
+keyset order. Admin encodes the internal keyset as a validated versioned opaque
+cursor and maps only those three fields through the capability-protected
+no-store route. React renders the list only after complete generation and does
+not add CSV, search, edit, delete, copy, or state-transition behavior.
+
 ### Runtime dependency rationale
 
 | Package | Purpose and boundary | License and maintenance |

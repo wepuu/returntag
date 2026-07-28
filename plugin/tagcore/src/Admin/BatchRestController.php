@@ -12,6 +12,9 @@ namespace ReturnTag\TagCore\Admin;
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\CreateBatchInput;
+use ReturnTag\TagCore\Application\Batch\BatchTagInventoryItem;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchTagInventoryNotFound;
+use ReturnTag\TagCore\Application\Batch\Exception\BatchTagInventoryUnavailable;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationIntegrityViolation;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationNotAllowed;
 use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationNotFound;
@@ -19,6 +22,7 @@ use ReturnTag\TagCore\Application\Batch\Exception\BatchGenerationQueueUnavailabl
 use ReturnTag\TagCore\Application\Batch\Exception\BatchCodeAlreadyExists;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
+use ReturnTag\TagCore\Application\Batch\ListBatchTagInventory;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Persistence\Pagination\BatchCursor;
@@ -44,19 +48,23 @@ final readonly class BatchRestController {
 	/**
 	 * Create the controller.
 	 *
-	 * @param CreateBatch                $create_batch Create use case.
-	 * @param StartBatchGeneration       $start_generation Start generation use case.
-	 * @param GetBatchGenerationProgress $get_generation_progress Progress query.
-	 * @param ListBatches                $list_batches List query.
-	 * @param GetBatch                   $get_batch Detail query.
-	 * @param SchemaState                $schema_state Schema readiness.
+	 * @param CreateBatch                  $create_batch Create use case.
+	 * @param StartBatchGeneration         $start_generation Start generation use case.
+	 * @param GetBatchGenerationProgress   $get_generation_progress Progress query.
+	 * @param ListBatchTagInventory        $list_batch_tags Inventory query.
+	 * @param ListBatches                  $list_batches List query.
+	 * @param GetBatch                     $get_batch Detail query.
+	 * @param BatchTagInventoryCursorCodec $inventory_cursors REST cursor codec.
+	 * @param SchemaState                  $schema_state Schema readiness.
 	 */
 	public function __construct(
 		private CreateBatch $create_batch,
 		private StartBatchGeneration $start_generation,
 		private GetBatchGenerationProgress $get_generation_progress,
+		private ListBatchTagInventory $list_batch_tags,
 		private ListBatches $list_batches,
 		private GetBatch $get_batch,
+		private BatchTagInventoryCursorCodec $inventory_cursors,
 		private SchemaState $schema_state
 	) {
 	}
@@ -106,6 +114,16 @@ final readonly class BatchRestController {
 					'callback'            => array( $this, 'start_generation' ),
 					'permission_callback' => array( $this, 'authorize' ),
 				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/batches/(?P<batch_id>[1-9][0-9]*)/tags',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'list_tags' ),
+				'permission_callback' => array( $this, 'authorize' ),
 			)
 		);
 	}
@@ -223,6 +241,72 @@ final readonly class BatchRestController {
 		}
 
 		return $this->no_store( new WP_REST_Response( $this->prepare_record( $batch ) ) );
+	}
+
+	/**
+	 * Return one privacy-minimized page of generated Batch Tag IDs.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 */
+	public function list_tags( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		if ( ! $this->schema_state->is_current() ) {
+			return $this->schema_unavailable();
+		}
+
+		$batch_id = $this->positive_integer( $request->get_param( 'batch_id' ) );
+		$per_page = $this->positive_integer( $request->get_param( 'per_page' ) ?? PageSize::DEFAULT );
+
+		if ( null === $batch_id ) {
+			return $this->invalid_request( array( 'batch_id' => __( 'The Batch identifier is invalid.', 'tagcore' ) ) );
+		}
+
+		if ( null === $per_page || $per_page > PageSize::MAXIMUM ) {
+			return $this->invalid_request( array( 'per_page' => __( 'Choose a page size between 1 and 100.', 'tagcore' ) ) );
+		}
+
+		$cursor_value = $request->get_param( 'cursor' );
+		$cursor       = null;
+
+		if ( null !== $cursor_value && '' !== $cursor_value ) {
+			if ( ! is_string( $cursor_value ) ) {
+				return $this->invalid_request( array( 'cursor' => __( 'The Tag inventory cursor is invalid.', 'tagcore' ) ) );
+			}
+
+			try {
+				$cursor = $this->inventory_cursors->decode( $cursor_value );
+			} catch ( InvalidArgumentException ) {
+				return $this->invalid_request( array( 'cursor' => __( 'The Tag inventory cursor is invalid.', 'tagcore' ) ) );
+			}
+		}
+
+		try {
+			$page = $this->list_batch_tags->execute( $batch_id, $cursor, new PageSize( $per_page ) );
+		} catch ( BatchTagInventoryNotFound ) {
+			return new WP_Error(
+				'returntag_batch_not_found',
+				__( 'The requested Batch was not found.', 'tagcore' ),
+				array( 'status' => 404 )
+			);
+		} catch ( BatchTagInventoryUnavailable ) {
+			return new WP_Error(
+				'returntag_batch_tag_inventory_unavailable',
+				__( 'Generated Tag IDs are available after the Batch finishes generation.', 'tagcore' ),
+				array( 'status' => 409 )
+			);
+		} catch ( Throwable ) {
+			return $this->operation_failed();
+		}
+
+		return $this->no_store(
+			new WP_REST_Response(
+				array(
+					'items'       => array_map( array( $this, 'prepare_inventory_item' ), $page->items ),
+					'next_cursor' => null === $page->next_cursor
+						? null
+						: $this->inventory_cursors->encode( $page->next_cursor ),
+				)
+			)
+		);
 	}
 
 	/**
@@ -596,6 +680,20 @@ final readonly class BatchRestController {
 			'batch_status'       => $batch->batch_status->value,
 			'activation_enabled' => $batch->activation_enabled,
 			'created_at'         => $batch->created_at->format( DATE_ATOM ),
+		);
+	}
+
+	/**
+	 * Map one narrow inventory item to approved REST fields.
+	 *
+	 * @param BatchTagInventoryItem $item Inventory item.
+	 * @return array<string, string>
+	 */
+	private function prepare_inventory_item( BatchTagInventoryItem $item ): array {
+		return array(
+			'tag_id'     => $item->tag_id->value,
+			'tag_status' => $item->tag_status->value,
+			'created_at' => $item->created_at->format( DATE_ATOM ),
 		);
 	}
 

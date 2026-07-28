@@ -191,6 +191,13 @@ progress and normalized queue health. Visible generating views poll at bounded
 intervals, pause while hidden, and offer an idempotent retry only when no
 pending worker remains.
 
+RT-206 keeps Schema version `8` and plugin version `0.2.0`. After generation is
+complete, Batch detail displays a bounded manufacturing inventory containing
+only Tag ID, Tag Status, and UTC generation time. The capability-protected
+no-store endpoint uses a validated opaque cursor and deterministic `tag_id ASC`
+ordering. It does not expose owner or private Tag fields and does not create,
+audit, or download a CSV; audited exports remain RT-207.
+
 ## Repository layout
 
 ```text

@@ -76,4 +76,10 @@ only pending/running availability. Database failures and provider internals
 remain behind fixed Application contracts; no queue argument, Tag ID, SQL, or
 raw failure is returned to the administrator.
 
+RT-206 adds a dedicated `$wpdb` Batch Tag inventory reader. It names only
+`tag_id`, `tag_status`, and `created_at`, constrains the trusted dynamic Batch
+ID, and uses bounded `tag_id ASC` keyset pagination. It does not use
+`SELECT *`, hydrate private Tag columns, add an index or Migration, generate a
+file, or write an export audit record.
+
 No product provider adapter is implemented.

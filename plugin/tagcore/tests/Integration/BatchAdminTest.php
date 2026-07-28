@@ -107,6 +107,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/generation' ),
+				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/tags' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
 			) as $request
@@ -336,6 +337,194 @@ final class BatchAdminTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Generated inventory is minimal, deterministic, and complete across pages.
+	 */
+	public function test_generated_tag_inventory_uses_stable_opaque_pagination(): void {
+		$created = $this->complete_generation( 'RT-206-INVENTORY', 101 );
+		$route   = '/tagcore/v1/batches/' . $created['batch_id'] . '/tags';
+
+		$page_one_request  = new WP_REST_Request( 'GET', $route );
+		$page_one_response = rest_do_request( $page_one_request );
+		$page_one          = $page_one_response->get_data();
+
+		self::assertSame( 200, $page_one_response->get_status() );
+		self::assertIsArray( $page_one );
+		self::assertCount( 50, $page_one['items'] );
+		self::assertIsString( $page_one['next_cursor'] );
+		self::assertNotSame( $page_one['items'][49]['tag_id'], $page_one['next_cursor'] );
+		$this->assert_no_store_after_serving( $page_one_response, $page_one_request );
+
+		foreach ( $page_one['items'] as $item ) {
+			self::assertSame( array( 'tag_id', 'tag_status', 'created_at' ), array_keys( $item ) );
+			self::assertSame( 'unregistered', $item['tag_status'] );
+			self::assertMatchesRegularExpression( '/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/D', $item['tag_id'] );
+			self::assertStringEndsWith( '+00:00', $item['created_at'] );
+		}
+
+		$page_two_request = new WP_REST_Request( 'GET', $route );
+		$page_two_request->set_param( 'per_page', 50 );
+		$page_two_request->set_param( 'cursor', $page_one['next_cursor'] );
+		$page_two_response = rest_do_request( $page_two_request );
+		$page_two          = $page_two_response->get_data();
+
+		self::assertSame( 200, $page_two_response->get_status() );
+		self::assertIsArray( $page_two );
+		self::assertCount( 50, $page_two['items'] );
+		self::assertIsString( $page_two['next_cursor'] );
+
+		$page_three_request = new WP_REST_Request( 'GET', $route );
+		$page_three_request->set_param( 'per_page', 50 );
+		$page_three_request->set_param( 'cursor', $page_two['next_cursor'] );
+		$page_three = rest_do_request( $page_three_request )->get_data();
+
+		self::assertIsArray( $page_three );
+		self::assertCount( 1, $page_three['items'] );
+		self::assertNull( $page_three['next_cursor'] );
+
+		$tag_ids = array_merge(
+			array_column( $page_one['items'], 'tag_id' ),
+			array_column( $page_two['items'], 'tag_id' ),
+			array_column( $page_three['items'], 'tag_id' )
+		);
+		$sorted  = $tag_ids;
+		sort( $sorted, SORT_STRING );
+
+		self::assertSame( $sorted, $tag_ids );
+		self::assertCount( 101, array_unique( $tag_ids ) );
+
+		$max_request = new WP_REST_Request( 'GET', $route );
+		$max_request->set_param( 'per_page', 100 );
+		$max_page = rest_do_request( $max_request )->get_data();
+
+		self::assertIsArray( $max_page );
+		self::assertCount( 100, $max_page['items'] );
+		self::assertIsString( $max_page['next_cursor'] );
+	}
+
+	/**
+	 * Unknown persisted Tag states fail behind the fixed privacy-safe response.
+	 */
+	public function test_inventory_rejects_unknown_stored_tag_status(): void {
+		global $wpdb;
+
+		$created = $this->complete_generation( 'RT-206-UNKNOWN', 1 );
+		$tables  = new TableNames( $wpdb->prefix );
+		$query   = $wpdb->prepare(
+			'UPDATE %i SET tag_status = %s WHERE batch_id = %d',
+			$tables->tags(),
+			'future_status',
+			$created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Deliberately corrupting one isolated fixture to verify fail-closed mapping.
+		self::assertSame( 1, $wpdb->query( $query ) );
+
+		$response = rest_do_request(
+			new WP_REST_Request(
+				'GET',
+				'/tagcore/v1/batches/' . $created['batch_id'] . '/tags'
+			)
+		);
+		$data     = $response->get_data();
+
+		self::assertSame( 500, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame( 'returntag_batch_operation_failed', $data['code'] );
+		self::assertStringNotContainsString( 'future_status', wp_json_encode( $data ) );
+	}
+
+	/**
+	 * A 2,500-row inventory remains bounded and produces accepted EXPLAIN plans.
+	 */
+	public function test_inventory_query_is_bounded_for_2500_tag_batch(): void {
+		global $wpdb;
+
+		$created = rest_do_request( $this->create_request( 'RT-206-EXPLAIN' ) )->get_data();
+		self::assertIsArray( $created );
+		$this->insert_inventory_fixture( $wpdb, (int) $created['batch_id'], 2500 );
+
+		$tables = new TableNames( $wpdb->prefix );
+		$update = $wpdb->prepare(
+			'UPDATE %i SET generated_quantity = %d, batch_status = %s WHERE batch_id = %d',
+			$tables->batches(),
+			2500,
+			'generated',
+			$created['batch_id']
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Isolated 2,500-row performance fixture.
+		self::assertSame( 1, $wpdb->query( $update ) );
+
+		$first_plan_query = $wpdb->prepare(
+			'EXPLAIN SELECT tag_id, tag_status, created_at FROM %i WHERE batch_id = %d ORDER BY tag_id ASC LIMIT %d',
+			$tables->tags(),
+			$created['batch_id'],
+			51
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared EXPLAIN against an isolated synthetic fixture.
+		$first_plan = $wpdb->get_row( $first_plan_query, ARRAY_A );
+		self::assertIsArray( $first_plan );
+		self::assertNotSame( '', (string) $first_plan['possible_keys'] );
+
+		$route    = '/tagcore/v1/batches/' . $created['batch_id'] . '/tags';
+		$request  = new WP_REST_Request( 'GET', $route );
+		$response = rest_do_request( $request );
+		$page     = $response->get_data();
+
+		self::assertSame( 200, $response->get_status() );
+		self::assertIsArray( $page );
+		self::assertCount( 50, $page['items'] );
+		self::assertIsString( $page['next_cursor'] );
+
+		$last_tag_id     = $page['items'][49]['tag_id'];
+		$next_plan_query = $wpdb->prepare(
+			'EXPLAIN SELECT tag_id, tag_status, created_at FROM %i WHERE batch_id = %d AND tag_id > %s ORDER BY tag_id ASC LIMIT %d',
+			$tables->tags(),
+			$created['batch_id'],
+			$last_tag_id,
+			51
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared continuation EXPLAIN against an isolated synthetic fixture.
+		$next_plan = $wpdb->get_row( $next_plan_query, ARRAY_A );
+		self::assertIsArray( $next_plan );
+		self::assertNotSame( '', (string) $next_plan['possible_keys'] );
+
+		$next_request = new WP_REST_Request( 'GET', $route );
+		$next_request->set_param( 'cursor', $page['next_cursor'] );
+		$next_page = rest_do_request( $next_request )->get_data();
+		self::assertIsArray( $next_page );
+		self::assertCount( 50, $next_page['items'] );
+		self::assertGreaterThan( $last_tag_id, $next_page['items'][0]['tag_id'] );
+	}
+
+	/**
+	 * Incomplete, missing, malformed, and oversized inventory reads fail safely.
+	 */
+	public function test_tag_inventory_validates_batch_state_and_query_parameters(): void {
+		$draft = rest_do_request( $this->create_request( 'RT-206-DRAFT' ) )->get_data();
+		self::assertIsArray( $draft );
+
+		$route = '/tagcore/v1/batches/' . $draft['batch_id'] . '/tags';
+
+		$unavailable      = rest_do_request( new WP_REST_Request( 'GET', $route ) );
+		$unavailable_data = $unavailable->get_data();
+		self::assertSame( 409, $unavailable->get_status() );
+		self::assertIsArray( $unavailable_data );
+		self::assertSame( 'returntag_batch_tag_inventory_unavailable', $unavailable_data['code'] );
+
+		$missing = rest_do_request(
+			new WP_REST_Request( 'GET', '/tagcore/v1/batches/999999999/tags' )
+		);
+		self::assertSame( 404, $missing->get_status() );
+
+		$invalid_cursor = new WP_REST_Request( 'GET', $route );
+		$invalid_cursor->set_param( 'cursor', 'not+a+cursor' );
+		self::assertSame( 400, rest_do_request( $invalid_cursor )->get_status() );
+
+		$oversized = new WP_REST_Request( 'GET', $route );
+		$oversized->set_param( 'per_page', 101 );
+		self::assertSame( 400, rest_do_request( $oversized )->get_status() );
+	}
+
+	/**
 	 * Queue matching must not confuse work for another Batch.
 	 */
 	public function test_generation_queue_monitor_is_scoped_to_batch_id(): void {
@@ -395,6 +584,11 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertIsArray( $data );
 		self::assertSame( 'returntag_schema_unavailable', $data['code'] );
 		$this->assert_no_store_after_serving( $response, $request );
+
+		$inventory_request  = new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/tags' );
+		$inventory_response = rest_do_request( $inventory_request );
+		self::assertSame( 503, $inventory_response->get_status() );
+		$this->assert_no_store_after_serving( $inventory_response, $inventory_request );
 	}
 
 	/**
@@ -588,6 +782,106 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		);
 
 		return $request;
+	}
+
+	/**
+	 * Create and synchronously finish one isolated Batch fixture.
+	 *
+	 * @param string $batch_code Unique Batch Code.
+	 * @param int    $quantity Requested quantity.
+	 * @return array<string, mixed>
+	 */
+	private function complete_generation( string $batch_code, int $quantity ): array {
+		$request = $this->create_request( $batch_code );
+		$request->set_param( 'requested_quantity', $quantity );
+		$created = rest_do_request( $request )->get_data();
+		self::assertIsArray( $created );
+
+		$start = new WP_REST_Request(
+			'POST',
+			'/tagcore/v1/batches/' . $created['batch_id'] . '/generation'
+		);
+		self::assertSame( 202, rest_do_request( $start )->get_status() );
+
+		for ( $checkpoint = 0; $checkpoint < $quantity; $checkpoint += 100 ) {
+			as_unschedule_all_actions(
+				ActionSchedulerBatchGenerationScheduler::HOOK,
+				array(
+					'batch_id'      => $created['batch_id'],
+					'checkpoint'    => $checkpoint,
+					'retry_attempt' => 0,
+				),
+				ActionSchedulerBatchGenerationScheduler::GROUP
+			);
+			do_action(
+				ActionSchedulerBatchGenerationScheduler::HOOK,
+				$created['batch_id'],
+				$checkpoint,
+				0
+			);
+		}
+
+		return $created;
+	}
+
+	/**
+	 * Insert one synthetic, non-PII inventory fixture in bounded SQL chunks.
+	 *
+	 * @param wpdb $database Active test database.
+	 * @param int  $batch_id Batch identifier.
+	 * @param int  $quantity Fixture size.
+	 */
+	private function insert_inventory_fixture(
+		wpdb $database,
+		int $batch_id,
+		int $quantity
+	): void {
+		$tables = new TableNames( $database->prefix );
+		$time   = '2026-07-27 09:00:00';
+
+		for ( $offset = 0; $offset < $quantity; $offset += 500 ) {
+			$values = array();
+			$end    = min( $offset + 500, $quantity );
+
+			for ( $index = $offset; $index < $end; ++$index ) {
+				$values[] = $database->prepare(
+					'(%s,%d,%s,%s,%s,%d,%s,%s)',
+					$this->fixture_tag_id( $index ),
+					$batch_id,
+					'smart_tag',
+					'SMART-01',
+					'unregistered',
+					0,
+					$time,
+					$time
+				);
+			}
+
+			$query = sprintf(
+				'INSERT INTO %s (tag_id,batch_id,tag_type,model_code,tag_status,lost_mode,created_at,updated_at) VALUES %s',
+				$tables->tags(),
+				implode( ',', $values )
+			);
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Synthetic values are prepared above and the table is a trusted isolated fixture.
+			self::assertSame( count( $values ), $database->query( $query ) );
+		}
+	}
+
+	/**
+	 * Return a deterministic six-character synthetic Tag ID.
+	 *
+	 * @param int $index Zero-based fixture index.
+	 */
+	private function fixture_tag_id( int $index ): string {
+		$alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+		$value    = '';
+
+		for ( $position = 0; $position < 6; ++$position ) {
+			$value = $alphabet[ $index % strlen( $alphabet ) ] . $value;
+			$index = intdiv( $index, strlen( $alphabet ) );
+		}
+
+		return $value;
 	}
 
 	/**

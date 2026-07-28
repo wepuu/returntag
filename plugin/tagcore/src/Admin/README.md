@@ -16,3 +16,9 @@ detail-page confirmation, progress, queue-health, and retry experience. The UI
 polls only while generation is active, pauses while hidden, renders committed
 counts rather than queue estimates, and never exposes Tag IDs or provider
 errors.
+
+RT-206 adds `GET tagcore/v1/batches/{batch_id}/tags` and renders its complete
+manufacturing inventory after generation. The route requires
+`manage_returntag_batches`, current Schema state, bounded page size, and a
+validated opaque cursor. Its response is limited to Tag ID, status, and UTC
+generation time. The UI adds no export, search, edit, delete, or copy action.
