@@ -1,6 +1,6 @@
 <?php
 /**
- * Prepared Batch CSV download response.
+ * Prepared Batch CSV download.
  *
  * @package ReturnTag\TagCore
  */
@@ -10,22 +10,17 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Admin;
 
 use ReturnTag\TagCore\Application\Batch\BatchExportResult;
-use WP_REST_Response;
 
 /**
  * Owns one temporary artifact until REST streams or abandons it.
- *
- * Keeping the artifact on the response object prevents REST response-data
- * normalization from converting the private download carrier into an array.
  */
-final class BatchCsvResponse extends WP_REST_Response {
+final class BatchCsvDownload {
 	/**
-	 * Create a download response.
+	 * Create a download.
 	 *
 	 * @param BatchExportResult $result Audited export result.
 	 */
 	public function __construct( public readonly BatchExportResult $result ) {
-		parent::__construct( array() );
 	}
 
 	/**

@@ -67,6 +67,7 @@ final readonly class BatchRestController {
 	 * @param GetBatch                     $get_batch Detail query.
 	 * @param BatchTagInventoryCursorCodec $inventory_cursors REST cursor codec.
 	 * @param BatchExportCursorCodec       $export_cursors Export-history cursor codec.
+	 * @param BatchCsvDownloadStore        $csv_downloads Request-scoped download store.
 	 * @param SchemaState                  $schema_state Schema readiness.
 	 */
 	public function __construct(
@@ -80,6 +81,7 @@ final readonly class BatchRestController {
 		private GetBatch $get_batch,
 		private BatchTagInventoryCursorCodec $inventory_cursors,
 		private BatchExportCursorCodec $export_cursors,
+		private BatchCsvDownloadStore $csv_downloads,
 		private SchemaState $schema_state
 	) {
 	}
@@ -211,17 +213,19 @@ final readonly class BatchRestController {
 		WP_REST_Request $request,
 		WP_REST_Server $server
 	): bool {
-		unset( $request, $server );
+		unset( $server );
 
 		if ( $served ) {
 			return true;
 		}
 
-		if ( ! $response instanceof BatchCsvResponse ) {
+		$download = $this->csv_downloads->take( $request );
+
+		if ( ! $download instanceof BatchCsvDownload ) {
 			return false;
 		}
 
-		$response->serve();
+		$download->serve();
 
 		return true;
 	}
@@ -477,7 +481,7 @@ final readonly class BatchRestController {
 			return $this->operation_failed();
 		}
 
-		return $this->download_response( $result );
+		return $this->download_response( $request, $result );
 	}
 
 	/**
@@ -897,14 +901,21 @@ final readonly class BatchRestController {
 	/**
 	 * Build a streamed attachment response for one audited artifact.
 	 *
+	 * @param WP_REST_Request   $request REST request.
 	 * @param BatchExportResult $result Audited export result.
 	 */
-	private function download_response( BatchExportResult $result ): WP_REST_Response {
-		$response = new BatchCsvResponse( $result );
+	private function download_response(
+		WP_REST_Request $request,
+		BatchExportResult $result
+	): WP_REST_Response {
+		$download = new BatchCsvDownload( $result );
 		$record   = $result->record->data;
+		$response = new WP_REST_Response( array() );
+
+		$this->csv_downloads->attach( $request, $download );
 
 		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
-		$response->header( 'Content-Disposition', 'attachment; filename="' . $response->filename() . '"' );
+		$response->header( 'Content-Disposition', 'attachment; filename="' . $download->filename() . '"' );
 		$response->header( 'Content-Length', (string) $result->artifact->byte_size() );
 		$response->header( 'X-Content-Type-Options', 'nosniff' );
 		$response->header( 'Referrer-Policy', 'no-referrer' );
