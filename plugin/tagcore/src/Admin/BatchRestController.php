@@ -217,13 +217,11 @@ final readonly class BatchRestController {
 			return true;
 		}
 
-		$download = $response->get_data();
-
-		if ( ! $download instanceof BatchCsvDownload ) {
+		if ( ! $response instanceof BatchCsvResponse ) {
 			return false;
 		}
 
-		$download->serve();
+		$response->serve();
 
 		return true;
 	}
@@ -902,12 +900,11 @@ final readonly class BatchRestController {
 	 * @param BatchExportResult $result Audited export result.
 	 */
 	private function download_response( BatchExportResult $result ): WP_REST_Response {
-		$download = new BatchCsvDownload( $result );
+		$response = new BatchCsvResponse( $result );
 		$record   = $result->record->data;
-		$response = new WP_REST_Response( $download );
 
 		$response->header( 'Content-Type', 'text/csv; charset=UTF-8' );
-		$response->header( 'Content-Disposition', 'attachment; filename="' . $download->filename() . '"' );
+		$response->header( 'Content-Disposition', 'attachment; filename="' . $response->filename() . '"' );
 		$response->header( 'Content-Length', (string) $result->artifact->byte_size() );
 		$response->header( 'X-Content-Type-Options', 'nosniff' );
 		$response->header( 'Referrer-Policy', 'no-referrer' );

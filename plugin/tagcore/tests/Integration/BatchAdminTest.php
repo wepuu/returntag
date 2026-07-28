@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
-use ReturnTag\TagCore\Admin\BatchCsvDownload;
+use ReturnTag\TagCore\Admin\BatchCsvResponse;
 use ReturnTag\TagCore\Admin\Capability;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
@@ -1071,7 +1071,8 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		WP_REST_Response $response,
 		WP_REST_Request $request
 	): string {
-		self::assertInstanceOf( BatchCsvDownload::class, $response->get_data() );
+		self::assertInstanceOf( BatchCsvResponse::class, $response );
+		self::assertSame( array(), $response->get_data() );
 		ob_start();
 
 		try {
