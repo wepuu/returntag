@@ -1063,7 +1063,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Resolve the normalized REST carrier and capture exact CSV bytes.
+	 * Resolve the normalized REST headers and capture exact CSV bytes.
 	 *
 	 * Browser coverage verifies the production rest_pre_serve_request hook.
 	 * This database suite resolves the one-time carrier directly because the
@@ -1078,12 +1078,11 @@ final class BatchAdminTest extends WP_UnitTestCase {
 	): string {
 		unset( $request );
 
-		$data = $response->get_data();
-		self::assertIsArray( $data );
-		self::assertArrayHasKey( 'returntag_csv_download', $data );
-		self::assertIsString( $data['returntag_csv_download'] );
+		$headers = $response->get_headers();
+		self::assertArrayHasKey( 'X-ReturnTag-Download-Key', $headers );
+		self::assertIsString( $headers['X-ReturnTag-Download-Key'] );
 
-		$download = ( new BatchCsvDownloadStore() )->take( $data['returntag_csv_download'] );
+		$download = ( new BatchCsvDownloadStore() )->take( $headers['X-ReturnTag-Download-Key'] );
 		self::assertInstanceOf( BatchCsvDownload::class, $download );
 		ob_start();
 
