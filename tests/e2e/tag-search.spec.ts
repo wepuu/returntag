@@ -48,7 +48,9 @@ test( 'an authorized operator performs a read-only exact Tag search', async ( {
 		waitUntil: 'domcontentloaded',
 	} );
 	await expect( page.getByRole( 'heading', { name: 'Tags' } ) ).toBeVisible();
-	await page.getByLabel( 'Tag ID' ).fill( '23-45 67' );
+	await page
+		.getByRole( 'textbox', { name: 'Tag ID', exact: true } )
+		.fill( '23-45 67' );
 	await page.getByRole( 'button', { name: 'Search tags' } ).click();
 
 	await expect( page.getByText( '234567', { exact: true } ) ).toBeVisible();
@@ -118,11 +120,16 @@ test( 'a new search clears stale results while the request is pending', async ( 
 	await page.goto( '/wp-admin/admin.php?page=tagcore-tags', {
 		waitUntil: 'domcontentloaded',
 	} );
-	await page.getByLabel( 'Tag ID' ).fill( '234567' );
+	const tagId = page.getByRole( 'textbox', {
+		name: 'Tag ID',
+		exact: true,
+	} );
+
+	await tagId.fill( '234567' );
 	await page.getByRole( 'button', { name: 'Search tags' } ).click();
 	await expect( page.getByText( '234567', { exact: true } ) ).toBeVisible();
 
-	await page.getByLabel( 'Tag ID' ).fill( '234568' );
+	await tagId.fill( '234568' );
 	await page.getByRole( 'button', { name: 'Search tags' } ).click();
 	await expect( page.getByText( '234567', { exact: true } ) ).toHaveCount(
 		0
