@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = dirname( dirname( fileURLToPath( import.meta.url ) ) );
-const expectedVersion = '0.2.0';
+const expectedVersion = '0.3.0';
 
 const readJson = async ( path ) =>
 	JSON.parse( await readFile( join( repositoryRoot, path ), 'utf8' ) );

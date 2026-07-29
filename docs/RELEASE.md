@@ -22,7 +22,8 @@ TagCore uses semantic versioning:
 
 The plugin header, release tag, artifact name, and release record must identify
 the same version. Milestone 0 uses version `0.1.0`; Milestone 1 closes at
-version `0.2.0` with Schema version `8`.
+version `0.2.0` with Schema version `8`; Milestone 2 closes at version `0.3.0`
+with Schema version `8`.
 
 ## 3. Git workflow
 
@@ -334,3 +335,14 @@ existing active Tags are described as retained.
 Code rollback removes the page and route while preserving every Tag, Batch,
 Export, Event, and Schema record. Capability version `2` and the inert
 administrator capability may remain.
+
+RT-210 updates the project and plugin version from `0.2.0` to `0.3.0` while
+leaving Schema version `8` unchanged. Release acceptance includes the
+`100,000`-Tag Batch input boundary and the dedicated capacity profile recorded
+in `docs/PERFORMANCE.md`.
+
+No data conversion, table lock, index build, or Migration occurs during
+deployment. Code rollback to `0.2.0` is database-compatible and preserves all
+Batches, Tags, Exports, Events, capability state, and Schema records. Before
+rollback, use the existing generation and Batch incident controls to contain
+active work; never delete or reuse generated identifiers.

@@ -98,9 +98,9 @@ final class CreateBatchTest extends TestCase {
 	}
 
 	/**
-	 * Requested quantity cannot exceed the unsigned integer storage contract.
+	 * Requested quantity cannot exceed the validated production capacity.
 	 */
-	public function test_requested_quantity_rejects_values_above_storage_limit(): void {
+	public function test_requested_quantity_rejects_values_above_supported_capacity(): void {
 		$this->expectException( InvalidArgumentException::class );
 
 		new CreateBatchInput(
@@ -108,7 +108,7 @@ final class CreateBatchTest extends TestCase {
 			TagType::STICKER,
 			null,
 			SmartNetwork::NONE,
-			4294967296,
+			CreateBatchInput::MAX_REQUESTED_QUANTITY + 1,
 			null,
 			null,
 			null,

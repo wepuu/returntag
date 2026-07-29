@@ -159,3 +159,20 @@ fields. The application derives activation availability without another query.
 The Base64URL cursor is versioned and bound to a stable hash of the exact
 normalized filters. Schema 8 has no `(batch_id, tag_id)` compound index;
 RT-210 owns capacity validation and any numbered Migration proposal.
+
+## 11. RT-210 measured capacity decision
+
+The RT-210 profile creates ten Batches with `100,000` synthetic Tags each and
+measures the existing RT-205 through RT-209 query shapes against one million
+retained rows. It also validates a 10,000-Tag Action Scheduler generation smoke
+run and deterministic export of one complete 100,000-Tag Batch.
+
+All approved budgets in `docs/PERFORMANCE.md` passed. Representative inventory
+and Batch-search queries exposed indexed candidates under `EXPLAIN`; the test
+continues to avoid assertions about optimizer-selected keys, cost estimates,
+or exact row counts.
+
+No `(batch_id, tag_id)` Migration is added. The existing Schema 8 primary key
+and `batch_id_status` index remain the documented candidates. A higher Batch
+limit, materially different data distribution, or observed production
+regression requires new measurements before an index proposal.

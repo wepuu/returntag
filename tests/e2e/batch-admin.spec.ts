@@ -25,6 +25,20 @@ async function fillRequiredBatchFields(
 	await page.getByLabel( /Notes/ ).fill( 'Automated RT-201 test fixture.' );
 }
 
+function waitForBatchCreationResponse( page: import('@playwright/test').Page ) {
+	return page.waitForResponse(
+		( response ) => {
+			const url = new URL( response.url() );
+
+			return (
+				url.pathname === '/wp-json/tagcore/v1/batches' &&
+				response.request().method() === 'POST'
+			);
+		},
+		{ timeout: 60_000 }
+	);
+}
+
 test( 'an authorized operator creates a disabled draft Batch', async ( {
 	page,
 } ) => {
@@ -40,10 +54,23 @@ test( 'an authorized operator creates a disabled draft Batch', async ( {
 		page.getByText( 'Activation', { exact: true } )
 	).toBeVisible();
 	await expect( page.getByText( 'Disabled', { exact: true } ) ).toBeVisible();
+	await expect( page.getByLabel( /Requested quantity/ ) ).toHaveAttribute(
+		'max',
+		'100000'
+	);
+	await expect(
+		page.getByText( 'Between 1 and 100,000 Tag IDs per Batch.', {
+			exact: true,
+		} )
+	).toBeVisible();
 
 	const batchCode = `RT-E2E-${ Date.now() }`;
 	await fillRequiredBatchFields( page, batchCode );
-	await page.getByRole( 'button', { name: 'Create draft batch' } ).click();
+	const [ creationResponse ] = await Promise.all( [
+		waitForBatchCreationResponse( page ),
+		page.getByRole( 'button', { name: 'Create draft batch' } ).click(),
+	] );
+	expect( creationResponse.status() ).toBe( 201 );
 
 	await expect(
 		page.getByRole( 'heading', { name: 'Batch created' } )
@@ -54,7 +81,11 @@ test( 'an authorized operator creates a disabled draft Batch', async ( {
 
 	await page.getByRole( 'button', { name: 'Create another' } ).click();
 	await fillRequiredBatchFields( page, batchCode );
-	await page.getByRole( 'button', { name: 'Create draft batch' } ).click();
+	const [ duplicateResponse ] = await Promise.all( [
+		waitForBatchCreationResponse( page ),
+		page.getByRole( 'button', { name: 'Create draft batch' } ).click(),
+	] );
+	expect( duplicateResponse.status() ).toBe( 409 );
 
 	await expect(
 		page.getByText( 'This Batch Code is already in use.', {

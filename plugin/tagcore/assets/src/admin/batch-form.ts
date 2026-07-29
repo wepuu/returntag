@@ -8,6 +8,8 @@ export type SmartNetwork =
 	| 'other';
 export type SalesChannel = 'direct' | 'amazon' | 'mixed' | 'other';
 
+export const MAX_BATCH_QUANTITY = 100_000;
+
 export interface BatchFormValues {
 	batch_code: string;
 	tag_type: TagType;
@@ -38,10 +40,10 @@ export function validateBatchForm(
 
 	if (
 		! /^[1-9][0-9]*$/.test( values.requested_quantity ) ||
-		Number( values.requested_quantity ) > 4_294_967_295
+		Number( values.requested_quantity ) > MAX_BATCH_QUANTITY
 	) {
 		errors.requested_quantity = __(
-			'Enter a whole quantity of at least 1.',
+			'Enter a whole quantity from 1 to 100,000.',
 			'tagcore'
 		);
 	}
