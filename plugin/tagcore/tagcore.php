@@ -44,6 +44,10 @@ if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstr
 	ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstrap::register();
 }
 
+if ( class_exists( ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::class ) ) {
+	ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::register( RETURNTAG_TAGCORE_FILE );
+}
+
 if ( class_exists( ReturnTag\TagCore\Admin\AdminBootstrap::class ) ) {
 	ReturnTag\TagCore\Admin\AdminBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }

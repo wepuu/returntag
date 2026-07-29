@@ -444,3 +444,26 @@ The capacity limit reduces accidental resource exhaustion but does not replace
 authorization, rate controls, queue monitoring, or operator review. Generation
 continues asynchronously in resumable 100-Tag chunks, and export continues to
 use a private temporary artifact with bounded reads.
+
+## 15. RT-301 public route controls
+
+The public `GET /t/{tag_id}` route is anonymous by design and performs no
+authorization-sensitive action. RT-301 treats the captured path segment as
+untrusted opaque input: it is not normalized, logged, queried, reflected into
+HTML, placed in headers, or passed to a state transition. RT-302 must validate
+the canonical six-character value before any Tag lookup.
+
+Until state resolution exists, `GET` and `HEAD` fail closed with a generic
+`503`; mutation methods receive `405` and an explicit `Allow: GET, HEAD`.
+Responses send `Cache-Control: no-store, private`, `Pragma: no-cache`,
+`Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, and
+`X-Robots-Tag: noindex, nofollow, noarchive`. The standalone template repeats
+the referrer and robots controls in HTML and loads only the local TagCore
+stylesheet, with no analytics, advertising, session replay, remote font, or
+third-party asset.
+
+RT-301 exposes no existence oracle because every non-empty one-segment input
+receives the same status and content. It does not notify owners, activate Tags,
+create finder conversations, process email, read private fields, or append
+Events. Disabling TagCore removes the route; removing its rewrite rule and
+flushing once is the operational rollback.

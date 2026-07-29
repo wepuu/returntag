@@ -465,3 +465,24 @@ production service. Measurements and operational caveats live in
 Schema version 8 remains authoritative. Evidence from the million-row profile
 does not justify an additional `(batch_id, tag_id)` index, so Infrastructure
 and Migration composition are unchanged.
+
+## RT-301 public Tag route boundary
+
+RT-301 introduces a `PublicSite` transport adapter for `GET /t/{tag_id}`. The
+WordPress rewrite captures exactly one non-empty raw path segment into the
+internal `returntag_tag_id` query variable. It deliberately does not normalize,
+validate, persist, or query that value; RT-302 owns canonical Tag ID input and
+RT-303 owns Tag and Batch state resolution.
+
+The route selects a standalone plugin template instead of a theme template.
+This keeps the scan entry point available across theme changes and prevents
+core product behavior from moving into `functions.php` or page builders. The
+adapter returns a generic fail-closed `503` response until later tickets attach
+approved application services. Unsupported methods receive `405`.
+
+Rewrite rules are refreshed only on site-scoped activation, deactivation,
+successful TagCore updates, or an authorized administrative compensation
+request when the stored rule is missing. No rewrite flush runs on ordinary
+public requests. RT-301 adds no Domain or Application workflow, database read
+or write, Schema change, Option, queue, email, WooCommerce integration, Event,
+dependency, or feature flag.

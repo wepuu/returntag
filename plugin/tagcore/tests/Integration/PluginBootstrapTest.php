@@ -26,7 +26,7 @@ final class PluginBootstrapTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Ensure the bootstrap registers only approved administrative migration hooks.
+	 * Ensure the bootstrap registers approved lifecycle and public-route hooks.
 	 */
 	public function test_plugin_registers_migration_lifecycle_without_running_schema_work_on_load(): void {
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
@@ -34,6 +34,10 @@ final class PluginBootstrapTest extends WP_UnitTestCase {
 		self::assertNotFalse( has_action( 'admin_init' ) );
 		self::assertNotFalse( has_action( 'upgrader_process_complete' ) );
 		self::assertNotFalse( has_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ) ) );
+		self::assertNotFalse( has_action( 'deactivate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ) ) );
+		self::assertNotFalse( has_action( 'template_redirect' ) );
+		self::assertNotFalse( has_filter( 'template_include' ) );
+		self::assertNotFalse( has_filter( 'query_vars' ) );
 		self::assertFalse( get_option( WordPressSchemaVersionStore::OPTION_NAME, false ) );
 	}
 }
