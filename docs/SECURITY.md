@@ -405,3 +405,24 @@ Security-sensitive changes must include automated negative tests, a review of
 authorization and replay/concurrency behavior, safe fixtures containing no real
 personal data, a logging review, retention impact, and a clear kill switch or
 rollback plan.
+
+## 13. RT-209 Tag search controls
+
+Tag search requires current Schema state, WordPress REST cookie authentication
+and nonce handling, and `manage_returntag_tags`. It rejects unfiltered,
+partial, wildcard, owner, and free-text searches. Tag ID input is normalized
+before canonical validation; Batch Code matching remains exact and
+case-sensitive.
+
+Responses are `no-store, private` and exclude owner identifiers, private names,
+labels, Lost Mode content, scan history, emails, tokens, messages, order or
+Claim data, devices, and locations. Opaque pagination cursors are filter-bound
+but are neither credentials nor authorization evidence. Failures expose no SQL
+or stored private value.
+
+Search visibility is not authorization to activate or mutate a Tag. The server
+derives activation availability from trusted stored facts and the global
+activation flag; the browser does not infer it. Suspended and voided IDs remain
+visible to authorized operators for audit and non-reuse enforcement, while the
+response exposes no owner identity. A new search clears the previous result
+before waiting for the next no-store response.

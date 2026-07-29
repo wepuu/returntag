@@ -308,3 +308,16 @@ remain explicit human-authorized actions.
 
 No production credentials, manufacturer exports, personal data, plaintext
 OTPs, or plaintext access tokens may be committed to this repository.
+
+## RT-209 read-only Tag administration
+
+RT-209 keeps Schema version `8` and plugin version `0.2.0`. It adds a
+WordPress-native Tags submenu and `GET tagcore/v1/tags`, protected by
+`manage_returntag_tags`. Operators must search by one exact normalized Tag ID
+or one exact Batch Code with an optional canonical status. Results use a
+filter-bound opaque cursor and return only the approved narrow operational
+projection. Unfiltered browsing, Tag mutation, owner lookup, activation,
+export, and private Tag fields remain unavailable. Results show Tag status,
+Batch lifecycle status, and a server-derived activation-availability reason as
+separate concepts; suspended and voided IDs remain searchable for audit and
+non-reuse enforcement.

@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 1 — Database and Migration
 
-\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-207 implemented; schema remains `8`)
+\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-209 implemented; schema remains `8`)
 
 
 
@@ -79,6 +79,12 @@ The following tickets are considered implemented in the current baseline:
 \* RT-205 — Administrative confirmation, committed generation progress, queue health, and safe retry
 
 \* RT-206 — Complete Batch Tag ID inventory projection and paginated admin list
+
+\* RT-207 — Audited deterministic CSV export and export history
+
+\* RT-208 — Batch release, suspension, and permanent void controls
+
+\* RT-209 — Exact Tag ID and Batch Code search with read-only Tag administration
 
 
 
@@ -394,7 +400,8 @@ RT-201 (Batch administration), RT-202 (secure candidate Tag ID generation),
 RT-203 (bounded duplicate-key collision retry), RT-204 (resumable background
 generation), RT-205 (administrative generation progress), RT-206 (complete
 Batch Tag inventory projection), RT-207 (audited deterministic CSV export),
-and RT-208 (Batch release and incident controls) have been implemented. They
+RT-208 (Batch release and incident controls), and RT-209 (read-only Tag search)
+have been implemented. They
 keep Schema version `8` and project/plugin version `0.2.0`.
 
 The PRD milestone allocation was reconciled on 2026-07-28: RT-206 is the Batch
@@ -426,7 +433,20 @@ RT-208 adds:
 - WordPress-native responsive controls that do not change active Tag owners;
 - no Schema, dependency, lock-file, plugin-version, or Tag-row change.
 
-RT-209 and later Milestone 2 tickets have not been authorized by this status
+RT-209 adds:
+
+- the dedicated `manage_returntag_tags` capability and capability contract
+  version `2`;
+- a separate WordPress-native Tags submenu;
+- exact normalized Tag ID search;
+- exact Batch Code search with optional canonical Tag Status;
+- bounded, filter-bound keyset pagination;
+- a narrow no-store projection that excludes owner and private Tag fields;
+- separate Tag status, Batch status, and server-derived activation availability
+  semantics, including retained suspended and voided IDs;
+- no Schema, dependency, lock-file, plugin-version, Event, or Tag-row change.
+
+RT-210 and later Milestone 2 tickets have not been authorized by this status
 file.
 
 

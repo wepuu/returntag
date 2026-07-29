@@ -66,6 +66,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		if ( null !== $role ) {
 			$role->remove_cap( Capability::MANAGE_RETURNTAG );
 			$role->remove_cap( Capability::MANAGE_BATCHES );
+			$role->remove_cap( Capability::MANAGE_TAGS );
 		}
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
@@ -88,7 +89,8 @@ final class BatchAdminTest extends WP_UnitTestCase {
 
 		self::assertTrue( current_user_can( Capability::MANAGE_RETURNTAG ) );
 		self::assertTrue( current_user_can( Capability::MANAGE_BATCHES ) );
-		self::assertSame( 1, get_option( CapabilityInstaller::OPTION_NAME ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_TAGS ) );
+		self::assertSame( 2, get_option( CapabilityInstaller::OPTION_NAME ) );
 		self::assertArrayNotHasKey( CapabilityInstaller::OPTION_NAME, wp_load_alloptions() );
 
 		$query = $wpdb->prepare(
@@ -97,6 +99,18 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		);
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- Trusted WordPress options table; prepared Option name.
 		self::assertNotContains( $wpdb->get_var( $query ), array( 'yes', 'on', 'auto-on', 'auto' ) );
+	}
+
+	/**
+	 * An older plugin must not downgrade a future capability contract.
+	 */
+	public function test_capability_installer_does_not_downgrade_future_version(): void {
+		update_option( CapabilityInstaller::OPTION_NAME, 99, false );
+
+		( new CapabilityInstaller( RETURNTAG_TAGCORE_FILE ) )->install();
+
+		self::assertSame( 99, get_option( CapabilityInstaller::OPTION_NAME ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_TAGS ) );
 	}
 
 	/**
@@ -113,6 +127,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/tags' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/exports' ),
 				new WP_REST_Request( 'GET', '/tagcore/v1/batches/1/lifecycle' ),
+				new WP_REST_Request( 'GET', '/tagcore/v1/tags' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/generation' ),
 				new WP_REST_Request( 'POST', '/tagcore/v1/batches/1/exports' ),

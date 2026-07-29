@@ -63,6 +63,7 @@ import {
 	type TagType,
 	validateBatchForm,
 } from './admin/batch-form';
+import { TagManagementScreen } from './admin/tag-management';
 import { ADMIN_ROOT_CLASS } from './shared/css-scope';
 import './styles/admin.css';
 
@@ -73,6 +74,8 @@ interface AdminConfig {
 	currentTime: string;
 	listUrl: string;
 	createUrl: string;
+	tagsUrl: string;
+	surface: 'batches' | 'tags';
 }
 
 interface BatchRecord {
@@ -2619,6 +2622,15 @@ function BatchDetailScreen( { batchId }: { batchId: string } ) {
 }
 
 function AdminApp() {
+	if ( config.surface === 'tags' ) {
+		return (
+			<TagManagementScreen
+				restPath={ config.restPath }
+				batchListUrl={ config.listUrl }
+			/>
+		);
+	}
+
 	const search = new URLSearchParams( window.location.search );
 	const view = search.get( 'view' );
 

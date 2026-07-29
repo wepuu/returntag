@@ -24,6 +24,9 @@ use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
 use ReturnTag\TagCore\Application\Batch\SuspendBatch;
 use ReturnTag\TagCore\Application\Batch\VoidBatch;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
+use ReturnTag\TagCore\Application\Tag\SearchTags;
+use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
+use ReturnTag\TagCore\Application\Tag\TagSearchInputNormalizer;
 use ReturnTag\TagCore\Domain\Batch\BatchLifecyclePolicy;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
@@ -43,6 +46,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchTagInventoryReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
@@ -126,6 +130,7 @@ final class AdminBootstrap {
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
+		( new TagAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 
 		$controller = new BatchRestController(
 			$create,
@@ -143,6 +148,17 @@ final class AdminBootstrap {
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
 		add_filter( 'rest_pre_serve_request', array( $controller, 'serve_csv_download' ), 10, 4 );
+
+		$tag_search_controller = new TagSearchRestController(
+			new SearchTags( new WpdbTagSearchReader( $gateway, $tables, $dates ) ),
+			new TagSearchInputNormalizer(),
+			new TagSearchCursorCodec(),
+			$schema_state,
+			$feature_flags,
+			new TagActivationAvailabilityPolicy()
+		);
+		add_action( 'rest_api_init', array( $tag_search_controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $tag_search_controller, 'apply_no_store_headers' ), 10, 3 );
 
 		$lifecycle_controller = new BatchLifecycleRestController(
 			new GetBatchLifecycle( $lifecycle_repository, $feature_flags ),

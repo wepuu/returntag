@@ -320,3 +320,17 @@ production sink or retention configuration is selected. It is not a
 production-ready product release because there is no public scan route, owner
 activation workflow, email-provider adapter, finder relay, or WooCommerce
 business workflow.
+
+RT-209 leaves plugin version `0.2.0` and Schema version `8` unchanged. It
+advances the non-autoloaded capability contract from version `1` to `2` and
+adds `manage_returntag_tags` without downgrading future stored versions.
+Deployment must verify the Tags submenu, exact Tag ID and Batch Code modes,
+optional status filter, bounded filter-bound cursor, no-store headers, and
+private-field exclusion. It must also verify that Tag status, Batch status, and
+the server-derived activation availability are shown separately; suspended and
+voided IDs remain searchable, unregistered IDs are blocked as appropriate, and
+existing active Tags are described as retained.
+
+Code rollback removes the page and route while preserving every Tag, Batch,
+Export, Event, and Schema record. Capability version `2` and the inert
+administrator capability may remain.

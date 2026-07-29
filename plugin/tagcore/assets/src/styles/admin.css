@@ -765,6 +765,130 @@
 	margin-top: 8px;
 }
 
+.returntag-tag-search {
+	max-width: 900px;
+	margin-bottom: 24px;
+	padding: 20px;
+	border: 1px solid var(--returntag-color-border);
+	background: #fff;
+}
+
+.returntag-tag-search-fields {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20px;
+	margin-top: 20px;
+}
+
+.returntag-tag-results {
+	margin-top: 24px;
+}
+
+.returntag-tag-results h2,
+.returntag-tag-result-summary {
+	margin: 0;
+}
+
+.returntag-tag-result-summary {
+	margin-top: 4px;
+	margin-bottom: 16px;
+	color: var(--returntag-color-text-subtle);
+}
+
+.returntag-tag-results .components-notice {
+	margin: 0 0 12px;
+}
+
+.returntag-tag-table th,
+.returntag-tag-table td {
+	padding: 11px 10px;
+	vertical-align: middle;
+}
+
+.returntag-batch-reference {
+	display: grid;
+	justify-items: start;
+	gap: 6px;
+}
+
+.returntag-batch-reference a {
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.returntag-batch-status.is-released {
+	border-color: #00a32a;
+	background: #edfaef;
+	color: #006b1b;
+}
+
+.returntag-batch-status.is-suspended {
+	border-color: #dba617;
+	background: #fcf9e8;
+	color: #7a4f00;
+}
+
+.returntag-batch-status.is-voided {
+	border-color: #d63638;
+	background: #fcf0f1;
+	color: #8a2424;
+}
+
+.returntag-availability-label {
+	display: inline-block;
+	max-width: 220px;
+	padding: 3px 8px;
+	border: 1px solid var(--returntag-color-border);
+	border-radius: 2px;
+	background: #f6f7f7;
+	color: #2c3338;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.5;
+}
+
+.returntag-availability-label.is-eligible {
+	border-color: #00a32a;
+	background: #edfaef;
+	color: #006b1b;
+}
+
+.returntag-availability-label.is-awaiting_release,
+.returntag-availability-label.is-paused_globally,
+.returntag-availability-label.is-blocked_batch_control,
+.returntag-availability-label.is-blocked_batch_suspended {
+	border-color: #dba617;
+	background: #fcf9e8;
+	color: #7a4f00;
+}
+
+.returntag-availability-label.is-blocked_batch_voided,
+.returntag-availability-label.is-blocked_tag_suspended,
+.returntag-availability-label.is-blocked_tag_retired,
+.returntag-availability-label.is-data_inconsistent {
+	border-color: #d63638;
+	background: #fcf0f1;
+	color: #8a2424;
+}
+
+.returntag-availability-label.is-existing_activation_retained {
+	border-color: #2271b1;
+	background: #f0f6fc;
+	color: #135e96;
+}
+
+.returntag-tag-table code {
+	color: #1d2327;
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+}
+
+.returntag-tag-table tr:focus {
+	outline: 2px solid var(--returntag-color-focus);
+	outline-offset: -2px;
+}
+
 .returntag-generation-confirm {
 	width: min(560px, calc(100vw - 64px));
 }
@@ -968,6 +1092,10 @@
 		justify-content: center;
 	}
 
+	.returntag-tag-search-fields {
+		grid-template-columns: 1fr;
+	}
+
 	.returntag-inventory-table,
 	.returntag-inventory-table tbody,
 	.returntag-inventory-table tr,
@@ -975,7 +1103,11 @@
 	.returntag-export-table,
 	.returntag-export-table tbody,
 	.returntag-export-table tr,
-	.returntag-export-table td {
+	.returntag-export-table td,
+	.returntag-tag-table,
+	.returntag-tag-table tbody,
+	.returntag-tag-table tr,
+	.returntag-tag-table td {
 		display: block;
 		width: 100%;
 		box-sizing: border-box;
@@ -994,8 +1126,25 @@
 		border: 0;
 	}
 
+	.returntag-tag-table thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.returntag-inventory-table tr,
 	.returntag-export-table tr {
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--returntag-color-border-subtle);
+	}
+
+	.returntag-tag-table tr {
 		padding: 8px 12px;
 		border-bottom: 1px solid var(--returntag-color-border-subtle);
 	}
@@ -1009,12 +1158,31 @@
 		border: 0;
 	}
 
+	.returntag-tag-table td {
+		display: grid;
+		grid-template-columns: minmax(120px, 0.8fr) minmax(0, 1.2fr);
+		gap: 12px;
+		padding: 8px 0;
+		border: 0;
+	}
+
 	.returntag-inventory-table td::before,
 	.returntag-export-table td::before {
 		content: attr(data-label);
 		color: var(--returntag-color-text-subtle);
 		font-size: 12px;
 		font-weight: 600;
+	}
+
+	.returntag-tag-table td::before {
+		content: attr(data-label);
+		color: var(--returntag-color-text-subtle);
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	.returntag-availability-label {
+		max-width: none;
 	}
 
 	.returntag-generation-confirm {

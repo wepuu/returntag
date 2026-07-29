@@ -756,3 +756,23 @@ A database pull request must report schema versions before and after, fresh
 install results, previous-version upgrade results, retry behavior, locking or
 batch impact, previous-release compatibility, retention impact, and the
 operational rollback or feature-disable plan.
+
+## 12. RT-209 Tag search projection
+
+RT-209 leaves Schema version `8` unchanged and performs no write. Exact Tag ID
+mode uses the Tags primary key. Exact Batch Code mode joins the unique Batch
+Code to Tags, optionally constrains canonical `tag_status`, orders by
+`tag_id ASC`, and uses strict keyset continuation with a maximum page size of
+100.
+
+The projection selects only `tag_id`, `batch_id`, `batch_code`,
+`batch_status`, `activation_enabled`, `tag_type`, `model_code`, `tag_status`,
+`lost_mode`, `activated_at`, `created_at`, and `updated_at`. A presentation-only
+activation availability value is derived after hydration; it is not a column,
+status migration, or stored duplicate of these facts.
+
+It does not hydrate or return owner, private item, Lost Mode message, scan,
+order, credential, device, or location data. Suspended and voided Batch rows
+remain searchable, and no Tag row is rewritten, deleted, or made reusable.
+RT-210 owns capacity evidence and any future numbered Migration for an
+additional index.

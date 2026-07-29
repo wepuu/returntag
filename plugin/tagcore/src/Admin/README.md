@@ -22,3 +22,11 @@ manufacturing inventory after generation. The route requires
 `manage_returntag_batches`, current Schema state, bounded page size, and a
 validated opaque cursor. Its response is limited to Tag ID, status, and UTC
 generation time. The UI adds no export, search, edit, delete, or copy action.
+
+RT-209 adds the separate Tags submenu and `GET tagcore/v1/tags`. The page
+requires `manage_returntag_tags` and one exact Tag ID or Batch Code anchor. Its
+response is a narrow, no-store projection; it provides no edit, activation,
+ownership, export, delete, or full-table browse action. Tag status, Batch
+status, and server-derived activation availability are distinct response
+fields so retained voided/suspended IDs cannot be mistaken for activatable
+inventory.
