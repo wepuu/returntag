@@ -10,15 +10,21 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Admin;
 
 use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Batch\ChangeBatchLifecycle;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
 use ReturnTag\TagCore\Application\Batch\GetBatch;
 use ReturnTag\TagCore\Application\Batch\GetBatchGenerationProgress;
+use ReturnTag\TagCore\Application\Batch\GetBatchLifecycle;
 use ReturnTag\TagCore\Application\Batch\ListBatchTagInventory;
 use ReturnTag\TagCore\Application\Batch\ListBatchExports;
 use ReturnTag\TagCore\Application\Batch\ListBatches;
+use ReturnTag\TagCore\Application\Batch\ReleaseBatch;
 use ReturnTag\TagCore\Application\Batch\StartBatchGeneration;
+use ReturnTag\TagCore\Application\Batch\SuspendBatch;
+use ReturnTag\TagCore\Application\Batch\VoidBatch;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
+use ReturnTag\TagCore\Domain\Batch\BatchLifecyclePolicy;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -31,6 +37,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportSourceReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportWorkflowRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchGenerationProgressReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchLifecycleRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchTagInventoryReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
@@ -39,11 +46,12 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
+use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
 use wpdb;
 
 /**
- * Wires Batch administration adapters through RT-207 to application services.
+ * Wires Batch administration adapters through RT-208 to application services.
  */
 final class AdminBootstrap {
 	/**
@@ -58,43 +66,43 @@ final class AdminBootstrap {
 			return;
 		}
 
-		$tables       = new TableNames( $wpdb->prefix );
-		$gateway      = new WpdbGateway( $wpdb );
-		$dates        = new DatabaseDateTimeCodec();
-		$batches      = new WpdbBatchRepository( $gateway, $tables, $dates );
-		$generation   = new WpdbBatchGenerationRepository( $gateway, $tables, $dates );
-		$events       = new WpdbEventRepository(
+		$tables               = new TableNames( $wpdb->prefix );
+		$gateway              = new WpdbGateway( $wpdb );
+		$dates                = new DatabaseDateTimeCodec();
+		$batches              = new WpdbBatchRepository( $gateway, $tables, $dates );
+		$generation           = new WpdbBatchGenerationRepository( $gateway, $tables, $dates );
+		$events               = new WpdbEventRepository(
 			$gateway,
 			$tables,
 			$dates,
 			new DenyAllEventMetadataPolicy(),
 			new BatchEventIdentityPolicy()
 		);
-		$transactions = new WpdbTransactionManager( $wpdb );
-		$schema_state = new SchemaState(
+		$transactions         = new WpdbTransactionManager( $wpdb );
+		$schema_state         = new SchemaState(
 			new WordPressSchemaVersionStore(),
 			( new MigrationRegistryFactory( $wpdb ) )->create()
 		);
-		$create       = new CreateBatch( $batches, $events, $transactions, new SystemClock() );
-		$start        = new StartBatchGeneration(
+		$create               = new CreateBatch( $batches, $events, $transactions, new SystemClock() );
+		$start                = new StartBatchGeneration(
 			$generation,
 			$events,
 			$transactions,
 			new ActionSchedulerBatchGenerationScheduler(),
 			new SystemClock()
 		);
-		$list         = new ListBatches( $batches );
-		$get          = new GetBatch( $batches );
-		$get_progress = new GetBatchGenerationProgress(
+		$list                 = new ListBatches( $batches );
+		$get                  = new GetBatch( $batches );
+		$get_progress         = new GetBatchGenerationProgress(
 			new WpdbBatchGenerationProgressReader( $gateway, $tables, $dates ),
 			new ActionSchedulerBatchGenerationMonitor()
 		);
-		$list_tags    = new ListBatchTagInventory(
+		$list_tags            = new ListBatchTagInventory(
 			$batches,
 			new WpdbBatchTagInventoryReader( $gateway, $tables, $dates )
 		);
-		$exports      = new WpdbBatchExportRepository( $gateway, $tables, $dates );
-		$export       = new ExportBatchCsv(
+		$exports              = new WpdbBatchExportRepository( $gateway, $tables, $dates );
+		$export               = new ExportBatchCsv(
 			$batches,
 			new WpdbBatchExportSourceReader( $gateway, $tables ),
 			new TemporaryCsvBatchExportBuilder( new WordPressPublicTagUrlBuilder() ),
@@ -104,7 +112,17 @@ final class AdminBootstrap {
 			$transactions,
 			new SystemClock()
 		);
-		$list_exports = new ListBatchExports( $batches, $exports );
+		$list_exports         = new ListBatchExports( $batches, $exports );
+		$lifecycle_repository = new WpdbBatchLifecycleRepository( $gateway, $tables, $dates );
+		$feature_flags        = new WordPressOptionFeatureFlagReader();
+		$lifecycle            = new ChangeBatchLifecycle(
+			$lifecycle_repository,
+			$events,
+			$transactions,
+			$feature_flags,
+			new SystemClock(),
+			new BatchLifecyclePolicy()
+		);
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
@@ -125,5 +143,15 @@ final class AdminBootstrap {
 		add_action( 'rest_api_init', array( $controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $controller, 'apply_no_store_headers' ), 10, 3 );
 		add_filter( 'rest_pre_serve_request', array( $controller, 'serve_csv_download' ), 10, 4 );
+
+		$lifecycle_controller = new BatchLifecycleRestController(
+			new GetBatchLifecycle( $lifecycle_repository, $feature_flags ),
+			new ReleaseBatch( $lifecycle ),
+			new SuspendBatch( $lifecycle ),
+			new VoidBatch( $lifecycle ),
+			$schema_state
+		);
+		add_action( 'rest_api_init', array( $lifecycle_controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $lifecycle_controller, 'apply_no_store_headers' ), 10, 3 );
 	}
 }

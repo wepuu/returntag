@@ -41,7 +41,20 @@ final class BatchEventIdentityPolicy implements EventIdentityPolicy {
 			return false;
 		}
 
-		if ( in_array( $event_type, array( 'batch.created', 'batch_generation_started', 'batch_exported' ), true ) ) {
+		if (
+			in_array(
+				$event_type,
+				array(
+					'batch.created',
+					'batch_generation_started',
+					'batch_exported',
+					'batch_released',
+					'batch_suspended',
+					'batch_voided',
+				),
+				true
+			)
+		) {
 			return 'user' === $actor_type
 				&& null !== $actor_id
 				&& $actor_id > 0;

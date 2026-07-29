@@ -126,6 +126,9 @@ final class CreateBatchTest extends TestCase {
 		self::assertTrue( $policy->allows( 'batch_generation_started', 'user', 42, 'batch', '7', null ) );
 		self::assertTrue( $policy->allows( 'batch_generation_completed', 'system', null, 'batch', '7', null ) );
 		self::assertTrue( $policy->allows( 'batch_exported', 'user', 42, 'batch', '7', null ) );
+		self::assertTrue( $policy->allows( 'batch_released', 'user', 42, 'batch', '7', null ) );
+		self::assertTrue( $policy->allows( 'batch_suspended', 'user', 42, 'batch', '7', null ) );
+		self::assertTrue( $policy->allows( 'batch_voided', 'user', 42, 'batch', '7', null ) );
 		self::assertFalse( $policy->allows( 'batch.created', 'user', 42, 'batch', '7', 'token-like' ) );
 		self::assertFalse( $policy->allows( 'batch.deleted', 'user', 42, 'batch', '7', null ) );
 		self::assertFalse( $policy->allows( 'batch.created', 'user', 42, 'batch', 'finder@example.test', null ) );

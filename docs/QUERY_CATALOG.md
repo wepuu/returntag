@@ -129,3 +129,18 @@ Batch/version index remains the final concurrency constraint.
 RT-207 intentionally does not add a `(batch_id, tag_id)` index. Its chunked
 query extends the RT-206 plan already assigned to RT-210 capacity validation.
 No test should freeze an optimizer-specific key, cost, or row estimate.
+
+## 9. RT-208 Batch lifecycle controls
+
+| Read or write shape | Predicate, ordering, and bound | Candidate index |
+|---|---|---|
+| Lifecycle state | `batch_id = ?`, optionally `FOR UPDATE` | `PRIMARY` |
+| Tag status counts | `batch_id = ? GROUP BY tag_status` | `batch_id_status` |
+| Latest audited export | `batch_id = ? ORDER BY export_version DESC LIMIT 1` | `batch_export_version_unique` |
+| Conditional transition | `batch_id = ? AND batch_status = ?` | `PRIMARY` |
+
+The aggregate query returns only canonical counts. It does not select Tag IDs,
+owner IDs, private item fields, Lost Mode content, scan times, or message data.
+The Batch lock serializes the status write and Event append; the conditional
+predicate remains the final stale-state guard. Schema version `8` requires no
+new index for these bounded queries.

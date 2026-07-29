@@ -382,6 +382,23 @@ must reproduce the previous exact digest and row count; a site URL, Batch
 snapshot, Tag snapshot, count, or formatter drift fails closed. Suspended and
 voided Batches cannot issue new manufacturing files.
 
+RT-208 lifecycle routes require current Schema state, WordPress REST cookie
+authentication and nonce handling, and `manage_returntag_batches`. Commands
+use a client-observed status and a conditional database update so stale
+requests cannot overwrite a newer incident decision. Void also requires exact,
+case-sensitive Batch Code confirmation; GET requests never change state.
+
+Release requires complete committed inventory and a matching audited export.
+The site-scoped global activation flag remains authoritative even after a
+successful Batch release. Suspend and Void disable only future Batch
+activation; they do not expose or change owner identity or active Tag rows.
+Responses contain aggregate canonical status counts only and use
+`no-store, private`.
+
+Events contain the numeric operator and Batch identifiers with no metadata,
+correlation ID, email, Tag ID list, CSV content, token, device, or location.
+Failures return fixed messages without SQL, database errors, or record values.
+
 ## 12. Review requirements
 
 Security-sensitive changes must include automated negative tests, a review of

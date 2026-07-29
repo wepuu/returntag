@@ -398,6 +398,25 @@ before another version can be committed. The temporary path never crosses the
 Application or REST response contract and is deleted after streaming or
 failure.
 
+RT-208 adds a separate lifecycle adapter instead of extending export or
+generation templates with state rules. Domain owns the allowed Release,
+Suspend, and Void edges. Application owns expected-state concurrency,
+idempotency, manufacturing-count and export-audit validation, effective
+activation evaluation, and Event requests. Infrastructure owns the Batch row
+lock, aggregate Tag counts, latest-export lookup, and conditional status write.
+
+The command transaction locks the Batch, revalidates counts and release
+evidence, conditionally writes status plus `activation_enabled`, and appends
+one Event. UI controllers only validate request shape, capability, Schema
+readiness, and exact Void confirmation. Suspend and Void do not call the Tag
+Repository, and the site-scoped global activation flag is read but never
+written.
+
+The lifecycle read model derives `release_ready` from committed Batch and Tag
+counts plus the latest audited export. Admin uses it only to present available
+actions; the Release command revalidates the same evidence while holding the
+Batch lock.
+
 ### Runtime dependency rationale
 
 | Package | Purpose and boundary | License and maintenance |

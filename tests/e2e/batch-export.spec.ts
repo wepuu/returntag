@@ -99,6 +99,27 @@ async function installApiMock(
 					} );
 				}
 
+				if ( url.pathname.endsWith( '/lifecycle' ) ) {
+					return json( {
+						batch_id: 1,
+						batch_code: fixture.batchCode,
+						batch_status: exported ? 'exported' : 'generated',
+						activation_enabled: false,
+						global_activation_enabled: true,
+						effective_activation_enabled: false,
+						release_ready: exported,
+						tag_counts: {
+							total: 2,
+							unregistered: 2,
+							active: 0,
+							suspended: 0,
+							retired: 0,
+						},
+						updated_at: '2026-07-28T10:00:00+00:00',
+						changed: false,
+					} );
+				}
+
 				if ( url.pathname.endsWith( '/exports' ) ) {
 					const method = (
 						init?.method ??
