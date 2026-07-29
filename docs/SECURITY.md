@@ -426,3 +426,21 @@ activation flag; the browser does not infer it. Suspended and voided IDs remain
 visible to authorized operators for audit and non-reuse enforcement, while the
 response exposes no owner identity. A new search clears the previous result
 before waiting for the next no-store response.
+
+## 14. RT-210 capacity controls
+
+The `100,000`-Tag Batch limit is validated by the Application contract and
+again mapped at the administrative boundary before any Batch or Event write.
+The browser maximum communicates the contract but is not trusted as
+enforcement. Existing capability, REST nonce, Schema-current, queue,
+transaction, and incident-control checks remain unchanged.
+
+Capacity fixtures are synthetic and contain no personal data. Performance
+output is limited to aggregate counts, durations, and memory deltas; it must
+not contain Tag IDs, CSV rows, SQL values, credentials, emails, messages,
+tokens, device data, or location data.
+
+The capacity limit reduces accidental resource exhaustion but does not replace
+authorization, rate controls, queue monitoring, or operator review. Generation
+continues asynchronously in resumable 100-Tag chunks, and export continues to
+use a private temporary artifact with bounded reads.

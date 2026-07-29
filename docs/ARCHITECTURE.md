@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 2 Batch manufacturing administration at version 0.2.0 and Schema version 8
+**Status:** Milestone 2 complete at version 0.3.0 and Schema version 8
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -447,3 +447,21 @@ the normalized filters. No write service, Event, queue, feature flag, or
 business state transition is involved. Searchability is deliberately broader
 than activation eligibility: retained IDs from suspended and voided Batches
 remain visible, while active Tags keep their existing activation.
+
+## RT-210 capacity boundary
+
+RT-210 adds no product route, queue type, Repository, table, index, or state
+transition. The existing `CreateBatchInput` is the single Application contract
+for the supported `100,000`-Tag maximum. Admin maps that rule to a
+field-specific REST validation error and the existing React form exposes the
+same native input maximum and translatable guidance.
+
+The dedicated performance harness remains test-only. It exercises the real
+generation, inventory, search, progress, lifecycle-count, and export
+composition against synthetic capacity fixtures without registering a
+production service. Measurements and operational caveats live in
+`docs/PERFORMANCE.md`.
+
+Schema version 8 remains authoritative. Evidence from the million-row profile
+does not justify an additional `(batch_id, tag_id)` index, so Infrastructure
+and Migration composition are unchanged.

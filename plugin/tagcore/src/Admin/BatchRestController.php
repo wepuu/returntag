@@ -672,8 +672,14 @@ final readonly class BatchRestController {
 
 		$quantity = $this->positive_integer( $request->get_param( 'requested_quantity' ) );
 
-		if ( null === $quantity || $quantity > 4294967295 ) {
+		if ( null === $quantity ) {
 			$fields['requested_quantity'] = __( 'Enter a whole quantity of at least 1.', 'tagcore' );
+		} elseif ( $quantity > CreateBatchInput::MAX_REQUESTED_QUANTITY ) {
+			$fields['requested_quantity'] = sprintf(
+				/* translators: %s: Maximum supported Tag quantity per Batch. */
+				__( 'Enter no more than %s Tag IDs per Batch.', 'tagcore' ),
+				number_format_i18n( CreateBatchInput::MAX_REQUESTED_QUANTITY )
+			);
 		}
 
 		$model_raw        = $request->get_param( 'model_code' );

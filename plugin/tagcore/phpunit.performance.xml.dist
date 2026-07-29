@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+  bootstrap="tests/bootstrap-integration.php"
+  cacheResult="false"
+  colors="true"
+  failOnRisky="true"
+  failOnWarning="true"
+  stopOnFailure="false"
+>
+  <php>
+    <ini name="memory_limit" value="512M"/>
+  </php>
+  <testsuites>
+    <testsuite name="performance">
+      <directory suffix="Test.php">tests/Performance</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

@@ -39,7 +39,7 @@ final class PluginMetadataTest extends TestCase {
 	 */
 	public function test_declares_canonical_plugin_metadata(): void {
 		self::assertStringContainsString( 'Plugin Name: TagCore', $this->bootstrap );
-		self::assertStringContainsString( 'Version: 0.2.0', $this->bootstrap );
+		self::assertStringContainsString( 'Version: 0.3.0', $this->bootstrap );
 		self::assertStringContainsString( 'Requires at least: 6.9', $this->bootstrap );
 		self::assertStringContainsString( 'Requires PHP: 8.3', $this->bootstrap );
 		self::assertStringContainsString( 'Text Domain: tagcore', $this->bootstrap );

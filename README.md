@@ -321,3 +321,17 @@ export, and private Tag fields remain unavailable. Results show Tag status,
 Batch lifecycle status, and a server-derived activation-availability reason as
 separate concepts; suspended and voided IDs remain searchable for audit and
 non-reuse enforcement.
+
+## RT-210 Milestone 2 capacity baseline
+
+RT-210 closes Milestone 2 at project and plugin version `0.3.0` while keeping
+Schema version `8`. Batch creation now enforces a supported maximum of
+`100,000` Tag IDs before persistence, and the existing admin form communicates
+the same limit.
+
+The dedicated `composer test:performance` suite verifies 10,000 queued
+generation operations, one million retained synthetic Tags, 100,000-Tag
+inventory and search paths, lifecycle counts, and a deterministic 100,000-row
+CSV build. Existing Schema 8 indexes met the approved budgets, so no Migration
+or speculative `(batch_id, tag_id)` index was added. The reproducible budgets,
+environment, results, and caveats are recorded in `docs/PERFORMANCE.md`.

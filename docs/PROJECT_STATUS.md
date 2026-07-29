@@ -14,11 +14,11 @@
 
 \* Plugin directory: `plugin/tagcore`
 
-\* Current baseline version: `0.2.0`
+\* Current baseline version: `0.3.0`
 
-\* Current completed milestone: Milestone 1 — Database and Migration
+\* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 2 Batch and ID production (RT-201 through RT-209 implemented; schema remains `8`)
+\* Current workstream: Awaiting explicit authorization for the next milestone (RT-201 through RT-210 implemented; schema remains `8`)
 
 
 
@@ -86,6 +86,8 @@ The following tickets are considered implemented in the current baseline:
 
 \* RT-209 — Exact Tag ID and Batch Code search with read-only Tag administration
 
+\* RT-210 — Million-row capacity acceptance and Milestone 2 version `0.3.0`
+
 
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
@@ -100,7 +102,7 @@ The project uses Docker and `@wordpress/env`.
 
 
 
-Known environment for Milestone 1 acceptance:
+Known environment for Milestone 2 acceptance:
 
 
 
@@ -116,7 +118,7 @@ Known environment for Milestone 1 acceptance:
 
 \* WooCommerce: `10.9.4`
 
-\* TagCore: `0.2.0`
+\* TagCore: `0.3.0`
 
 \* TagCore status: active
 
@@ -400,9 +402,9 @@ RT-201 (Batch administration), RT-202 (secure candidate Tag ID generation),
 RT-203 (bounded duplicate-key collision retry), RT-204 (resumable background
 generation), RT-205 (administrative generation progress), RT-206 (complete
 Batch Tag inventory projection), RT-207 (audited deterministic CSV export),
-RT-208 (Batch release and incident controls), and RT-209 (read-only Tag search)
-have been implemented. They
-keep Schema version `8` and project/plugin version `0.2.0`.
+RT-208 (Batch release and incident controls), RT-209 (read-only Tag search),
+and RT-210 (large-Batch capacity acceptance) have been implemented. Milestone
+2 closes at Schema version `8` and project/plugin version `0.3.0`.
 
 The PRD milestone allocation was reconciled on 2026-07-28: RT-206 is the Batch
 Tag ID inventory and deterministic export-source foundation; RT-207 is the
@@ -446,8 +448,15 @@ RT-209 adds:
   semantics, including retained suspended and voided IDs;
 - no Schema, dependency, lock-file, plugin-version, Event, or Tag-row change.
 
-RT-210 and later Milestone 2 tickets have not been authorized by this status
-file.
+RT-210 adds:
+
+- a supported maximum of `100,000` requested Tag IDs per Batch;
+- field-specific REST and WordPress-native form validation before persistence;
+- a dedicated million-row performance suite for generation, inventory,
+  search, progress, lifecycle counts, and deterministic CSV export;
+- reproducible budgets and measured results in `docs/PERFORMANCE.md`;
+- no Migration or index change because existing Schema 8 query shapes met the
+  accepted budgets.
 
 
 

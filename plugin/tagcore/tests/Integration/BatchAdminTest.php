@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Admin\BatchCsvDownload;
 use ReturnTag\TagCore\Admin\Capability;
+use ReturnTag\TagCore\Application\Batch\CreateBatchInput;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
@@ -1118,6 +1119,32 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertSame( 400, $response->get_status() );
 		self::assertIsArray( $data );
 		self::assertSame( 'returntag_invalid_batch_request', $data['code'] );
+
+		$tables = new TableNames( $wpdb->prefix );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted isolated test table.
+		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$tables->batches()}" ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted isolated test table.
+		self::assertSame( '0', $wpdb->get_var( "SELECT COUNT(*) FROM {$tables->events()}" ) );
+	}
+
+	/**
+	 * The REST boundary enforces the capacity-tested Batch ceiling.
+	 */
+	public function test_create_rejects_quantity_above_supported_capacity(): void {
+		global $wpdb;
+
+		$request = $this->create_request( 'RT-210-CAPACITY-LIMIT' );
+		$request->set_param(
+			'requested_quantity',
+			CreateBatchInput::MAX_REQUESTED_QUANTITY + 1
+		);
+		$response = rest_do_request( $request );
+		$data     = $response->get_data();
+
+		self::assertSame( 400, $response->get_status() );
+		self::assertIsArray( $data );
+		self::assertSame( 'returntag_invalid_batch_request', $data['code'] );
+		self::assertArrayHasKey( 'requested_quantity', $data['data']['fields'] );
 
 		$tables = new TableNames( $wpdb->prefix );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Trusted isolated test table.

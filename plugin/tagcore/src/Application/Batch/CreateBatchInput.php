@@ -18,7 +18,7 @@ use ReturnTag\TagCore\Domain\Tag\TagType;
  * Immutable, validated input for creating one draft Batch.
  */
 final readonly class CreateBatchInput {
-	private const MAX_REQUESTED_QUANTITY = 4294967295;
+	public const MAX_REQUESTED_QUANTITY = 100000;
 
 	/**
 	 * Create validated Batch input.
@@ -55,7 +55,7 @@ final readonly class CreateBatchInput {
 		RecordValidator::positive_id( $this->requested_quantity, 'requested_quantity' );
 
 		if ( $this->requested_quantity > self::MAX_REQUESTED_QUANTITY ) {
-			throw new InvalidArgumentException( 'Requested quantity exceeds the storage limit.' );
+			throw new InvalidArgumentException( 'Requested quantity exceeds the supported Batch limit.' );
 		}
 
 		RecordValidator::nullable_text( $this->manufacturer, 191, 'manufacturer' );

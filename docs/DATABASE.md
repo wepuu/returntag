@@ -1,6 +1,6 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 1 complete at Schema version 8 with typed Repository adapters and RT-110 acceptance coverage
+**Status:** Milestone 2 complete at Schema version 8 with RT-210 million-row capacity evidence
 
 **Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
 
@@ -776,3 +776,21 @@ order, credential, device, or location data. Suspended and voided Batch rows
 remain searchable, and no Tag row is rewritten, deleted, or made reusable.
 RT-210 owns capacity evidence and any future numbered Migration for an
 additional index.
+
+## 13. RT-210 capacity acceptance
+
+RT-210 changes Schema version `8` to `8`: no Migration, table, column, index,
+Option, or DDL trigger is added. The accepted test profile retains ten Batches
+of `100,000` synthetic Tags each and exercises the inventory, exact Tag,
+Batch-search, progress, lifecycle-count, and deterministic export read shapes.
+
+Representative inventory and Batch-search statements continue to expose an
+indexed candidate through `EXPLAIN`. The existing primary key and
+`batch_id_status` index met the budgets recorded in `docs/PERFORMANCE.md`;
+therefore a `(batch_id, tag_id)` index is not justified at the approved
+capacity.
+
+Fresh installation and upgrade behavior remain the contiguous `0001` through
+`0008` Migration chain. Retry, idempotency, lock, uninstall, and rollback
+behavior are unchanged. Code rollback to `0.2.0` retains all Schema version 8
+tables and data.

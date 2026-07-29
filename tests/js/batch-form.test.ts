@@ -1,5 +1,6 @@
 import {
 	type BatchFormValues,
+	MAX_BATCH_QUANTITY,
 	validateBatchForm,
 } from '../../plugin/tagcore/assets/src/admin/batch-form';
 
@@ -28,6 +29,22 @@ describe( 'Batch form validation', () => {
 
 		expect( errors ).toHaveProperty( 'batch_code' );
 		expect( errors ).toHaveProperty( 'requested_quantity' );
+	} );
+
+	it( 'accepts the capacity ceiling and rejects larger Batches', () => {
+		expect(
+			validateBatchForm( {
+				...validValues,
+				requested_quantity: String( MAX_BATCH_QUANTITY ),
+			} )
+		).toEqual( {} );
+
+		expect(
+			validateBatchForm( {
+				...validValues,
+				requested_quantity: String( MAX_BATCH_QUANTITY + 1 ),
+			} )
+		).toHaveProperty( 'requested_quantity' );
 	} );
 
 	it( 'keeps smart-network metadata limited to Smart Tags', () => {

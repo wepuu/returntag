@@ -58,6 +58,7 @@ import {
 } from './admin/batch-inventory';
 import {
 	type BatchFormValues,
+	MAX_BATCH_QUANTITY,
 	type SalesChannel,
 	type SmartNetwork,
 	type TagType,
@@ -701,7 +702,7 @@ function CreateBatchScreen() {
 									: undefined
 							}
 							label={ __( 'Requested quantity *', 'tagcore' ) }
-							max={ 4294967295 }
+							max={ MAX_BATCH_QUANTITY }
 							min={ 1 }
 							required
 							step={ 1 }
@@ -714,7 +715,7 @@ function CreateBatchScreen() {
 								<ErrorHelp
 									message={ errors.requested_quantity }
 									fallback={ __(
-										'Total number of Tag IDs requested for this Batch.',
+										'Between 1 and 100,000 Tag IDs per Batch.',
 										'tagcore'
 									) }
 								/>

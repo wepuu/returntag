@@ -34,6 +34,7 @@
     "analyse": "phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=512M",
     "test": "phpunit --configuration=phpunit.xml.dist",
     "test:integration": "phpunit --configuration=phpunit.integration.xml.dist",
+    "test:performance": "phpunit --configuration=phpunit.performance.xml.dist",
     "check": [
       "@composer validate --strict",
       "@lint",
