@@ -55,7 +55,7 @@ final readonly class ChangeBatchLifecycle {
 	 * @param int                  $actor_id Authorized WordPress User ID.
 	 * @param BatchStatus          $expected_status Client-observed status.
 	 * @param BatchLifecycleAction $action Requested transition.
-	 * @throws \ReturnTag\TagCore\Application\Batch\Exception\BatchLifecycleException When the transition fails safely.
+	 * @throws BatchLifecycleNotAllowed When identifiers or the requested transition are invalid.
 	 */
 	public function execute(
 		int $batch_id,

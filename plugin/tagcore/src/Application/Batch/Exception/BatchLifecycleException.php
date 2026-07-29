@@ -11,5 +11,8 @@ namespace ReturnTag\TagCore\Application\Batch\Exception;
 
 use RuntimeException;
 
+/**
+ * Base safe Batch lifecycle failure.
+ */
 class BatchLifecycleException extends RuntimeException {
 }
