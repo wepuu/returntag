@@ -218,9 +218,12 @@ test( 'an operator releases, suspends, and permanently voids a Batch', async ( {
 			'This Batch is permanently voided. Its Tag IDs remain retained and can never be reused.'
 		)
 	).toBeVisible();
-	await expect(
-		page.getByText( '1', { exact: true } ).first()
-	).toBeVisible();
+	const activeFact = page
+		.locator( '.returntag-lifecycle-facts > div' )
+		.filter( {
+			has: page.getByText( 'Active', { exact: true } ),
+		} );
+	await expect( activeFact.locator( 'dd' ) ).toHaveText( '1' );
 
 	const accessibilityScanResults = await new AxeBuilder( { page } )
 		.include( '.returntag-admin' )
