@@ -1,79 +1,109 @@
-# RT-201 Product Design QA
+# RT-301 Product Design QA
 
 ## Comparison target
 
-- Source visual truth: `C:\Users\admin\.codex\generated_images\019f7363-9de3-7430-802c-e98d01bc3064\call_8VILQS2V1mcf7csDoZRAtQtn.png`
-- Source pixel dimensions: `1487 × 1058`
-- Implementation route: WordPress administration page `admin.php?page=tagcore-batches&view=create`
-- Final implementation screenshot: `artifacts/design-qa/rt-201-create-duplicate-error-final.png`
-- Browser viewport: `1440 × 1024` CSS pixels
-- Implementation pixel dimensions: `1425 × 1013`
-- Density normalization: the source was resized to `1425 × 1013` before comparison
-- State: create-Batch form with a duplicate Batch Code validation error
+- Source visual truth:
+  `C:\Users\admin\.codex\generated_images\019fad15-ddd5-7941-b775-911bd9a46455\call_w1y4o35K5FFEEy4ekAbVOoVv.png`
+- Source pixel dimensions: `853 x 1844`
+- Implementation route: `http://localhost:8888/t/A7R2W9`
+- Final mobile implementation screenshot:
+  `artifacts/design-qa/rt-301-mobile-final-v2.png`
+- Final desktop implementation screenshot:
+  `artifacts/design-qa/rt-301-desktop-final-v2.png`
+- Mobile viewport and CSS size: `390 x 844`
+- Mobile implementation pixel dimensions: `390 x 844`
+- Density normalization: source downsampled from `853 x 1844` to
+  `390 x 844`; implementation captured at `deviceScaleFactor: 1`
+- State: generic fail-closed public Tag service response
 
 ## Full-view comparison evidence
 
-- Combined comparison: `artifacts/design-qa/rt-201-final-comparison.png`
-- The implementation preserves the selected direction's information hierarchy:
-  the error summary, server-controlled values, three-stage progress rail,
-  two-column form, and primary/secondary actions all remain visible in one
-  desktop viewport.
-- WordPress administration chrome, typography, controls, focus treatment, and
-  iconography use WordPress-provided components or assets.
+- Initial combined comparison:
+  `artifacts/design-qa/rt-301-comparison-initial.png`
+- Final combined comparison:
+  `artifacts/design-qa/rt-301-comparison-final-v2.png`
+- The final implementation preserves the selected option's warm paper-white
+  field, compact wordmark, large quiet interval, blue vertical accent,
+  uppercase recovery eyebrow, three-line heading, three-line explanation, and
+  understated text link.
+- The final section origin, heading width, line wrapping, action position, and
+  overall density align closely with the normalized source.
+- The `1440 x 900` desktop capture preserves the hierarchy without overflow
+  and gives the explanation an intentional wider measure.
 
 ## Focused region comparison evidence
 
-- Combined focused comparison:
-  `artifacts/design-qa/rt-201-final-focus-comparison.png`
-- The duplicate-code summary receives focus and links the field name to the
-  specific validation message.
-- The field-level error is adjacent to Batch Code, while the tag-type radios
-  remain horizontal and the Product stage remains current.
-- A `782 × 900` narrow-screen check was also captured at
-  `artifacts/design-qa/rt-201-mobile.png`; the status band and form collapse
-  without visible horizontal overflow.
+- Initial focused comparison:
+  `artifacts/design-qa/rt-301-focus-comparison-initial.png`
+- Final focused comparison:
+  `artifacts/design-qa/rt-301-focus-comparison-final-v2.png`
+- The focused evidence confirms that the accent, eyebrow, heading, explanation,
+  and homepage action share the source alignment and vertical rhythm.
+- Browser-system font rasterization differs slightly from the generated source,
+  but the final optical weight, width, hierarchy, and wrapping are equivalent.
+
+## Required fidelity surfaces
+
+- Fonts and typography: system sans-serif rendering, optical weight, heading
+  width, three-line wrap, eyebrow tracking, and link scale match the source.
+  The implementation uses available local system fonts and no remote font.
+- Spacing and layout rhythm: the mobile section origin is within a few pixels
+  of the normalized source; content alignment, gaps, accent height, and link
+  position preserve the selected composition. Desktop and short-height
+  fallbacks do not overflow.
+- Colors and tokens: warm `#fbfaf7` background, near-black `#182126` text, and
+  ReturnTag blue `#0b57d0` match the selected visual direction with accessible
+  contrast.
+- Image quality and asset fidelity: the selected target contains no
+  illustration, icon, or product image. The implementation introduces no
+  substitute asset, SVG, emoji, remote image, or third-party font.
+- Copy and content: the US-English heading, explanation, and homepage action
+  are coherent, translatable, privacy-safe, and visually match the reference.
+
+## Functional, responsive, and accessibility evidence
+
+- Chromium, Firefox, WebKit, mobile Chromium, and mobile WebKit E2E verify
+  `503` for `GET`, `405` for `POST`, documented privacy headers, generic copy,
+  and no raw Tag ID reflection.
+- Keyboard Tab reaches the homepage link and exposes the intended 3-pixel
+  focus outline.
+- The homepage link navigates to the site root.
+- Mobile and desktop checks show no horizontal overflow.
+- All captured requests remain on the local WordPress origin; there is no
+  third-party tracking or asset request.
+- There are no page exceptions. Chromium reports only the expected main
+  resource `503` console message for this deliberate fail-closed state.
 
 ## Findings and resolution
 
-- Initial error treatment was too visually heavy and repeated the detailed
-  message. It was replaced with a white, red-bordered summary using a real
-  WordPress caution icon and a generic heading.
-- Tag-type radios initially stacked vertically. They now match the selected
-  horizontal control group.
-- The progress rail initially marked Production as current. It now marks
-  Identity complete and Product current after a Batch Code is entered.
-- The initial form density pushed the actions below the target viewport. Notice
-  spacing and Notes height were reduced so both actions remain visible.
-
-No unresolved P0, P1, or P2 visual issue remains.
-
-## Intentional contract differences
-
-- The reference includes future TagCore submenu destinations. RT-201 exposes
-  only the authorized Batches destination.
-- Model code, manufacturer, and sales channel remain optional according to the
-  RT-201 and Schema 8 contracts; the reference depicts some as required.
-- Manufacturer remains a text input because RT-201 does not introduce a
-  manufacturer directory.
-- The local WordPress locale formats the UTC timestamp in Chinese and identifies
-  the actual current user (`admin`) rather than the reference fixture
-  (`Operator`).
-
-## Functional and console verification
-
-- Successful draft creation was completed with server-controlled Draft status,
-  generated quantity `0`, and activation disabled.
-- “Create another” returned to a clean form.
-- Duplicate Batch Code submission produced HTTP conflict behavior, focused the
-  error summary, and preserved entered values.
-- The final browser console contained no warnings or errors.
+- Initial P2: the recovery section began about 44 pixels below the source,
+  changing the above-the-fold composition. The mobile vertical clamp was
+  reduced and recaptured.
+- Initial P2: wordmark, eyebrow, homepage link, body measure, and heading
+  density drifted from the selected option. Their size, tracking, line measure,
+  optical weight, and line height were corrected.
+- Initial P2: body copy wrapped to two lines instead of the source's three.
+  The mobile measure was bounded and recaptured.
+- Follow-up P3: the desktop body measure was too narrow. A desktop-only measure
+  restored balanced responsive rhythm.
+- Final comparison has no actionable P0, P1, or P2 finding.
 
 ## Comparison history
 
-1. Initial capture identified the stacked radios, heavy error notice, incorrect
-   active progress stage, and cropped actions.
-2. The first visual correction aligned the error, progress, and radio behavior.
-3. The final density correction brought the action row into the target viewport.
-4. Full-view and focused comparisons confirmed the final state.
+1. The initial same-input comparison identified the low section origin,
+   oversized supporting type, mismatched heading density, and two-line body.
+2. CSS tokens and responsive measures were corrected; the first final
+   comparison showed correct section position and copy rhythm but an
+   under-weight, slightly narrow heading.
+3. Heading optical weight, scale, and line height were tuned and recaptured.
+4. The final full-view and focused comparisons confirmed alignment with the
+   source. Desktop line measure received one P3 polish correction.
+
+## Follow-up polish
+
+- The generated source has slightly softer raster antialiasing than native
+  Chromium system-font rendering. Shipping a remote or bundled display font
+  solely to imitate that artifact is not justified for this privacy-sensitive
+  fallback.
 
 final result: passed

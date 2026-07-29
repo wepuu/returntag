@@ -318,9 +318,9 @@ RT-208 adds audited Batch release, suspension, and permanent void controls
 without changing release version, Schema, or Tag rows.
 RT-008 also supplies a default-disabled sanitized operational logger, but no
 production sink or retention configuration is selected. It is not a
-production-ready product release because there is no public scan route, owner
-activation workflow, email-provider adapter, finder relay, or WooCommerce
-business workflow.
+production-ready product release because the public scan route still has no
+Tag-state resolution, owner activation workflow, email-provider adapter,
+finder relay, or WooCommerce business workflow.
 
 RT-209 leaves plugin version `0.2.0` and Schema version `8` unchanged. It
 advances the non-autoloaded capability contract from version `1` to `2` and
@@ -346,3 +346,15 @@ deployment. Code rollback to `0.2.0` is database-compatible and preserves all
 Batches, Tags, Exports, Events, capability state, and Schema records. Before
 rollback, use the existing generation and Batch incident controls to contain
 active work; never delete or reuse generated identifiers.
+
+RT-301 leaves project and plugin version `0.3.0` and Schema version `8`
+unchanged. Deployment must confirm that `/t/{tag_id}` resolves after one
+site-scoped rewrite refresh, returns the plugin-owned `503` page independent of
+the active theme, rejects mutation methods, sends the documented privacy
+headers, and does not disclose the raw path segment.
+
+RT-301 performs no data migration, Tag or Batch query, write, Event, queue,
+email, WooCommerce action, or external request. Code rollback is
+database-compatible: deactivate TagCore or restore compatible code and flush
+rewrite rules once to remove the route. No generated identifier, Batch,
+Export, ownership record, or audit evidence may be deleted during rollback.

@@ -458,6 +458,21 @@ RT-210 adds:
 - no Migration or index change because existing Schema 8 query shapes met the
   accepted budgets.
 
+RT-301 adds the first public scan transport boundary:
+
+- a theme-independent `GET /t/{tag_id}` WordPress rewrite route;
+- exactly one raw path segment captured for later RT-302 normalization;
+- a fail-closed `503` plugin-owned page while state resolution is not yet
+  implemented;
+- `405` rejection for mutation methods with `Allow: GET, HEAD`;
+- no-store, no-referrer, no-index, and content-type hardening headers;
+- activation, update, deactivation, and authorized-admin rewrite refresh
+  lifecycle handling;
+- a mobile-first, keyboard-accessible, translatable fallback matching the
+  approved Product Design direction;
+- no Tag or Batch query, normalization, activation, finder workflow, theme,
+  Schema, Option, dependency, Event, or plugin-version change.
+
 
 
 Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.

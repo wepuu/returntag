@@ -335,3 +335,14 @@ inventory and search paths, lifecycle counts, and a deterministic 100,000-row
 CSV build. Existing Schema 8 indexes met the approved budgets, so no Migration
 or speculative `(batch_id, tag_id)` index was added. The reproducible budgets,
 environment, results, and caveats are recorded in `docs/PERFORMANCE.md`.
+
+## RT-301 public Tag route
+
+RT-301 adds the theme-independent `GET /t/{tag_id}` scan entry point. It
+captures one raw path segment for the later RT-302 normalization boundary and
+currently returns a generic plugin-owned `503` page with no-store,
+no-referrer, and no-index controls. Mutation methods are rejected.
+
+This ticket intentionally performs no Tag or Batch lookup, activation, finder
+workflow, manual-entry flow, database write, or theme integration. RT-302 owns
+canonical input handling and RT-303 owns state-aware public experiences.
