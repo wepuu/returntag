@@ -15,6 +15,7 @@ namespace ReturnTag\TagCore\Admin;
 final class Capability {
 	public const MANAGE_RETURNTAG = 'manage_returntag';
 	public const MANAGE_BATCHES   = 'manage_returntag_batches';
+	public const MANAGE_TAGS      = 'manage_returntag_tags';
 
 	/**
 	 * Static constants only.

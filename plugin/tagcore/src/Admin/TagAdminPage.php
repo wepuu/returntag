@@ -1,6 +1,6 @@
 <?php
 /**
- * Batch administration page adapter.
+ * Read-only Tag administration page adapter.
  *
  * @package ReturnTag\TagCore
  */
@@ -12,19 +12,19 @@ namespace ReturnTag\TagCore\Admin;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 
 /**
- * Registers and renders the React-owned Batch administration surface.
+ * Registers and renders the React-owned Tag search surface.
  */
-final class BatchAdminPage {
-	public const PAGE_SLUG = 'tagcore-batches';
+final class TagAdminPage {
+	public const PAGE_SLUG = 'tagcore-tags';
 
 	private const SCRIPT_HANDLE = 'returntag-tagcore-admin';
 
 	/**
-	 * WordPress page hooks assigned during menu registration.
+	 * WordPress page hook assigned during menu registration.
 	 *
-	 * @var list<string>
+	 * @var string|null
 	 */
-	private array $page_hooks = array();
+	private ?string $page_hook = null;
 
 	/**
 	 * Create the page adapter.
@@ -39,7 +39,7 @@ final class BatchAdminPage {
 	}
 
 	/**
-	 * Register the menu and asset hooks.
+	 * Register menu and asset hooks.
 	 */
 	public function register_hooks(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
@@ -47,42 +47,28 @@ final class BatchAdminPage {
 	}
 
 	/**
-	 * Register the TagCore top-level Batch page.
+	 * Register the dedicated Tags submenu.
 	 */
 	public function register_menu(): void {
-		$top_level_hook = add_menu_page(
-			__( 'TagCore Batches', 'tagcore' ),
-			__( 'TagCore', 'tagcore' ),
-			Capability::MANAGE_BATCHES,
-			self::PAGE_SLUG,
-			array( $this, 'render' ),
-			'dashicons-tag',
-			58
-		);
-
-		$batch_hook = add_submenu_page(
-			self::PAGE_SLUG,
-			__( 'TagCore Batches', 'tagcore' ),
-			__( 'Batches', 'tagcore' ),
-			Capability::MANAGE_BATCHES,
+		$page_hook = add_submenu_page(
+			BatchAdminPage::PAGE_SLUG,
+			__( 'TagCore Tags', 'tagcore' ),
+			__( 'Tags', 'tagcore' ),
+			Capability::MANAGE_TAGS,
 			self::PAGE_SLUG,
 			array( $this, 'render' )
 		);
 
-		foreach ( array( $top_level_hook, $batch_hook ) as $page_hook ) {
-			if ( is_string( $page_hook ) ) {
-				$this->page_hooks[] = $page_hook;
-			}
-		}
+		$this->page_hook = is_string( $page_hook ) ? $page_hook : null;
 	}
 
 	/**
-	 * Render the administrative root or a fail-closed schema notice.
+	 * Render the administration root or a fail-closed Schema notice.
 	 */
 	public function render(): void {
-		if ( ! current_user_can( Capability::MANAGE_BATCHES ) ) {
+		if ( ! current_user_can( Capability::MANAGE_TAGS ) ) {
 			wp_die(
-				esc_html__( 'You are not allowed to manage ReturnTag batches.', 'tagcore' ),
+				esc_html__( 'You are not allowed to search ReturnTag tags.', 'tagcore' ),
 				esc_html__( 'Access denied', 'tagcore' ),
 				array( 'response' => 403 )
 			);
@@ -92,7 +78,7 @@ final class BatchAdminPage {
 
 		if ( ! $this->schema_state->is_current() ) {
 			echo '<div class="notice notice-error"><p>';
-			esc_html_e( 'TagCore batch administration is unavailable until database preparation completes.', 'tagcore' );
+			esc_html_e( 'TagCore Tag administration is unavailable until database preparation completes.', 'tagcore' );
 			echo '</p></div></div>';
 			return;
 		}
@@ -101,12 +87,12 @@ final class BatchAdminPage {
 	}
 
 	/**
-	 * Enqueue the compiled WordPress-native administration bundle.
+	 * Enqueue the shared compiled administration bundle.
 	 *
 	 * @param string $hook_suffix Current WordPress administration page hook.
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		if ( ! in_array( $hook_suffix, $this->page_hooks, true ) || ! $this->schema_state->is_current() ) {
+		if ( $hook_suffix !== $this->page_hook || ! $this->schema_state->is_current() ) {
 			return;
 		}
 
@@ -149,10 +135,10 @@ final class BatchAdminPage {
 				'restPath'    => '/tagcore/v1',
 				'currentUser' => $user->display_name,
 				'currentTime' => gmdate( DATE_ATOM ),
-				'listUrl'     => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
-				'createUrl'   => admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&view=create' ),
-				'tagsUrl'     => admin_url( 'admin.php?page=' . TagAdminPage::PAGE_SLUG ),
-				'surface'     => 'batches',
+				'listUrl'     => admin_url( 'admin.php?page=' . BatchAdminPage::PAGE_SLUG ),
+				'createUrl'   => admin_url( 'admin.php?page=' . BatchAdminPage::PAGE_SLUG . '&view=create' ),
+				'tagsUrl'     => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
+				'surface'     => 'tags',
 			)
 		);
 	}

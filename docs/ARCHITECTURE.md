@@ -428,3 +428,22 @@ Composer locks both packages and Dependabot proposes updates. Runtime updates
 must pass the PHP, WordPress, WooCommerce, queue-idempotency, and release
 artifact checks before adoption. Node packages are build and test inputs;
 `node_modules` is never included in the TagCore ZIP.
+
+## RT-209 read-only Tag search boundary
+
+RT-209 adds a separate Tag search read adapter rather than exposing the
+complete Tag Repository record. Application models two exact search criteria
+and bounded keyset pagination. Infrastructure names only the approved columns
+and joins the trusted Batches table to return its identifier, code, lifecycle
+status, and activation control. Application derives a non-persisted activation
+availability reason from Tag status, activation history, Batch state, and the
+global activation feature flag. Admin owns normalization, permission and
+Schema checks, cursor encoding, response mapping, and the WordPress-native
+read-only page.
+
+The `tagcore/v1/tags` route requires `manage_returntag_tags`; it cannot list
+without an exact Tag ID or Batch Code anchor. The Batch-mode cursor is bound to
+the normalized filters. No write service, Event, queue, feature flag, or
+business state transition is involved. Searchability is deliberately broader
+than activation eligibility: retained IDs from suspended and voided Batches
+remain visible, while active Tags keep their existing activation.

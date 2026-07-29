@@ -144,3 +144,18 @@ owner IDs, private item fields, Lost Mode content, scan times, or message data.
 The Batch lock serializes the status write and Event append; the conditional
 predicate remains the final stale-state guard. Schema version `8` requires no
 new index for these bounded queries.
+
+## 10. RT-209 read-only Tag search
+
+| Read shape | Predicate, ordering, and bound | Candidate index |
+|---|---|---|
+| Exact Tag ID | `tag_id = ?`, limit `1` | `PRIMARY` |
+| First exact Batch page | unique `batch_code = ?`, optional `tag_status = ?`, `ORDER BY tag_id ASC`, limit `page_size + 1` | `batch_code_unique`, then `PRIMARY` or `batch_id_status`, optimizer-selected |
+| Continued exact Batch page | same filters plus `tag_id > ?`, `ORDER BY tag_id ASC`, limit `page_size + 1` | `batch_code_unique`, then `PRIMARY` or `batch_id_status`, optimizer-selected |
+
+The projection names twelve approved operational columns across Tags and
+Batches and never selects owner, item, label, Lost Mode message, or scan
+fields. The application derives activation availability without another query.
+The Base64URL cursor is versioned and bound to a stable hash of the exact
+normalized filters. Schema 8 has no `(batch_id, tag_id)` compound index;
+RT-210 owns capacity validation and any numbered Migration proposal.

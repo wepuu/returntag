@@ -18,7 +18,7 @@ use WP_Role;
 final class CapabilityInstaller {
 	public const OPTION_NAME = 'returntag_capability_schema_version';
 
-	private const TARGET_VERSION = 1;
+	private const TARGET_VERSION = 2;
 
 	/**
 	 * Create the installer.
@@ -59,11 +59,18 @@ final class CapabilityInstaller {
 
 		$role->add_cap( Capability::MANAGE_RETURNTAG );
 		$role->add_cap( Capability::MANAGE_BATCHES );
+		$role->add_cap( Capability::MANAGE_TAGS );
 
 		$current_user = wp_get_current_user();
 
 		if ( $current_user->exists() ) {
 			$current_user->get_role_caps();
+		}
+
+		$current_version = (int) get_option( self::OPTION_NAME, 0 );
+
+		if ( $current_version >= self::TARGET_VERSION ) {
+			return;
 		}
 
 		if ( false === get_option( self::OPTION_NAME, false ) ) {
@@ -78,6 +85,6 @@ final class CapabilityInstaller {
 	 * Determine whether the capability contract is current.
 	 */
 	private function is_current(): bool {
-		return self::TARGET_VERSION === (int) get_option( self::OPTION_NAME, 0 );
+		return (int) get_option( self::OPTION_NAME, 0 ) >= self::TARGET_VERSION;
 	}
 }
