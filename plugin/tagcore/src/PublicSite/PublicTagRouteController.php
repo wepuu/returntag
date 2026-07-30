@@ -10,12 +10,17 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\PublicSite;
 
 use InvalidArgumentException;
+use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceException;
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPage;
+use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\Domain\Tag\TagId;
+use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
+use RuntimeException;
 use WP_Rewrite;
 
 /**
- * Registers and serves the theme-independent RT-301 route.
+ * Registers and serves the theme-independent public Tag route.
  */
 final class PublicTagRouteController {
 	public const QUERY_VAR = 'returntag_tag_id';
@@ -27,14 +32,20 @@ final class PublicTagRouteController {
 	/**
 	 * Create the route adapter.
 	 *
-	 * @param string                  $plugin_dir Absolute TagCore plugin directory.
-	 * @param PublicTagResponsePolicy $responses Fail-closed HTTP policy.
-	 * @param TagIdInputNormalizer    $tag_ids   Canonical public input boundary.
+	 * @param string                    $plugin_dir Absolute TagCore plugin directory.
+	 * @param PublicTagResponsePolicy   $responses Fail-closed HTTP policy.
+	 * @param TagIdInputNormalizer      $tag_ids   Canonical public input boundary.
+	 * @param ResolvePublicTagPage      $pages Public page use case.
+	 * @param SchemaState               $schema_state Current Schema readiness.
+	 * @param PublicTagTemplateRenderer $renderer Standalone page renderer.
 	 */
 	public function __construct(
 		private readonly string $plugin_dir,
 		private readonly PublicTagResponsePolicy $responses,
-		private readonly TagIdInputNormalizer $tag_ids
+		private readonly TagIdInputNormalizer $tag_ids,
+		private readonly ResolvePublicTagPage $pages,
+		private readonly SchemaState $schema_state,
+		private readonly PublicTagTemplateRenderer $renderer
 	) {
 	}
 
@@ -46,7 +57,6 @@ final class PublicTagRouteController {
 		add_filter( 'query_vars', array( $this, 'register_query_var' ) );
 		add_filter( 'redirect_canonical', array( $this, 'disable_canonical_redirect' ), 10, 2 );
 		add_action( 'template_redirect', array( $this, 'prepare_response' ), 0 );
-		add_filter( 'template_include', array( $this, 'select_template' ), PHP_INT_MAX );
 	}
 
 	/**
@@ -101,7 +111,7 @@ final class PublicTagRouteController {
 	}
 
 	/**
-	 * Apply a generic fail-closed status and privacy controls.
+	 * Resolve and render the standalone public response.
 	 */
 	public function prepare_response(): void {
 		if ( ! $this->is_public_tag_request() ) {
@@ -121,8 +131,24 @@ final class PublicTagRouteController {
 			exit;
 		}
 
-		status_header( $this->responses->status_for_method( $method ) );
+		$page = in_array( $method, array( 'GET', 'HEAD' ), true )
+			? $this->resolve_page()
+			: PublicTagPage::service_unavailable();
+
+		status_header( $this->responses->status_for( $method, $page->state ) );
 		$this->enqueue_styles();
+
+		try {
+			$this->renderer->render( $page );
+		} catch ( RuntimeException ) {
+			wp_die(
+				esc_html__( 'ReturnTag is temporarily unavailable.', 'tagcore' ),
+				esc_html__( 'ReturnTag unavailable', 'tagcore' ),
+				array( 'response' => 500 )
+			);
+		}
+
+		exit;
 	}
 
 	/**
@@ -165,26 +191,29 @@ final class PublicTagRouteController {
 	}
 
 	/**
-	 * Select the standalone plugin template only for the ReturnTag route.
-	 *
-	 * @param string $template Theme-selected template.
+	 * Resolve the current route without leaking failures or stored private data.
 	 */
-	public function select_template( string $template ): string {
-		if ( ! $this->is_public_tag_request() ) {
-			return $template;
+	public function resolve_page(): PublicTagPage {
+		$tag_id = $this->normalized_tag_id();
+
+		if ( null === $tag_id ) {
+			return PublicTagPage::invalid();
 		}
 
-		$public_template = $this->plugin_dir . '/templates/public/tag-unavailable.php';
-
-		if ( is_readable( $public_template ) ) {
-			return $public_template;
+		if ( ! $this->schema_state->is_current() ) {
+			return PublicTagPage::service_unavailable();
 		}
 
-		wp_die(
-			esc_html__( 'ReturnTag is temporarily unavailable.', 'tagcore' ),
-			esc_html__( 'ReturnTag unavailable', 'tagcore' ),
-			array( 'response' => 500 )
-		);
+		$current_user_id = get_current_user_id();
+
+		try {
+			return $this->pages->execute(
+				$tag_id,
+				$current_user_id > 0 ? $current_user_id : null
+			);
+		} catch ( PersistenceException ) {
+			return PublicTagPage::service_unavailable();
+		}
 	}
 
 	/**

@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 3 public scan input boundary (RT-301 and RT-302 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public scan state boundary (RT-301 through RT-303 implemented; schema remains `8`)
 
 
 
@@ -93,6 +93,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-302 — Bounded public Tag ID normalization and canonical URL handling
 
 
+
+\* RT-303 - Privacy-minimized Tag and Batch state pages
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -490,6 +492,26 @@ RT-302 adds the canonical public Tag ID input boundary:
   Tag and Batch state resolution;
 - no Tag or Batch query, existence response, state page, activation, finder
   workflow, theme, Schema, Option, dependency, Event, or plugin-version change.
+
+RT-303 adds the first public Tag and Batch state resolution:
+
+- one exact primary-key Tag lookup with a narrow left-joined Batch projection;
+- server-derived invalid, activation, owner, finder, suspended, retired, and
+  fail-closed service pages;
+- current WordPress identity used only to distinguish the active Owner from a
+  Finder, without sending `owner_id` to the renderer;
+- Finder output limited to product type, `public_label`, and Lost Mode content
+  only when the approved state permits it;
+- global activation, Batch activation, Batch lifecycle, and Finder-contact
+  controls enforced before selecting an entry experience;
+- intentional `404` for malformed or unknown IDs, `503` for Schema,
+  persistence, or data-integrity failures, `200` for known product states, and
+  unchanged `405` mutation rejection;
+- mobile-first, translatable standalone pages extending the approved RT-301
+  Product Design system without a theme dependency or non-working workflow
+  controls;
+- no activation, OTP, Finder message, email, queue, Event, write, Schema,
+  dependency, plugin-version, or WooCommerce change.
 
 
 

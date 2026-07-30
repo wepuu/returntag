@@ -82,4 +82,9 @@ ID, and uses bounded `tag_id ASC` keyset pagination. It does not use
 `SELECT *`, hydrate private Tag columns, add an index or Migration, generate a
 file, or write an export audit record.
 
+RT-303 adds one exact, parameterized public Tag state reader. It uses the Tag
+and Batch primary keys, names only the state fields required by Application,
+and preserves a missing Batch as a fail-closed integrity condition. It never
+selects private item, email, message, order, device, pairing, or location data.
+
 No product provider adapter is implemented.

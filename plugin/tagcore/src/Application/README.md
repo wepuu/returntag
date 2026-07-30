@@ -51,3 +51,9 @@ The use case rejects missing, draft, generating, or counter-incomplete Batches
 before reading a page. Items contain only a typed Tag ID, canonical Tag status,
 and UTC generation time in deterministic Tag ID order. It performs no write,
 export, search, state transition, authorization, or WordPress operation.
+
+RT-303 adds the public Tag state reader port, immutable state projection,
+privacy-minimized page model, pure page policy, and resolver use case. Owner
+identity remains internal to the policy; Finder-only fields enter the page
+model only for the approved Finder state. The use case performs no activation,
+message, notification, write, or WordPress operation.

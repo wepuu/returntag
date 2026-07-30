@@ -121,4 +121,98 @@
   asset delta, so the existing same-viewport reference comparisons remain the
   material visual evidence.
 
+## RT-303 state-page extension
+
+### Comparison target
+
+- Source visual truth:
+  `C:\Users\admin\.codex\generated_images\019fad15-ddd5-7941-b775-911bd9a46455\call_w1y4o35K5FFEEy4ekAbVOoVv.png`
+- Source state: generic fail-closed Tag recovery page.
+- Implementation state: activation unavailable with public product type.
+- Implementation route: `http://localhost:8888/t/5VSAND`
+- Mobile implementation screenshot:
+  `artifacts/design-qa/rt-303-activation-unavailable-mobile.png`
+- Desktop implementation screenshot:
+  `artifacts/design-qa/rt-303-activation-unavailable-default.png`
+- Mobile viewport, CSS size, and implementation pixels: `390 x 844`.
+- Desktop viewport, CSS size, and implementation pixels: `1440 x 900`.
+- Source pixels: `853 x 1844`, normalized to `390 x 844`.
+- Density normalization: source downsampled to the mobile CSS target;
+  implementation captured at one CSS pixel per output pixel.
+
+The source and implementation intentionally represent different product
+states. The comparison therefore judges the approved visual system, hierarchy,
+alignment, typography, spacing rhythm, color tokens, and responsive behavior,
+not literal copy or the additional state detail rows.
+
+### Full-view comparison evidence
+
+- Same-input mobile comparison:
+  `artifacts/design-qa/rt-303-comparison-mobile.png`
+- The implementation preserves the warm paper-white field, compact wordmark,
+  large quiet interval, blue vertical accent, uppercase eyebrow, three-line
+  heading, measured explanation, and understated homepage action.
+- The product detail row is an intentional RT-303 extension. It begins on the
+  same content axis, uses quiet dividers, and pushes the working action
+  downward without changing the original hierarchy.
+- The `1440 x 900` desktop capture retains the approved single-column measure,
+  balanced whitespace, and complete content without horizontal or vertical
+  overflow.
+
+### Focused region evidence
+
+No separate crop was required. The normalized `390 x 844` full-view comparison
+keeps the wordmark, accent, eyebrow, heading, body copy, detail row, and action
+large enough to judge. There are no icons, illustrations, product images,
+forms, or dense controls that require a second focused comparison.
+
+### Required fidelity surfaces
+
+- Fonts and typography: the existing system sans-serif stack, optical heading
+  weight, line height, eyebrow tracking, body measure, and link treatment are
+  unchanged. State-specific copy wraps cleanly at mobile and desktop widths.
+- Spacing and layout rhythm: the section origin and content axis remain aligned
+  to RT-301. The new details use the established 4-pixel spacing token and do
+  not collide, clip, or overflow.
+- Colors and tokens: `#fbfaf7`, `#182126`, and `#0b57d0` remain authoritative.
+  Quiet divider and callout colors are derived from those tokens with
+  sufficient foreground contrast.
+- Image quality and asset fidelity: neither source nor implementation requires
+  an image or icon. RT-303 introduces no SVG, emoji, CSS illustration, remote
+  font, or third-party asset.
+- Copy and content: every state is standalone US English and translatable.
+  Activation, Owner, and Finder pages avoid non-working workflow controls;
+  the only visible action is the existing working homepage link.
+
+### Functional, responsive, and accessibility evidence
+
+- Browser DOM confirms a semantic banner, main region, level-one heading,
+  definition terms, definition values, and homepage link.
+- Mobile and desktop DOM metrics report no horizontal overflow.
+- Browser inspection found no third-party request source and no console error
+  or warning.
+- Automated browser coverage verified keyboard focus, working homepage
+  navigation, canonical redirect, `404`, `405`, and privacy headers in
+  Chromium, WebKit, mobile Chromium, and mobile WebKit. Firefox completed the
+  mutation-request check, but its three page fixtures were blocked before
+  navigation by the local Playwright browser-context runtime; no page-level
+  RT-303 assertion failed.
+
+### Findings and comparison history
+
+- No P0, P1, or P2 mismatch was found in the first RT-303 comparison.
+- The source does not depict Tag-type details or Lost Mode content. Those are
+  intentional product-state additions rather than visual drift, and they reuse
+  the approved axis, spacing, typography, and color system.
+- The in-app browser initially captured a stitched full-page desktop image;
+  this was capture-tool output rather than page layout. A normal viewport
+  capture replaced it, and DOM metrics independently confirmed
+  `1440 x 900` with no overflow.
+
+### Follow-up polish
+
+- No P3 visual change is required for RT-303. Future tickets should attach
+  working activation and Finder controls to the reserved state experiences
+  without changing the approved public-page visual system.
+
 final result: passed

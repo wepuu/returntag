@@ -802,3 +802,22 @@ index, Option, lock, query, or write. Public Tag ID normalization completes
 before any future Repository boundary and does not test whether a canonical ID
 exists. Fresh installation, upgrade, retry, idempotency, retention, uninstall,
 and database rollback behavior are unchanged.
+
+## 15. RT-303 public state projection
+
+RT-303 changes Schema version `8` to `8`. It adds no Migration, table, column,
+index, Option, lock, write, Event, or cleanup behavior.
+
+One bounded query selects a narrow Tag projection by the `tag_id` primary key
+and left joins its Batch by `batch_id`. The left join lets a present Tag with a
+missing Batch fail closed as inconsistent data instead of appearing to be an
+unknown Tag. Query-plan acceptance verifies both existing primary keys.
+
+The projection does not select `item_name`, Batch code, email, order,
+conversation, message, token, scan-history, device, pairing, or location
+fields. `owner_id` is read only for an in-process server-side equality check
+and is not returned to the renderer.
+
+Fresh installation and upgrade remain the contiguous `0001` through `0008`
+Migration chain. Code rollback restores the earlier generic public response
+without changing or deleting any Tag, Batch, ownership, export, or Event data.

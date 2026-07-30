@@ -9,17 +9,28 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\PublicSite;
 
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
+
 /**
- * Defines the fail-closed RT-301 HTTP response without reading Tag data.
+ * Defines privacy-safe HTTP semantics for one derived public page.
  */
 final class PublicTagResponsePolicy {
 	/**
-	 * Return the response status for one request method.
+	 * Return the response status for one request method and page state.
 	 *
-	 * @param string $method HTTP request method.
+	 * @param string             $method HTTP request method.
+	 * @param PublicTagPageState $state Derived public page state.
 	 */
-	public function status_for_method( string $method ): int {
-		return in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) ? 503 : 405;
+	public function status_for( string $method, PublicTagPageState $state ): int {
+		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) ) {
+			return 405;
+		}
+
+		return match ( $state ) {
+			PublicTagPageState::INVALID => 404,
+			PublicTagPageState::SERVICE_UNAVAILABLE => 503,
+			default => 200,
+		};
 	}
 
 	/**
@@ -37,7 +48,7 @@ final class PublicTagResponsePolicy {
 			'X-Robots-Tag'           => 'noindex, nofollow, noarchive',
 		);
 
-		if ( 405 === $this->status_for_method( $method ) ) {
+		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) ) {
 			$headers['Allow'] = 'GET, HEAD';
 		}
 

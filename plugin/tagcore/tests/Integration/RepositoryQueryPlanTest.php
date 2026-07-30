@@ -59,6 +59,43 @@ final class RepositoryQueryPlanTest extends WP_UnitTestCase {
 		global $wpdb;
 
 		$tables = new TableNames( $wpdb->prefix );
+		self::assertSame(
+			1,
+			$wpdb->insert(
+				$tables->batches(),
+				array(
+					'batch_code'         => 'RT110-QUERY-PLAN',
+					'tag_type'           => 'classic_tag',
+					'smart_network'      => 'none',
+					'requested_quantity' => 1,
+					'generated_quantity' => 1,
+					'batch_status'       => 'released',
+					'activation_enabled' => 1,
+					'created_by'         => 1,
+					'created_at'         => '2026-07-30 00:00:00',
+					'updated_at'         => '2026-07-30 00:00:00',
+				)
+			)
+		);
+		$batch_id = $wpdb->insert_id;
+		self::assertGreaterThan( 0, $batch_id );
+		self::assertSame(
+			1,
+			$wpdb->insert(
+				$tables->tags(),
+				array(
+					'tag_id'       => 'N7R2W9',
+					'batch_id'     => $batch_id,
+					'owner_id'     => 1,
+					'tag_type'     => 'classic_tag',
+					'tag_status'   => 'active',
+					'lost_mode'    => 0,
+					'activated_at' => '2026-07-30 00:00:00',
+					'created_at'   => '2026-07-30 00:00:00',
+					'updated_at'   => '2026-07-30 00:00:00',
+				)
+			)
+		);
 
 		$this->assert_possible_index(
 			$wpdb,
@@ -140,6 +177,17 @@ final class RepositoryQueryPlanTest extends WP_UnitTestCase {
 				51
 			),
 			'correlation_id'
+		);
+
+		$this->assert_possible_index(
+			$wpdb,
+			$wpdb->prepare(
+				'SELECT t.owner_id, t.tag_type, t.public_label, t.tag_status, t.lost_mode, t.lost_message, t.activated_at, b.batch_status, b.activation_enabled AS batch_activation_enabled FROM %i AS t LEFT JOIN %i AS b ON b.batch_id = t.batch_id WHERE t.tag_id = %s LIMIT 1',
+				$tables->tags(),
+				$tables->batches(),
+				'N7R2W9'
+			),
+			'PRIMARY'
 		);
 	}
 
