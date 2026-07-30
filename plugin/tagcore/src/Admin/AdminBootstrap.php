@@ -26,6 +26,7 @@ use ReturnTag\TagCore\Application\Batch\VoidBatch;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Application\Tag\SearchTags;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
+use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\Application\Tag\TagSearchInputNormalizer;
 use ReturnTag\TagCore\Domain\Batch\BatchLifecyclePolicy;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
@@ -151,7 +152,7 @@ final class AdminBootstrap {
 
 		$tag_search_controller = new TagSearchRestController(
 			new SearchTags( new WpdbTagSearchReader( $gateway, $tables, $dates ) ),
-			new TagSearchInputNormalizer(),
+			new TagSearchInputNormalizer( new TagIdInputNormalizer() ),
 			new TagSearchCursorCodec(),
 			$schema_state,
 			$feature_flags,

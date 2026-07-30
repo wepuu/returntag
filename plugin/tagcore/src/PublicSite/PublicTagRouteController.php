@@ -9,6 +9,9 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\PublicSite;
 
+use InvalidArgumentException;
+use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
+use ReturnTag\TagCore\Domain\Tag\TagId;
 use WP_Rewrite;
 
 /**
@@ -26,10 +29,12 @@ final class PublicTagRouteController {
 	 *
 	 * @param string                  $plugin_dir Absolute TagCore plugin directory.
 	 * @param PublicTagResponsePolicy $responses Fail-closed HTTP policy.
+	 * @param TagIdInputNormalizer    $tag_ids   Canonical public input boundary.
 	 */
 	public function __construct(
 		private readonly string $plugin_dir,
-		private readonly PublicTagResponsePolicy $responses
+		private readonly PublicTagResponsePolicy $responses,
+		private readonly TagIdInputNormalizer $tag_ids
 	) {
 	}
 
@@ -83,7 +88,7 @@ final class PublicTagRouteController {
 	}
 
 	/**
-	 * Keep RT-301 from redirecting raw input before RT-302 owns canonicalization.
+	 * Keep WordPress canonicalization from competing with TagCore's ID redirect.
 	 *
 	 * @param string|false $redirect_url Proposed canonical URL.
 	 * @param string       $requested_url Requested URL.
@@ -104,13 +109,59 @@ final class PublicTagRouteController {
 		}
 
 		$method = $this->request_method();
-		status_header( $this->responses->status_for_method( $method ) );
 
 		foreach ( $this->responses->headers_for_method( $method ) as $name => $value ) {
 			header( $name . ': ' . $value, true );
 		}
 
+		$redirect_url = $this->canonical_redirect_url( $method );
+
+		if ( null !== $redirect_url ) {
+			wp_safe_redirect( $redirect_url, 301, 'TagCore' );
+			exit;
+		}
+
+		status_header( $this->responses->status_for_method( $method ) );
 		$this->enqueue_styles();
+	}
+
+	/**
+	 * Return the validated canonical ID for the current route.
+	 */
+	public function normalized_tag_id(): ?TagId {
+		$value = $this->raw_tag_id();
+
+		if ( null === $value ) {
+			return null;
+		}
+
+		try {
+			return $this->tag_ids->normalize( rawurldecode( $value ) );
+		} catch ( InvalidArgumentException ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Return a canonical same-site URL only when a read request needs one.
+	 *
+	 * @param string|null $method Optional validated request method for tests and request handling.
+	 */
+	public function canonical_redirect_url( ?string $method = null ): ?string {
+		$method = null === $method ? $this->request_method() : strtoupper( $method );
+
+		if ( ! in_array( $method, array( 'GET', 'HEAD' ), true ) ) {
+			return null;
+		}
+
+		$value  = $this->raw_tag_id();
+		$tag_id = $this->normalized_tag_id();
+
+		if ( null === $value || null === $tag_id || $value === $tag_id->value ) {
+			return null;
+		}
+
+		return home_url( '/t/' . rawurlencode( $tag_id->value ) );
 	}
 
 	/**
@@ -140,9 +191,16 @@ final class PublicTagRouteController {
 	 * Determine whether WordPress resolved the public Tag route.
 	 */
 	public function is_public_tag_request(): bool {
+		return null !== $this->raw_tag_id();
+	}
+
+	/**
+	 * Return the captured untrusted route segment without exposing it.
+	 */
+	private function raw_tag_id(): ?string {
 		$value = get_query_var( self::QUERY_VAR, null );
 
-		return is_string( $value ) && '' !== $value;
+		return is_string( $value ) && '' !== $value ? $value : null;
 	}
 
 	/**

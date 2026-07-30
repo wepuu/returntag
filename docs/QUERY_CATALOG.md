@@ -176,3 +176,10 @@ No `(batch_id, tag_id)` Migration is added. The existing Schema 8 primary key
 and `batch_id_status` index remain the documented candidates. A higher Batch
 limit, materially different data distribution, or observed production
 regression requires new measurements before an index proposal.
+
+## 12. RT-302 public input boundary
+
+RT-302 adds no query shape. The public route normalizes and validates one
+bounded path segment entirely before the Repository boundary. It neither uses
+the exact Tag primary-key lookup documented for RT-209 nor tests whether a Tag
+or Batch exists. RT-303 owns the first approved public state-resolution query.

@@ -346,3 +346,19 @@ no-referrer, and no-index controls. Mutation methods are rejected.
 This ticket intentionally performs no Tag or Batch lookup, activation, finder
 workflow, manual-entry flow, database write, or theme integration. RT-302 owns
 canonical input handling and RT-303 owns state-aware public experiences.
+
+## RT-302 public Tag ID normalization
+
+RT-302 adds the shared input boundary required by the PRD. TagCore removes
+whitespace and hyphens, converts ASCII letters to uppercase, and accepts only
+six characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`. Raw input is bounded
+before normalization.
+
+Normalizable `GET` and `HEAD` scan URLs redirect once to
+`/t/{canonical_tag_id}`. Invalid input and valid canonical input continue to
+use the same private, generic `503` response until RT-303 adds Tag and Batch
+state pages. Mutation methods remain `405` and are never redirected.
+
+RT-302 adds no Tag or Batch lookup, database or Schema change, state page,
+activation, finder flow, theme dependency, WooCommerce behavior, Event,
+queue, email, option, dependency, or plugin-version change.

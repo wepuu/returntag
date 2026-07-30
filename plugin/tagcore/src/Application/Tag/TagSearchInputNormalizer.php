@@ -18,19 +18,21 @@ use ReturnTag\TagCore\Domain\Tag\TagId;
  */
 final class TagSearchInputNormalizer {
 	/**
+	 * Create the administrative search normalizer.
+	 *
+	 * @param TagIdInputNormalizer $tag_ids Shared Tag ID input boundary.
+	 */
+	public function __construct( private readonly TagIdInputNormalizer $tag_ids ) {
+	}
+
+	/**
 	 * Normalize spaces and hyphens before strict canonical Tag ID validation.
 	 *
 	 * @param string $value Operator input.
 	 * @throws InvalidArgumentException When normalization does not produce a canonical Tag ID.
 	 */
 	public function tag_id( string $value ): TagId {
-		$normalized = preg_replace( '/[\s-]+/u', '', strtoupper( $value ) );
-
-		if ( ! is_string( $normalized ) ) {
-			throw new InvalidArgumentException( 'Tag ID search value is invalid.' );
-		}
-
-		return TagId::from_canonical( $normalized );
+		return $this->tag_ids->normalize( $value );
 	}
 
 	/**

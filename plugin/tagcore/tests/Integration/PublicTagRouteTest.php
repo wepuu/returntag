@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
+use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\PublicSite\PublicRewriteLifecycle;
 use ReturnTag\TagCore\PublicSite\PublicTagResponsePolicy;
 use ReturnTag\TagCore\PublicSite\PublicTagRouteController;
@@ -47,7 +48,8 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 
 		$this->route = new PublicTagRouteController(
 			RETURNTAG_TAGCORE_DIR,
-			new PublicTagResponsePolicy()
+			new PublicTagResponsePolicy(),
+			new TagIdInputNormalizer()
 		);
 
 		$this->route->register_rewrite_rule();
@@ -89,6 +91,50 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 
 		self::assertSame( 'a7-r2w9', get_query_var( PublicTagRouteController::QUERY_VAR ) );
 		self::assertTrue( $this->route->is_public_tag_request() );
+		self::assertSame( 'A7R2W9', $this->route->normalized_tag_id()?->value );
+		self::assertSame(
+			home_url( '/t/A7R2W9' ),
+			$this->route->canonical_redirect_url( 'GET' )
+		);
+		self::assertSame(
+			home_url( '/t/A7R2W9' ),
+			$this->route->canonical_redirect_url( 'HEAD' )
+		);
+		self::assertNull( $this->route->canonical_redirect_url( 'POST' ) );
+	}
+
+	/**
+	 * URL-encoded formatting normalizes before canonical validation.
+	 */
+	public function test_url_encoded_space_normalizes_to_the_canonical_id(): void {
+		$this->go_to( home_url( '/t/a7-r2%20w9/' ) );
+
+		self::assertSame( 'A7R2W9', $this->route->normalized_tag_id()?->value );
+		self::assertSame(
+			home_url( '/t/A7R2W9' ),
+			$this->route->canonical_redirect_url( 'GET' )
+		);
+	}
+
+	/**
+	 * Invalid values fail closed without a canonical redirect target.
+	 */
+	public function test_invalid_route_input_has_no_canonical_value_or_redirect(): void {
+		$this->go_to( home_url( '/t/A7R2W0/' ) );
+
+		self::assertTrue( $this->route->is_public_tag_request() );
+		self::assertNull( $this->route->normalized_tag_id() );
+		self::assertNull( $this->route->canonical_redirect_url( 'GET' ) );
+	}
+
+	/**
+	 * Canonical IDs do not redirect before RT-303 attaches state resolution.
+	 */
+	public function test_canonical_route_input_keeps_the_fail_closed_response(): void {
+		$this->go_to( home_url( '/t/A7R2W9/' ) );
+
+		self::assertSame( 'A7R2W9', $this->route->normalized_tag_id()?->value );
+		self::assertNull( $this->route->canonical_redirect_url( 'GET' ) );
 	}
 
 	/**
