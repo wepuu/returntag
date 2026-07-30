@@ -821,3 +821,27 @@ and is not returned to the renderer.
 Fresh installation and upgrade remain the contiguous `0001` through `0008`
 Migration chain. Code rollback restores the earlier generic public response
 without changing or deleting any Tag, Batch, ownership, export, or Event data.
+
+## 12. RT-304 activation OTP operations
+
+RT-304 keeps Schema version `8`. An activation request inserts one
+`returntag_auth_challenges` row with purpose `activation_otp`, subject type
+`tag`, the canonical Tag ID, encrypted email, keyed email/IP digests, a
+domain-separated unissued password hash, zero attempts, zero sends, and a
+bounded expiry. A replacement atomically consumes older open matches.
+
+The Worker locks one challenge by primary key and conditionally changes only
+the latest, open, unexpired `send_count=0` row to `send_count=1`, replaces the
+placeholder with the issued OTP hash, and starts the ten-minute issued expiry.
+The plaintext code is never a column value.
+
+Email limits use `purpose_email_created_at`; Tag limits use
+`subject_created_at`; Worker lookup uses `PRIMARY`; cleanup uses
+`expires_consumed_at`. Direct-peer IP and global atomic budgets use
+non-autoloaded `returntag_otp_rate_*` WordPress Options, avoiding an unindexed
+`ip_hash` scan or Schema change.
+
+Expired challenges are retained for seven additional days and then deleted in
+bounded chunks. This retention cleanup does not delete accepted business
+messages, ownership records, Tag IDs, exports, or Events. Code rollback remains
+compatible with Schema 8; inert limiter Options may expire independently.

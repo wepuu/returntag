@@ -78,8 +78,9 @@ resets.
 Action Scheduler runs RT-204 generation chunks through a provider-neutral
 Application scheduler port. RT-201 registers capability-protected
 `tagcore/v1/batches` administration routes and a WordPress-native Batch
-administration page. The repository still defines no email provider, OTP flow,
-activation flow, finder relay, or WooCommerce business hook. RT-207 provides
+administration page. RT-304 defines the first activation OTP request and
+WordPress mail adapter, but no OTP verification, login, activation flow,
+finder relay, or WooCommerce business hook. RT-207 provides
 the first audited manufacturing export. The only product tables are the
 RT-102 batches schema,
 the RT-103 tags schema, the RT-104 batch export audit schema, the RT-105
@@ -379,3 +380,19 @@ orders, messages, devices, and locations are excluded.
 RT-303 performs no activation, OTP, Finder message, email, queue, Event,
 database write, Schema or dependency change. Those workflows remain assigned
 to their later milestone tickets.
+
+## RT-304 activation OTP request
+
+RT-304 adds the email form to the eligible activation page. The public request
+stores an encrypted recipient, privacy-safe lookup digests, and an unissued
+placeholder hash, then enqueues only the numeric challenge ID. The Worker
+rechecks operational controls and Tag eligibility before generating a
+six-digit OTP in memory, atomically marking the challenge issued, and
+submitting the transactional email.
+
+Email encryption, lookup HMAC, and OTP pepper use three independent versioned
+32-byte Base64 keys supplied through wp-config constants or matching process
+environment values. Missing keys fail closed. Persistent and atomic limits
+cover email, Tag, direct-peer IP, and global request volume. RT-304 keeps
+Schema version `8` and performs no verification, login, registration,
+ownership assignment, activation, Event append, or WooCommerce operation.

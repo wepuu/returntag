@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 3 public scan state boundary (RT-301 through RT-303 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-304 implemented; schema remains `8`)
 
 
 
@@ -95,6 +95,8 @@ The following tickets are considered implemented in the current baseline:
 
 
 \* RT-303 - Privacy-minimized Tag and Batch state pages
+
+\* RT-304 - Worker-issued activation OTP request
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -512,6 +514,19 @@ RT-303 adds the first public Tag and Batch state resolution:
   controls;
 - no activation, OTP, Finder message, email, queue, Event, write, Schema,
   dependency, plugin-version, or WooCommerce change.
+
+RT-304 adds:
+
+- a labelled, keyboard-accessible email form on eligible activation pages;
+- same-site and nonce checks plus privacy-safe success and error responses;
+- encrypted email and keyed email/IP lookup storage in Schema 8 challenges;
+- durable atomic email, Tag, direct-peer IP, and global request budgets;
+- Action Scheduler work containing only `challenge_id`;
+- Worker-memory six-digit OTP generation with domain-separated peppered
+  password hashing and at-most-once dispatch;
+- seven-day post-expiry challenge retention and bounded daily cleanup;
+- no OTP verification, login, user creation, ownership change, activation,
+  Event, Migration, dependency, plugin-version, or WooCommerce behavior.
 
 
 

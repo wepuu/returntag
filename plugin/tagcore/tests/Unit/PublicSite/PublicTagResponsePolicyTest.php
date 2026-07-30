@@ -51,7 +51,12 @@ final class PublicTagResponsePolicyTest extends TestCase {
 		$headers = $policy->headers_for_method( 'POST' );
 
 		self::assertSame( 405, $policy->status_for( 'POST', PublicTagPageState::FINDER_ENTRY ) );
-		self::assertSame( 'GET, HEAD', $headers['Allow'] );
+		self::assertSame( 'GET, HEAD, POST', $headers['Allow'] );
+		self::assertSame(
+			200,
+			$policy->status_for( 'POST', PublicTagPageState::ACTIVATION_ENTRY, true )
+		);
+		self::assertArrayNotHasKey( 'Allow', $policy->headers_for_method( 'POST', true ) );
 	}
 
 	/**

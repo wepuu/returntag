@@ -20,9 +20,16 @@ final class PublicTagResponsePolicy {
 	 *
 	 * @param string             $method HTTP request method.
 	 * @param PublicTagPageState $state Derived public page state.
+	 * @param bool               $activation_post Whether this is the approved activation mutation.
 	 */
-	public function status_for( string $method, PublicTagPageState $state ): int {
-		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) ) {
+	public function status_for( string $method, PublicTagPageState $state, bool $activation_post = false ): int {
+		$method = strtoupper( $method );
+
+		if ( 'POST' === $method && $activation_post ) {
+			return 200;
+		}
+
+		if ( ! in_array( $method, array( 'GET', 'HEAD' ), true ) ) {
 			return 405;
 		}
 
@@ -37,19 +44,21 @@ final class PublicTagResponsePolicy {
 	 * Return the privacy and indexing controls for the public route.
 	 *
 	 * @param string $method HTTP request method.
+	 * @param bool   $activation_post Whether this is the approved activation mutation.
 	 * @return array<string, string>
 	 */
-	public function headers_for_method( string $method ): array {
+	public function headers_for_method( string $method, bool $activation_post = false ): array {
 		$headers = array(
-			'Cache-Control'          => 'no-store, private',
-			'Pragma'                 => 'no-cache',
-			'Referrer-Policy'        => 'no-referrer',
-			'X-Content-Type-Options' => 'nosniff',
-			'X-Robots-Tag'           => 'noindex, nofollow, noarchive',
+			'Cache-Control'           => 'no-store, private',
+			'Pragma'                  => 'no-cache',
+			'Referrer-Policy'         => 'no-referrer',
+			'X-Content-Type-Options'  => 'nosniff',
+			'X-Robots-Tag'            => 'noindex, nofollow, noarchive',
+			'Content-Security-Policy' => "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 		);
 
-		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) ) {
-			$headers['Allow'] = 'GET, HEAD';
+		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) && ! $activation_post ) {
+			$headers['Allow'] = 'GET, HEAD, POST';
 		}
 
 		return $headers;

@@ -210,3 +210,19 @@ for a server-side equality decision and is not part of the rendered page
 model. The query never selects private item names, Batch codes, emails,
 orders, messages, tokens, scan history, devices, pairing state, or locations.
 It performs no write and requires no new Schema version 8 index.
+
+## 14. RT-304 activation OTP request
+
+| Read or write shape | Predicate and bound | Candidate index |
+|---|---|---|
+| Recent email count | `purpose = 'activation_otp' AND email_lookup = ? AND created_at >= ?` | `purpose_email_created_at` |
+| Recent Tag count | `subject_type = 'tag' AND subject_id = ? AND created_at >= ?` | `subject_created_at` |
+| Worker challenge lock | `challenge_id = ? FOR UPDATE` | `PRIMARY` |
+| Latest open replacement check | purpose, subject, email lookup, `consumed_at IS NULL`, newest one | `purpose_email_created_at` |
+| Atomic issue | primary key plus `send_count=0`, open, unexpired | `PRIMARY` |
+| Retention cleanup | `expires_at < ?`, ordered and limited to `500` | `expires_consumed_at` |
+
+Email and Tag count queries remain bounded by fixed recent windows. Direct IP
+counts do not scan `ip_hash`; atomic IP and global budgets use plugin-owned,
+non-autoloaded WordPress Option buckets under a site-scoped advisory lock.
+Schema remains version `8`.

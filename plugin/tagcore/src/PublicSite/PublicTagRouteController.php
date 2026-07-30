@@ -12,6 +12,7 @@ namespace ReturnTag\TagCore\PublicSite;
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceException;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPage;
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\Domain\Tag\TagId;
@@ -38,6 +39,7 @@ final class PublicTagRouteController {
 	 * @param ResolvePublicTagPage      $pages Public page use case.
 	 * @param SchemaState               $schema_state Current Schema readiness.
 	 * @param PublicTagTemplateRenderer $renderer Standalone page renderer.
+	 * @param ActivationOtpFormHandler  $activation_form Activation OTP form boundary.
 	 */
 	public function __construct(
 		private readonly string $plugin_dir,
@@ -45,7 +47,8 @@ final class PublicTagRouteController {
 		private readonly TagIdInputNormalizer $tag_ids,
 		private readonly ResolvePublicTagPage $pages,
 		private readonly SchemaState $schema_state,
-		private readonly PublicTagTemplateRenderer $renderer
+		private readonly PublicTagTemplateRenderer $renderer,
+		private readonly ActivationOtpFormHandler $activation_form
 	) {
 	}
 
@@ -120,26 +123,44 @@ final class PublicTagRouteController {
 
 		$method = $this->request_method();
 
-		foreach ( $this->responses->headers_for_method( $method ) as $name => $value ) {
-			header( $name . ': ' . $value, true );
-		}
-
 		$redirect_url = $this->canonical_redirect_url( $method );
 
 		if ( null !== $redirect_url ) {
+			foreach ( $this->responses->headers_for_method( $method ) as $name => $value ) {
+				header( $name . ': ' . $value, true );
+			}
+
 			wp_safe_redirect( $redirect_url, 301, 'TagCore' );
 			exit;
 		}
 
-		$page = in_array( $method, array( 'GET', 'HEAD' ), true )
+		$page            = in_array( $method, array( 'GET', 'HEAD', 'POST' ), true )
 			? $this->resolve_page()
 			: PublicTagPage::service_unavailable();
+		$tag_id          = $this->normalized_tag_id();
+		$activation_post = 'POST' === $method
+			&& PublicTagPageState::ACTIVATION_ENTRY === $page->state
+			&& null !== $tag_id;
+		$form_state      = $activation_post
+			? $this->activation_form->submit( $tag_id )
+			: ActivationOtpFormState::READY;
+		$form            = PublicTagPageState::ACTIVATION_ENTRY === $page->state && null !== $tag_id
+			? new ActivationOtpFormView(
+				home_url( '/t/' . rawurlencode( $tag_id->value ) ),
+				wp_create_nonce( ActivationOtpFormHandler::NONCE_ACTION ),
+				$form_state
+			)
+			: null;
 
-		status_header( $this->responses->status_for( $method, $page->state ) );
+		foreach ( $this->responses->headers_for_method( $method, $activation_post ) as $name => $value ) {
+			header( $name . ': ' . $value, true );
+		}
+
+		status_header( $this->responses->status_for( $method, $page->state, $activation_post ) );
 		$this->enqueue_styles();
 
 		try {
-			$this->renderer->render( $page );
+			$this->renderer->render( $page, $form );
 		} catch ( RuntimeException ) {
 			wp_die(
 				esc_html__( 'ReturnTag is temporarily unavailable.', 'tagcore' ),
