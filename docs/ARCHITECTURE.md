@@ -470,9 +470,9 @@ and Migration composition are unchanged.
 
 RT-301 introduces a `PublicSite` transport adapter for `GET /t/{tag_id}`. The
 WordPress rewrite captures exactly one non-empty raw path segment into the
-internal `returntag_tag_id` query variable. It deliberately does not normalize,
-validate, persist, or query that value; RT-302 owns canonical Tag ID input and
-RT-303 owns Tag and Batch state resolution.
+internal `returntag_tag_id` query variable. RT-301 deliberately does not
+normalize, validate, persist, or query that value; RT-302 supplies the
+canonical Tag ID input boundary and RT-303 owns Tag and Batch state resolution.
 
 The route selects a standalone plugin template instead of a theme template.
 This keeps the scan entry point available across theme changes and prevents
@@ -486,3 +486,25 @@ request when the stored rule is missing. No rewrite flush runs on ordinary
 public requests. RT-301 adds no Domain or Application workflow, database read
 or write, Schema change, Option, queue, email, WooCommerce integration, Event,
 dependency, or feature flag.
+
+## RT-302 public Tag ID normalization boundary
+
+RT-302 adds one pure Application normalizer shared by the public route and the
+existing administrative exact-ID search. It accepts at most 64 raw bytes,
+removes Unicode whitespace and hyphens, converts ASCII letters to uppercase,
+and delegates the final exact-length and alphabet decision to the Domain
+`TagId` value object.
+
+`PublicSite` URL-decodes the single captured route segment once before
+normalization. A normalizable noncanonical `GET` or `HEAD` segment receives a
+same-site `301` redirect to `/t/{canonical_tag_id}`. Mutation methods never
+redirect and remain `405`. Invalid input has no canonical value and retains the
+same generic `503` response as a valid canonical input while RT-303 state
+resolution is absent.
+
+The route adapter never exposes the raw or canonical value in the response
+body or ordinary logs. RT-302 performs no Repository call, database query or
+write, state transition, capability decision, Event, queue, email,
+WooCommerce operation, third-party request, template redesign, theme
+integration, Schema change, Option change, dependency change, or feature-flag
+change.

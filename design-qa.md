@@ -1,4 +1,4 @@
-# RT-301 Product Design QA
+# RT-301 / RT-302 Product Design QA
 
 ## Comparison target
 
@@ -105,5 +105,20 @@
   Chromium system-font rendering. Shipping a remote or bundled display font
   solely to imitate that artifact is not justified for this privacy-sensitive
   fallback.
+
+## RT-302 regression extension
+
+- RT-302 intentionally changes routing behavior without changing the selected
+  visual target, template, stylesheet, asset bundle, copy, focus behavior, or
+  responsive layout.
+- Normalizable input redirects to the canonical URL and then renders the same
+  approved fail-closed state. Invalid input renders the same state without a
+  redirect or validation-detail disclosure.
+- The final Chromium, Firefox, WebKit, mobile Chromium, and mobile WebKit run
+  passed all 20 route, privacy-header, canonicalization, mutation-method,
+  keyboard, overflow, navigation, and third-party-request checks.
+- Rebuilding both public and administrative assets produced no tracked visual
+  asset delta, so the existing same-viewport reference comparisons remain the
+  material visual evidence.
 
 final result: passed

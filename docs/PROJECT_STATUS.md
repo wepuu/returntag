@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Awaiting explicit authorization for the next milestone (RT-201 through RT-210 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public scan input boundary (RT-301 and RT-302 implemented; schema remains `8`)
 
 
 
@@ -87,6 +87,10 @@ The following tickets are considered implemented in the current baseline:
 \* RT-209 — Exact Tag ID and Batch Code search with read-only Tag administration
 
 \* RT-210 — Million-row capacity acceptance and Milestone 2 version `0.3.0`
+
+\* RT-301 — Theme-independent public Tag route and fail-closed scan response
+
+\* RT-302 — Bounded public Tag ID normalization and canonical URL handling
 
 
 
@@ -472,6 +476,20 @@ RT-301 adds the first public scan transport boundary:
   approved Product Design direction;
 - no Tag or Batch query, normalization, activation, finder workflow, theme,
   Schema, Option, dependency, Event, or plugin-version change.
+
+RT-302 adds the canonical public Tag ID input boundary:
+
+- one shared Application normalizer that removes whitespace and hyphens,
+  converts ASCII letters to uppercase, and validates the exact six-character
+  alphabet through the Domain `TagId` value;
+- a `64`-byte raw-input limit before normalization;
+- one same-site permanent redirect for normalizable `GET` and `HEAD` route
+  segments, including URL-encoded spaces;
+- no redirect for mutation methods or invalid input;
+- the same generic `503` body for canonical and invalid input until RT-303 owns
+  Tag and Batch state resolution;
+- no Tag or Batch query, existence response, state page, activation, finder
+  workflow, theme, Schema, Option, dependency, Event, or plugin-version change.
 
 
 

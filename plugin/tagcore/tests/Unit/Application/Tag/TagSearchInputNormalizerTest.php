@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Tests\Unit\Application\Tag;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\Application\Tag\TagSearchInputNormalizer;
 
 /**
@@ -23,7 +24,7 @@ final class TagSearchInputNormalizerTest extends TestCase {
 	public function test_normalizes_tag_id_spaces_hyphens_and_case(): void {
 		self::assertSame(
 			'2ABC34',
-			( new TagSearchInputNormalizer() )->tag_id( ' 2a-b c34 ' )->value
+			( new TagSearchInputNormalizer( new TagIdInputNormalizer() ) )->tag_id( ' 2a-b c34 ' )->value
 		);
 	}
 
@@ -36,7 +37,7 @@ final class TagSearchInputNormalizerTest extends TestCase {
 	public function test_rejects_noncanonical_tag_ids( string $value ): void {
 		$this->expectException( InvalidArgumentException::class );
 
-		( new TagSearchInputNormalizer() )->tag_id( $value );
+		( new TagSearchInputNormalizer( new TagIdInputNormalizer() ) )->tag_id( $value );
 	}
 
 	/**
@@ -59,7 +60,7 @@ final class TagSearchInputNormalizerTest extends TestCase {
 	public function test_trims_but_preserves_batch_code_case(): void {
 		self::assertSame(
 			'Rt-209-Batch',
-			( new TagSearchInputNormalizer() )->batch_code( '  Rt-209-Batch  ' )
+			( new TagSearchInputNormalizer( new TagIdInputNormalizer() ) )->batch_code( '  Rt-209-Batch  ' )
 		);
 	}
 }

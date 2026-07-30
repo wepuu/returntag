@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\PublicSite;
 
+use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
+
 /**
  * Wires the public Tag route into WordPress.
  */
@@ -21,7 +23,8 @@ final class PublicSiteBootstrap {
 	public static function register( string $plugin_file ): void {
 		$route = new PublicTagRouteController(
 			dirname( $plugin_file ),
-			new PublicTagResponsePolicy()
+			new PublicTagResponsePolicy(),
+			new TagIdInputNormalizer()
 		);
 
 		$route->register_hooks();

@@ -794,3 +794,11 @@ Fresh installation and upgrade behavior remain the contiguous `0001` through
 `0008` Migration chain. Retry, idempotency, lock, uninstall, and rollback
 behavior are unchanged. Code rollback to `0.2.0` retains all Schema version 8
 tables and data.
+
+## 14. RT-302 public input boundary
+
+RT-302 changes Schema version `8` to `8`: it adds no Migration, table, column,
+index, Option, lock, query, or write. Public Tag ID normalization completes
+before any future Repository boundary and does not test whether a canonical ID
+exists. Fresh installation, upgrade, retry, idempotency, retention, uninstall,
+and database rollback behavior are unchanged.

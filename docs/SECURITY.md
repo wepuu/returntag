@@ -467,3 +467,24 @@ receives the same status and content. It does not notify owners, activate Tags,
 create finder conversations, process email, read private fields, or append
 Events. Disabling TagCore removes the route; removing its rewrite rule and
 flushing once is the operational rollback.
+
+## 16. RT-302 public Tag ID input controls
+
+RT-302 accepts at most 64 bytes at the shared Tag ID input boundary. It removes
+whitespace and hyphens, uppercases ASCII letters, and then requires exactly six
+characters from `23456789ABCDEFGHJKLMNPQRSTUVWXYZ`. Malformed UTF-8, excluded
+characters, unsupported punctuation, and over-limit input fail closed.
+
+The public adapter URL-decodes the single route segment once. Normalizable
+`GET` and `HEAD` inputs redirect only to a same-site URL built from the
+validated canonical value. Mutation methods do not redirect. Invalid input
+does not disclose which validation rule failed and receives the same generic
+`503` body and privacy headers as canonical input until RT-303 implements
+state resolution.
+
+Neither raw nor normalized Tag IDs are rendered, logged, added to headers
+other than the canonical same-site `Location`, queried, persisted, or passed
+to a mutation. RT-302 adds no existence oracle, authentication decision,
+owner or finder notification, rate-limit storage, Event, personal data,
+secret, external request, or new kill switch. Disabling TagCore remains the
+operational containment and rollback control.

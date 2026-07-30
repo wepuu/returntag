@@ -358,3 +358,16 @@ email, WooCommerce action, or external request. Code rollback is
 database-compatible: deactivate TagCore or restore compatible code and flush
 rewrite rules once to remove the route. No generated identifier, Batch,
 Export, ownership record, or audit evidence may be deleted during rollback.
+
+RT-302 leaves project and plugin version `0.3.0` and Schema version `8`
+unchanged. Deployment must confirm that lowercase, whitespace-formatted, and
+hyphenated `GET` or `HEAD` inputs redirect once to the canonical uppercase
+six-character URL; canonical and invalid inputs retain the generic `503`;
+mutation methods remain `405` without a redirect; and no Tag ID is reflected
+in the response body.
+
+RT-302 performs no Migration, query, write, Event, queue, email, WooCommerce
+action, external request, or asset change. Code rollback removes canonical
+redirect behavior while preserving the RT-301 route and all stored data.
+Disabling TagCore remains the immediate containment action. No generated
+identifier or audit evidence may be deleted or reused.
