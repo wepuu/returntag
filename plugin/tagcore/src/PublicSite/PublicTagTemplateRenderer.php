@@ -29,26 +29,28 @@ final readonly class PublicTagTemplateRenderer {
 	/**
 	 * Render one standalone page to the active response.
 	 *
-	 * @param PublicTagPage $page Privacy-minimized Application view model.
+	 * @param PublicTagPage              $page Privacy-minimized Application view model.
+	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
 	 */
-	public function render( PublicTagPage $page ): void {
-		echo $this->render_to_string( $page ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The standalone template escapes every value for its output context.
+	public function render( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null ): void {
+		echo $this->render_to_string( $page, $activation_form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The standalone template escapes every value for its output context.
 	}
 
 	/**
 	 * Render one page into a testable HTML string.
 	 *
-	 * @param PublicTagPage $page Privacy-minimized Application view model.
+	 * @param PublicTagPage              $page Privacy-minimized Application view model.
+	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
 	 * @throws RuntimeException When the packaged template cannot be read.
 	 */
-	public function render_to_string( PublicTagPage $page ): string {
+	public function render_to_string( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null ): string {
 		$template = $this->plugin_dir . '/templates/public/tag-page.php';
 
 		if ( ! is_readable( $template ) ) {
 			throw new RuntimeException( 'The public Tag template is unavailable.' );
 		}
 
-		$view = $this->present( $page );
+		$view = $this->present( $page, $activation_form );
 
 		ob_start();
 		require $template;
@@ -60,9 +62,10 @@ final readonly class PublicTagTemplateRenderer {
 	/**
 	 * Map state and approved public values to presentation-only copy.
 	 *
-	 * @param PublicTagPage $page Privacy-minimized Application view model.
+	 * @param PublicTagPage              $page Privacy-minimized Application view model.
+	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
 	 */
-	private function present( PublicTagPage $page ): PublicTagPageView {
+	private function present( PublicTagPage $page, ?ActivationOtpFormView $activation_form ): PublicTagPageView {
 		$copy = match ( $page->state ) {
 			PublicTagPageState::INVALID => array(
 				__( 'Tag recovery', 'tagcore' ),
@@ -121,7 +124,8 @@ final readonly class PublicTagTemplateRenderer {
 			$this->product_type_label( $page->tag_type ),
 			$page->public_label,
 			$page->lost_mode,
-			$page->lost_message
+			$page->lost_message,
+			$activation_form
 		);
 	}
 

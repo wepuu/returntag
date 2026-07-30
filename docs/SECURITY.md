@@ -38,7 +38,7 @@ Encryption keys must not be stored in the same database as encrypted content.
 
 ## 4. Authentication and challenges
 
-Future passwordless email OTP flows must use a dedicated challenge record, not
+Passwordless email OTP flows must use a dedicated challenge record, not
 only a WordPress Transient. Store a secure code hash, bounded expiry, attempt
 count, send count, consumption state, purpose, and privacy-safe rate-limit keys.
 
@@ -522,3 +522,32 @@ Every response retains `Cache-Control: no-store, private`, `Pragma: no-cache`,
 `X-Robots-Tag: noindex, nofollow, noarchive`. The standalone page loads only
 the local TagCore stylesheet. `GET` and `HEAD` perform no write, notification,
 Event, queue, email, or token action; mutation methods remain `405`.
+
+## 18. RT-304 activation OTP request controls
+
+The public request never creates OTP plaintext. It validates one bounded ASCII
+email, a direct-peer IP from `REMOTE_ADDR`, same-site browser signals, and an
+anonymous WordPress nonce. Forwarding headers are ignored unless a future
+trusted-proxy policy is approved. Generic accepted feedback is identical for
+queued and throttled requests.
+
+Persistent challenge counts and atomic durable buckets enforce minute, hour,
+and daily email limits; minute and hour IP limits; Tag budgets; and global
+queue budgets. Bucket keys contain only hashes and expiry, never email or raw
+IP. Lock or storage failure fails closed.
+
+The queue stores only `challenge_id`. The Worker rechecks global activation,
+email dispatch, Tag status, Batch release, and Batch activation before
+generating a six-digit OTP in memory. It HMACs the code with an external
+dedicated pepper and issued-domain prefix before adaptive password hashing.
+The challenge is claimed before email submission, and repeats are no-ops.
+
+Email ciphertext uses XChaCha20-Poly1305 with purpose, Tag, and version as
+associated data. Email encryption, lookup HMAC, and OTP pepper use independent
+versioned keys outside WordPress and its database. Missing keys fail closed.
+No OTP, email, ciphertext, digest, or full Tag ID is sent to logs or Events.
+
+The public page adds a restrictive local-only Content Security Policy and
+retains no-store, no-referrer, and no-index controls. `wp_mail()` acceptance is
+not treated as delivery. RT-304 performs no code verification, authentication,
+account creation, ownership assignment, or activation.

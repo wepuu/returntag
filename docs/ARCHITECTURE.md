@@ -538,3 +538,28 @@ Templates receive a pre-decided render view and do not query, authorize, or
 derive business state. RT-303 introduces no theme, state transition, write,
 Event, queue, email, WooCommerce operation, Migration, dependency, or new
 feature flag.
+
+## 19. RT-304 activation OTP request
+
+`PublicSite` accepts `POST /t/{tag_id}` only for a server-resolved activation
+entry. The adapter validates the anonymous WordPress nonce, same-site browser
+signals, bounded ASCII email, and direct peer IP, then invokes Application.
+Templates render labels, validation feedback, and generic accepted/error
+states but never create challenges, schedule work, or handle cryptography.
+
+Application reuses the RT-303 public state resolver, global activation and
+email-dispatch flags, an OTP-specific persistence port, an atomic rate-limit
+port, and a challenge scheduler. The request service persists an unissued
+challenge before scheduling. The dispatch service runs only in the Worker,
+generates the plaintext OTP in memory, atomically claims the latest challenge,
+decrypts the recipient, and invokes a transactional email port.
+
+Infrastructure supplies XChaCha20-Poly1305 email encryption, separate keyed
+email/IP lookup, domain-separated peppered OTP password hashes, Schema-8
+challenge queries, durable WordPress Option limiter buckets, Action Scheduler,
+and `wp_mail()`. The OTP action argument is exactly `challenge_id`. Key
+material remains outside WordPress and its database.
+
+The design adds no Migration, Event, login, user provisioning, ownership
+mutation, Tag activation, Finder message, or WooCommerce behavior. ADR 0012
+records the Worker-issued and at-most-once dispatch decision.

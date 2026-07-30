@@ -34,6 +34,9 @@ test.describe( 'RT-303 public Tag state pages', () => {
 		expect( response?.headers()[ 'x-robots-tag' ] ).toBe(
 			'noindex, nofollow, noarchive'
 		);
+		expect( response?.headers()[ 'content-security-policy' ] ).toContain(
+			"default-src 'none'"
+		);
 
 		await expect(
 			page.getByRole( 'heading', {
@@ -99,7 +102,7 @@ test.describe( 'RT-303 public Tag state pages', () => {
 		} );
 
 		expect( response.status() ).toBe( 405 );
-		expect( response.headers().allow ).toBe( 'GET, HEAD' );
+		expect( response.headers().allow ).toBe( 'GET, HEAD, POST' );
 		expect( response.headers().location ).toBeUndefined();
 	} );
 

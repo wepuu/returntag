@@ -39,6 +39,58 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php echo esc_html( $view->message ); ?>
 			</p>
 
+			<?php if ( null !== $view->activation_form ) : ?>
+				<div class="returntag-public__activation">
+					<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACCEPTED === $view->activation_form->state ) : ?>
+						<div class="returntag-public__notice returntag-public__notice--success" role="status">
+							<h2><?php esc_html_e( 'Check your email', 'tagcore' ); ?></h2>
+							<p><?php esc_html_e( 'If this request is eligible, a six-digit code is on its way. It will expire in 10 minutes.', 'tagcore' ); ?></p>
+						</div>
+					<?php else : ?>
+						<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ERROR === $view->activation_form->state ) : ?>
+							<div class="returntag-public__notice returntag-public__notice--error" role="alert">
+								<p><?php esc_html_e( 'We could not send a code right now. Please wait and try again.', 'tagcore' ); ?></p>
+							</div>
+						<?php endif; ?>
+
+						<form class="returntag-public__form" method="post" action="<?php echo esc_url( $view->activation_form->action_url ); ?>">
+							<div class="returntag-public__field">
+								<label for="returntag-activation-email"><?php esc_html_e( 'Email address', 'tagcore' ); ?></label>
+								<p id="returntag-activation-email-help" class="returntag-public__field-help">
+									<?php esc_html_e( 'We will send a six-digit verification code. Your email is not shown publicly.', 'tagcore' ); ?>
+								</p>
+								<input
+									id="returntag-activation-email"
+									name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler::EMAIL_FIELD ); ?>"
+									type="email"
+									inputmode="email"
+									autocomplete="email"
+									aria-describedby="returntag-activation-email-help<?php echo ReturnTag\TagCore\PublicSite\ActivationOtpFormState::INVALID_EMAIL === $view->activation_form->state ? ' returntag-activation-email-error' : ''; ?>"
+									aria-invalid="<?php echo ReturnTag\TagCore\PublicSite\ActivationOtpFormState::INVALID_EMAIL === $view->activation_form->state ? 'true' : 'false'; ?>"
+									maxlength="254"
+									required
+								>
+								<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::INVALID_EMAIL === $view->activation_form->state ) : ?>
+									<p id="returntag-activation-email-error" class="returntag-public__field-error" role="alert">
+										<?php esc_html_e( 'Enter a valid email address.', 'tagcore' ); ?>
+									</p>
+								<?php endif; ?>
+							</div>
+
+							<input
+								type="hidden"
+								name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler::NONCE_FIELD ); ?>"
+								value="<?php echo esc_attr( $view->activation_form->nonce ); ?>"
+							>
+
+							<button class="returntag-public__submit" type="submit">
+								<?php esc_html_e( 'Email me a code', 'tagcore' ); ?>
+							</button>
+						</form>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
 			<?php if ( null !== $view->product_type_label || null !== $view->public_label ) : ?>
 				<dl class="returntag-public__details">
 					<?php if ( null !== $view->product_type_label ) : ?>

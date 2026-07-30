@@ -9,12 +9,22 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
+use DateInterval;
+use DateTimeImmutable;
+use DateTimeZone;
+use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
 use ReturnTag\TagCore\Application\FeatureFlag;
+use ReturnTag\TagCore\Application\Persistence\Record\NewAuthChallengeRecord;
+use ReturnTag\TagCore\Application\Persistence\Value\LookupDigest;
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPage;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
+use ReturnTag\TagCore\Domain\Auth\EmailAddress;
+use ReturnTag\TagCore\Domain\Tag\TagId;
+use ReturnTag\TagCore\Domain\Tag\TagType;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
@@ -22,9 +32,19 @@ use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbActivationOtpRequestStore;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAuthChallengeRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
+use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
+use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
+use ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler;
+use ReturnTag\TagCore\PublicSite\ActivationOtpFormState;
+use ReturnTag\TagCore\PublicSite\ActivationOtpFormView;
 use ReturnTag\TagCore\PublicSite\PublicRewriteLifecycle;
 use ReturnTag\TagCore\PublicSite\PublicTagResponsePolicy;
 use ReturnTag\TagCore\PublicSite\PublicTagRouteController;
@@ -105,7 +125,8 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			new TagIdInputNormalizer(),
 			$pages,
 			$schema_state,
-			$this->renderer
+			$this->renderer,
+			new ActivationOtpFormHandler( null )
 		);
 
 		$this->original_permalink_structure = (string) $wp_rewrite->permalink_structure;
@@ -129,6 +150,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		flush_rewrite_rules( false );
 		delete_option( FeatureFlag::GLOBAL_ACTIVATION->value );
 		delete_option( FeatureFlag::FINDER_CONTACT->value );
+		$this->clear_rate_limit_options( $wpdb );
 		wp_set_current_user( 0 );
 		$this->clear_schema( $wpdb );
 
@@ -198,6 +220,102 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 
 		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '0', false );
 		self::assertSame( PublicTagPageState::ACTIVATION_UNAVAILABLE, $this->route->resolve_page()->state );
+	}
+
+	/**
+	 * Activation entry renders one labelled, privacy-safe email form.
+	 */
+	public function test_activation_entry_form_is_accessible_and_does_not_reflect_email(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::READY
+			)
+		);
+
+		self::assertStringContainsString( '<label for="returntag-activation-email">Email address</label>', $html );
+		self::assertStringContainsString( 'autocomplete="email"', $html );
+		self::assertStringContainsString( 'Email me a code', $html );
+		self::assertStringNotContainsString( 'owner@example.test', $html );
+	}
+
+	/**
+	 * Replacement consumes the old challenge and dispatch claim is idempotent.
+	 */
+	public function test_activation_otp_replacement_and_dispatch_claim_are_idempotent(): void {
+		$protector = $this->otp_protector();
+		$tag_id    = TagId::from_canonical( 'A7R2W9' );
+		$email     = new EmailAddress( 'owner@example.test' );
+		$now       = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+		$store     = $this->otp_store();
+		$first     = $store->create_replacing( $this->otp_challenge( $protector, $tag_id, $email, $now ) );
+		$second    = $store->create_replacing(
+			$this->otp_challenge( $protector, $tag_id, $email, $now->add( new DateInterval( 'PT61S' ) ) )
+		);
+
+		self::assertNotNull( $store->find_by_id( $first->challenge_id )?->data->consumed_at );
+		self::assertSame( 2, $store->count_recent_for_email( $protector->email_lookup( $email ), $now ) );
+		$issued = $store->claim_for_dispatch(
+			$second->challenge_id,
+			$protector->hash_code( '123456' ),
+			$now->add( new DateInterval( 'PT10M' ) ),
+			$now
+		);
+
+		self::assertNotNull( $issued );
+		self::assertSame( 1, $issued->data->send_count );
+		self::assertNull(
+			$store->claim_for_dispatch(
+				$second->challenge_id,
+				$protector->hash_code( '654321' ),
+				$now->add( new DateInterval( 'PT10M' ) ),
+				$now
+			)
+		);
+	}
+
+	/**
+	 * Action Scheduler persists exactly one numeric challenge argument.
+	 */
+	public function test_activation_otp_scheduler_persists_only_challenge_id(): void {
+		$scheduler = new ActionSchedulerActivationOtpScheduler();
+		$args      = array( 'challenge_id' => 42 );
+		$scheduler->schedule( 42 );
+
+		$action_id = \ActionScheduler::store()->query_action(
+			array(
+				'hook'   => ActionSchedulerActivationOtpScheduler::HOOK,
+				'args'   => $args,
+				'group'  => ActionSchedulerActivationOtpScheduler::GROUP,
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			)
+		);
+		self::assertIsInt( $action_id );
+		self::assertSame( $args, \ActionScheduler::store()->fetch_action( $action_id )->get_args() );
+
+		as_unschedule_action(
+			ActionSchedulerActivationOtpScheduler::HOOK,
+			$args,
+			ActionSchedulerActivationOtpScheduler::GROUP
+		);
+	}
+
+	/**
+	 * Durable buckets reject a second same-email request in one minute.
+	 */
+	public function test_activation_otp_rate_limiter_is_atomic_for_email(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionActivationOtpRateLimiter( $wpdb, get_current_blog_id() );
+		$now     = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+		$ip      = LookupDigest::from_digest( hash( 'sha256', 'ip-fixture' ) );
+		$email   = LookupDigest::from_digest( hash( 'sha256', 'email-fixture' ) );
+		$tag_id  = TagId::from_canonical( 'A7R2W9' );
+
+		self::assertTrue( $limiter->reserve( $ip, $email, $tag_id, $now ) );
+		self::assertFalse( $limiter->reserve( $ip, $email, $tag_id, $now->add( new DateInterval( 'PT1S' ) ) ) );
 	}
 
 	/**
@@ -433,6 +551,89 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			'updated_at' => '2026-07-30 00:00:00',
 			'item_name'  => 'PRIVATE-ITEM-NAME',
 		);
+	}
+
+	/**
+	 * Build the production Schema-8 OTP store.
+	 */
+	private function otp_store(): WpdbActivationOtpRequestStore {
+		global $wpdb;
+
+		$gateway = new WpdbGateway( $wpdb );
+		$dates   = new DatabaseDateTimeCodec();
+
+		return new WpdbActivationOtpRequestStore(
+			$gateway,
+			$this->tables,
+			$dates,
+			new WpdbAuthChallengeRepository( $gateway, $this->tables, $dates ),
+			new WpdbTransactionManager( $wpdb )
+		);
+	}
+
+	/**
+	 * Build one unissued challenge fixture.
+	 *
+	 * @param SodiumActivationOtpProtector $protector Test crypto.
+	 * @param TagId                        $tag_id Public Tag.
+	 * @param EmailAddress                 $email Canonical email.
+	 * @param DateTimeImmutable            $now Creation time.
+	 */
+	private function otp_challenge(
+		SodiumActivationOtpProtector $protector,
+		TagId $tag_id,
+		EmailAddress $email,
+		DateTimeImmutable $now
+	): NewAuthChallengeRecord {
+		return new NewAuthChallengeRecord(
+			RequestActivationOtp::PURPOSE,
+			RequestActivationOtp::SUBJECT_TYPE,
+			$tag_id->value,
+			$protector->encrypt_email( $email, $tag_id ),
+			$protector->email_lookup( $email ),
+			$protector->placeholder_hash(),
+			0,
+			0,
+			$protector->ip_lookup( '192.0.2.4' ),
+			$now->add( new DateInterval( 'PT10M' ) ),
+			null,
+			null,
+			$now
+		);
+	}
+
+	/**
+	 * Build deterministic test-only crypto.
+	 */
+	private function otp_protector(): SodiumActivationOtpProtector {
+		return new SodiumActivationOtpProtector(
+			ActivationOtpSecrets::from_keys(
+				str_repeat( 'e', 32 ),
+				str_repeat( 'l', 32 ),
+				str_repeat( 'p', 32 )
+			)
+		);
+	}
+
+	/**
+	 * Delete only expired-test limiter options.
+	 *
+	 * @param wpdb $database Test database.
+	 */
+	private function clear_rate_limit_options( wpdb $database ): void {
+		$like = $database->esc_like( WordPressOptionActivationOtpRateLimiter::OPTION_PREFIX ) . '%';
+		$sql  = $database->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $database->options, $like );
+
+		if ( ! is_string( $sql ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above for isolated plugin-owned fixture cleanup.
+		foreach ( $database->get_col( $sql ) as $option_name ) {
+			if ( is_string( $option_name ) ) {
+				delete_option( $option_name );
+			}
+		}
 	}
 
 	/**

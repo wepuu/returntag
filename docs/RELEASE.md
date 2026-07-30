@@ -385,3 +385,18 @@ WooCommerce action, token exchange, activation, or Finder message. Code
 rollback restores the RT-302 generic response and is fully compatible with
 Schema version `8`. Disabling TagCore remains the immediate containment
 action, and rollback must not delete or reuse any Tag ID or audit evidence.
+
+RT-304 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Deployment must provide three independent versioned 32-byte Base64 keys for
+email encryption, lookup HMAC, and OTP pepper before enabling global
+activation and email dispatch. Acceptance must verify the activation form,
+same-site/nonce rejection, persistent and atomic limits, challenge-ID-only
+queue arguments, Worker-memory OTP generation, at-most-once dispatch, privacy
+headers, and bounded retention cleanup.
+
+Contain an incident first with `returntag_email_dispatch_enabled=0`, then
+disable global activation if necessary. Code rollback removes the form,
+Worker, and cleanup hooks without a database rollback. Existing challenge rows
+and rate-limit Options remain opaque and may expire; never expose, decrypt for
+support, or reconstruct OTP values. Action Scheduler requires a real Cron or
+WP-CLI runner and monitoring of the `returntag-activation-otp` group.
