@@ -11,6 +11,8 @@ namespace ReturnTag\TagCore\Infrastructure\Persistence;
 
 use DateTimeImmutable;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpRequestStore;
+use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult;
+use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationStore;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceException;
 use ReturnTag\TagCore\Application\Persistence\Record\AuthChallengeRecord;
@@ -24,7 +26,7 @@ use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 /**
  * Implements indexed counts and atomic unissued-to-issued transitions.
  */
-final readonly class WpdbActivationOtpRequestStore implements ActivationOtpRequestStore {
+final readonly class WpdbActivationOtpRequestStore implements ActivationOtpRequestStore, ActivationOtpVerificationStore {
 	/**
 	 * Create the workflow store.
 	 *
@@ -182,6 +184,157 @@ final readonly class WpdbActivationOtpRequestStore implements ActivationOtpReque
 				);
 
 				return 1 === $updated ? $this->challenges->find_by_id( $challenge_id ) : null;
+			}
+		);
+	}
+
+	/**
+	 * Determine whether the latest matching challenge may allocate email scope.
+	 *
+	 * The authoritative verification still repeats these checks under the row
+	 * lock, so a concurrent terminal transition fails safely.
+	 *
+	 * @param TagId             $tag_id Public Tag.
+	 * @param LookupDigest      $email_lookup Keyed email digest.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 * @param int               $maximum_attempts Hard attempt ceiling.
+	 * @throws \InvalidArgumentException When the attempt ceiling is invalid.
+	 * @throws PersistenceException When the latest identifier is invalid.
+	 */
+	public function has_verifiable_latest(
+		TagId $tag_id,
+		LookupDigest $email_lookup,
+		DateTimeImmutable $now,
+		int $maximum_attempts
+	): bool {
+		if ( $maximum_attempts < 1 ) {
+			throw new \InvalidArgumentException( 'Maximum attempts must be positive.' );
+		}
+
+		$latest = $this->gateway->row(
+			'SELECT challenge_id FROM %i WHERE purpose = %s AND subject_type = %s AND subject_id = %s AND email_lookup = %s ORDER BY created_at DESC, challenge_id DESC LIMIT 1',
+			array(
+				$this->tables->auth_challenges(),
+				RequestActivationOtp::PURPOSE,
+				RequestActivationOtp::SUBJECT_TYPE,
+				$tag_id->value,
+				$email_lookup->value,
+			)
+		);
+
+		if ( null === $latest ) {
+			return false;
+		}
+
+		$challenge_id = $latest['challenge_id'] ?? null;
+
+		if ( ! is_int( $challenge_id ) && ! ( is_string( $challenge_id ) && ctype_digit( $challenge_id ) ) ) {
+			throw new PersistenceException( 'Persistence identifier is invalid.' );
+		}
+
+		$challenge = $this->challenges->find_by_id( (int) $challenge_id );
+
+		return null !== $challenge
+			&& 1 === $challenge->data->send_count
+			&& null === $challenge->data->verified_at
+			&& null === $challenge->data->consumed_at
+			&& $challenge->data->expires_at > $now
+			&& $challenge->data->attempt_count < $maximum_attempts;
+	}
+
+	/**
+	 * Verify the latest issued matching challenge under a row lock.
+	 *
+	 * @param TagId                   $tag_id Public Tag.
+	 * @param LookupDigest            $email_lookup Keyed email digest.
+	 * @param DateTimeImmutable       $now Current UTC time.
+	 * @param int                     $maximum_attempts Hard attempt ceiling.
+	 * @param callable(OtpHash): bool $matches Constant-time code comparison.
+	 * @throws \InvalidArgumentException When the attempt ceiling is invalid.
+	 */
+	public function verify_latest(
+		TagId $tag_id,
+		LookupDigest $email_lookup,
+		DateTimeImmutable $now,
+		int $maximum_attempts,
+		callable $matches
+	): ActivationOtpVerificationResult {
+		if ( $maximum_attempts < 1 ) {
+			throw new \InvalidArgumentException( 'Maximum attempts must be positive.' );
+		}
+
+		return $this->transactions->transactional(
+			function () use ( $tag_id, $email_lookup, $now, $maximum_attempts, $matches ): ActivationOtpVerificationResult {
+				$latest = $this->gateway->row(
+					'SELECT challenge_id FROM %i WHERE purpose = %s AND subject_type = %s AND subject_id = %s AND email_lookup = %s ORDER BY created_at DESC, challenge_id DESC LIMIT 1 FOR UPDATE',
+					array(
+						$this->tables->auth_challenges(),
+						RequestActivationOtp::PURPOSE,
+						RequestActivationOtp::SUBJECT_TYPE,
+						$tag_id->value,
+						$email_lookup->value,
+					)
+				);
+
+				if ( null === $latest ) {
+					return ActivationOtpVerificationResult::INVALID;
+				}
+
+				$challenge_id = $latest['challenge_id'] ?? null;
+
+				if ( ! is_int( $challenge_id ) && ! ( is_string( $challenge_id ) && ctype_digit( $challenge_id ) ) ) {
+					throw new PersistenceException( 'Persistence identifier is invalid.' );
+				}
+
+				$challenge = $this->challenges->find_by_id( (int) $challenge_id );
+
+				if (
+					null === $challenge
+					|| 1 !== $challenge->data->send_count
+					|| null !== $challenge->data->verified_at
+					|| null !== $challenge->data->consumed_at
+					|| $challenge->data->expires_at <= $now
+					|| $challenge->data->attempt_count >= $maximum_attempts
+				) {
+					return ActivationOtpVerificationResult::INVALID;
+				}
+
+				if ( ! $matches( $challenge->data->code_hash ) ) {
+					$updated = $this->gateway->execute(
+						'UPDATE %i SET attempt_count = attempt_count + 1 WHERE challenge_id = %d AND attempt_count = %d AND attempt_count < %d AND send_count = 1 AND verified_at IS NULL AND consumed_at IS NULL AND expires_at > %s',
+						array(
+							$this->tables->auth_challenges(),
+							$challenge->challenge_id,
+							$challenge->data->attempt_count,
+							$maximum_attempts,
+							$this->dates->format( $now ),
+						)
+					);
+
+					if ( 1 !== $updated ) {
+						throw new PersistenceException( 'OTP attempt could not be recorded.' );
+					}
+
+					return ActivationOtpVerificationResult::INVALID;
+				}
+
+				$updated = $this->gateway->execute(
+					'UPDATE %i SET verified_at = %s, consumed_at = %s WHERE challenge_id = %d AND attempt_count < %d AND send_count = 1 AND verified_at IS NULL AND consumed_at IS NULL AND expires_at > %s',
+					array(
+						$this->tables->auth_challenges(),
+						$this->dates->format( $now ),
+						$this->dates->format( $now ),
+						$challenge->challenge_id,
+						$maximum_attempts,
+						$this->dates->format( $now ),
+					)
+				);
+
+				if ( 1 !== $updated ) {
+					throw new PersistenceException( 'OTP verification could not be completed.' );
+				}
+
+				return ActivationOtpVerificationResult::VERIFIED;
 			}
 		);
 	}

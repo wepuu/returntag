@@ -551,3 +551,32 @@ The public page adds a restrictive local-only Content Security Policy and
 retains no-store, no-referrer, and no-index controls. `wp_mail()` acceptance is
 not treated as delivery. RT-304 performs no code verification, authentication,
 account creation, ownership assignment, or activation.
+
+## 19. RT-305 activation OTP verification controls
+
+The verification boundary accepts only a canonical email, exactly six ASCII
+digits, and the direct peer IP after anonymous nonce and same-site validation.
+It re-derives keyed lookup values; the browser receives no internal challenge
+ID and retains no email or code in a URL, cookie, hidden field, rendered value,
+log, or Event.
+
+Before any password-hash comparison, the locked latest challenge must be
+issued, unexpired, unverified, unconsumed, and below five attempts. Wrong codes
+increment the attempt count under the same lock. A match atomically consumes
+the challenge while marking it verified, so concurrent requests and replays
+fail.
+
+Separate atomic minute/hour verification budgets apply to keyed email, keyed
+direct-peer IP, Tag, and global scopes. IP, Tag, and global capacity is reserved
+before challenge lookup; keyed-email capacity is allocated only after an
+eligible latest challenge is found. The locked verification transition repeats
+every eligibility predicate, so the preliminary read grants no authority and
+unknown identities cannot create durable email buckets. Public responses
+intentionally do not distinguish malformed input, unknown email, missing
+challenge, mismatch, expiry, replay, attempt exhaustion, throttling, lock
+failure, or key failure.
+
+Successful verification is not authentication and grants no authorization.
+RT-305 creates no account, session, owner assignment, Tag activation, access
+token, Event, queue work, or email. Disabling global activation is the kill
+switch for both OTP request and verification.

@@ -13,9 +13,11 @@ use DateInterval;
 use DateTimeImmutable;
 use DateTimeZone;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
+use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\Persistence\Record\NewAuthChallengeRecord;
 use ReturnTag\TagCore\Application\Persistence\Value\LookupDigest;
+use ReturnTag\TagCore\Application\Persistence\Value\OtpHash;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPage;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
@@ -39,6 +41,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
@@ -126,7 +129,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			$pages,
 			$schema_state,
 			$this->renderer,
-			new ActivationOtpFormHandler( null )
+			new ActivationOtpFormHandler( null, null )
 		);
 
 		$this->original_permalink_structure = (string) $wp_rewrite->permalink_structure;
@@ -223,7 +226,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Activation entry renders one labelled, privacy-safe email form.
+	 * Activation entry renders labelled request and verification forms.
 	 */
 	public function test_activation_entry_form_is_accessible_and_does_not_reflect_email(): void {
 		$html = $this->renderer->render_to_string(
@@ -237,7 +240,12 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 
 		self::assertStringContainsString( '<label for="returntag-activation-email">Email address</label>', $html );
 		self::assertStringContainsString( 'autocomplete="email"', $html );
+		self::assertStringContainsString( 'autocomplete="one-time-code"', $html );
+		self::assertStringContainsString( 'pattern="[0-9]{6}"', $html );
+		self::assertStringContainsString( 'value="request_code"', $html );
+		self::assertStringContainsString( 'value="verify_code"', $html );
 		self::assertStringContainsString( 'Email me a code', $html );
+		self::assertStringContainsString( 'Verify code', $html );
 		self::assertStringNotContainsString( 'owner@example.test', $html );
 	}
 
@@ -272,6 +280,98 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 				$protector->hash_code( '654321' ),
 				$now->add( new DateInterval( 'PT10M' ) ),
 				$now
+			)
+		);
+	}
+
+	/**
+	 * Issued challenges enforce attempts, expiry, one-time use, and issuance.
+	 */
+	public function test_activation_otp_verification_is_atomic_and_one_time(): void {
+		$protector = $this->otp_protector();
+		$tag_id    = TagId::from_canonical( 'A7R2W9' );
+		$email     = new EmailAddress( 'owner@example.test' );
+		$now       = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+		$store     = $this->otp_store();
+		$unissued  = $store->create_replacing( $this->otp_challenge( $protector, $tag_id, $email, $now ) );
+		$lookup    = $protector->email_lookup( $email );
+		$matches   = static fn( OtpHash $hash ): bool => $protector->verify_code( '123456', $hash );
+
+		self::assertFalse( $store->has_verifiable_latest( $tag_id, $lookup, $now, 5 ) );
+		self::assertSame(
+			ActivationOtpVerificationResult::INVALID,
+			$store->verify_latest( $tag_id, $lookup, $now, 5, $matches )
+		);
+		self::assertSame( 0, $store->find_by_id( $unissued->challenge_id )?->data->attempt_count );
+
+		self::assertNotNull(
+			$store->claim_for_dispatch(
+				$unissued->challenge_id,
+				$protector->hash_code( '123456' ),
+				$now->add( new DateInterval( 'PT10M' ) ),
+				$now
+			)
+		);
+		self::assertTrue( $store->has_verifiable_latest( $tag_id, $lookup, $now, 5 ) );
+
+		$wrong = static fn( OtpHash $hash ): bool => $protector->verify_code( '654321', $hash );
+
+		for ( $attempt = 1; $attempt <= 5; ++$attempt ) {
+			self::assertSame(
+				ActivationOtpVerificationResult::INVALID,
+				$store->verify_latest( $tag_id, $lookup, $now, 5, $wrong )
+			);
+			self::assertSame( $attempt, $store->find_by_id( $unissued->challenge_id )?->data->attempt_count );
+		}
+
+		self::assertFalse( $store->has_verifiable_latest( $tag_id, $lookup, $now, 5 ) );
+		self::assertSame(
+			ActivationOtpVerificationResult::INVALID,
+			$store->verify_latest( $tag_id, $lookup, $now, 5, $matches )
+		);
+
+		$issued_at = $now->add( new DateInterval( 'PT1M' ) );
+		$second    = $store->create_replacing( $this->otp_challenge( $protector, $tag_id, $email, $issued_at ) );
+		self::assertNotNull(
+			$store->claim_for_dispatch(
+				$second->challenge_id,
+				$protector->hash_code( '123456' ),
+				$issued_at->add( new DateInterval( 'PT10M' ) ),
+				$issued_at
+			)
+		);
+
+		self::assertSame(
+			ActivationOtpVerificationResult::VERIFIED,
+			$store->verify_latest( $tag_id, $lookup, $issued_at, 5, $matches )
+		);
+		$verified = $store->find_by_id( $second->challenge_id );
+		self::assertEquals( $issued_at, $verified?->data->verified_at );
+		self::assertEquals( $issued_at, $verified?->data->consumed_at );
+		self::assertFalse( $store->has_verifiable_latest( $tag_id, $lookup, $issued_at, 5 ) );
+		self::assertSame(
+			ActivationOtpVerificationResult::INVALID,
+			$store->verify_latest( $tag_id, $lookup, $issued_at, 5, $matches )
+		);
+
+		$expired_at = $issued_at->add( new DateInterval( 'PT11M' ) );
+		$expired    = $store->create_replacing( $this->otp_challenge( $protector, $tag_id, $email, $expired_at ) );
+		self::assertNotNull(
+			$store->claim_for_dispatch(
+				$expired->challenge_id,
+				$protector->hash_code( '123456' ),
+				$expired_at->add( new DateInterval( 'PT1S' ) ),
+				$expired_at
+			)
+		);
+		self::assertSame(
+			ActivationOtpVerificationResult::INVALID,
+			$store->verify_latest(
+				$tag_id,
+				$lookup,
+				$expired_at->add( new DateInterval( 'PT2S' ) ),
+				5,
+				$matches
 			)
 		);
 	}
@@ -316,6 +416,27 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 
 		self::assertTrue( $limiter->reserve( $ip, $email, $tag_id, $now ) );
 		self::assertFalse( $limiter->reserve( $ip, $email, $tag_id, $now->add( new DateInterval( 'PT1S' ) ) ) );
+	}
+
+	/**
+	 * Verification budgets use a separate durable namespace and higher ceiling.
+	 */
+	public function test_activation_otp_verification_rate_limiter_is_separate(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionActivationOtpVerificationRateLimiter( $wpdb, get_current_blog_id() );
+		$now     = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+		$ip      = LookupDigest::from_digest( hash( 'sha256', 'verification-ip-fixture' ) );
+		$email   = LookupDigest::from_digest( hash( 'sha256', 'verification-email-fixture' ) );
+		$tag_id  = TagId::from_canonical( 'A7R2W9' );
+
+		for ( $attempt = 0; $attempt < 10; ++$attempt ) {
+			self::assertTrue( $limiter->reserve_public( $ip, $tag_id, $now ) );
+			self::assertTrue( $limiter->reserve_email( $email, $now ) );
+		}
+
+		self::assertFalse( $limiter->reserve_public( $ip, $tag_id, $now ) );
+		self::assertFalse( $limiter->reserve_email( $email, $now ) );
 	}
 
 	/**
@@ -621,17 +742,19 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	 * @param wpdb $database Test database.
 	 */
 	private function clear_rate_limit_options( wpdb $database ): void {
-		$like = $database->esc_like( WordPressOptionActivationOtpRateLimiter::OPTION_PREFIX ) . '%';
-		$sql  = $database->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $database->options, $like );
+		foreach ( array( WordPressOptionActivationOtpRateLimiter::OPTION_PREFIX, WordPressOptionActivationOtpVerificationRateLimiter::OPTION_PREFIX ) as $prefix ) {
+			$like = $database->esc_like( $prefix ) . '%';
+			$sql  = $database->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $database->options, $like );
 
-		if ( ! is_string( $sql ) ) {
-			return;
-		}
+			if ( ! is_string( $sql ) ) {
+				continue;
+			}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above for isolated plugin-owned fixture cleanup.
-		foreach ( $database->get_col( $sql ) as $option_name ) {
-			if ( is_string( $option_name ) ) {
-				delete_option( $option_name );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above for isolated plugin-owned fixture cleanup.
+			foreach ( $database->get_col( $sql ) as $option_name ) {
+				if ( is_string( $option_name ) ) {
+					delete_option( $option_name );
+				}
 			}
 		}
 	}

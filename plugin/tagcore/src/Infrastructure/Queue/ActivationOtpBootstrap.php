@@ -24,6 +24,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Random\PhpActivationOtpCodeGenerator;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
@@ -49,12 +50,13 @@ final class ActivationOtpBootstrap {
 			return;
 		}
 
-		$rate_limiter = new WordPressOptionActivationOtpRateLimiter( $wpdb, get_current_blog_id() );
-		$tables       = new TableNames( $wpdb->prefix );
-		$gateway      = new WpdbGateway( $wpdb );
-		$dates        = new DatabaseDateTimeCodec();
-		$challenges   = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
-		$store        = new WpdbActivationOtpRequestStore(
+		$request_limiter      = new WordPressOptionActivationOtpRateLimiter( $wpdb, get_current_blog_id() );
+		$verification_limiter = new WordPressOptionActivationOtpVerificationRateLimiter( $wpdb, get_current_blog_id() );
+		$tables               = new TableNames( $wpdb->prefix );
+		$gateway              = new WpdbGateway( $wpdb );
+		$dates                = new DatabaseDateTimeCodec();
+		$challenges           = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
+		$store                = new WpdbActivationOtpRequestStore(
 			$gateway,
 			$tables,
 			$dates,
@@ -63,8 +65,9 @@ final class ActivationOtpBootstrap {
 		);
 		add_action(
 			self::CLEANUP_HOOK,
-			static function () use ( $rate_limiter, $store ): void {
-				$rate_limiter->cleanup_expired();
+			static function () use ( $request_limiter, $verification_limiter, $store ): void {
+				$request_limiter->cleanup_expired();
+				$verification_limiter->cleanup_expired();
 				$before = ( new SystemClock() )->now()->sub( new DateInterval( 'P7D' ) );
 
 				for ( $chunk = 0; $chunk < 10; ++$chunk ) {

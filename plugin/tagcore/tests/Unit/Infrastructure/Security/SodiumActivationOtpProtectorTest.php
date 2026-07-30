@@ -43,6 +43,17 @@ final class SodiumActivationOtpProtectorTest extends TestCase {
 	}
 
 	/**
+	 * Issued codes compare only against their keyed adaptive hash.
+	 */
+	public function test_verifies_only_the_matching_six_digit_code(): void {
+		$protector = $this->protector();
+		$hash      = $protector->hash_code( '123456' );
+
+		self::assertTrue( $protector->verify_code( '123456', $hash ) );
+		self::assertFalse( $protector->verify_code( '654321', $hash ) );
+	}
+
+	/**
 	 * Associated data prevents cross-Tag envelope reuse.
 	 */
 	public function test_ciphertext_is_bound_to_the_tag_context(): void {

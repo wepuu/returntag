@@ -150,13 +150,17 @@ final readonly class SodiumActivationOtpProtector implements ActivationOtpProtec
 	 * @throws InvalidArgumentException When the code shape is invalid.
 	 */
 	public function hash_code( string $code ): OtpHash {
-		if ( 1 !== preg_match( '/^\d{6}$/D', $code ) ) {
-			throw new InvalidArgumentException( 'OTP code is invalid.' );
-		}
+		return $this->password_hash( $this->issued_digest( $code ) );
+	}
 
-		return $this->password_hash(
-			hash_hmac( 'sha256', 'activation-otp-issued:v1:' . $code, $this->secrets->otp_pepper )
-		);
+	/**
+	 * Compare one code with an issued hash.
+	 *
+	 * @param string  $code Six-digit code.
+	 * @param OtpHash $hash Stored issued hash.
+	 */
+	public function verify_code( string $code, OtpHash $hash ): bool {
+		return password_verify( $this->issued_digest( $code ), $hash->value );
 	}
 
 	/**
@@ -166,6 +170,20 @@ final readonly class SodiumActivationOtpProtector implements ActivationOtpProtec
 	 */
 	private function associated_data( TagId $tag_id ): string {
 		return 'activation_otp|tag|' . $tag_id->value . '|v1';
+	}
+
+	/**
+	 * Create the stable issued-code digest.
+	 *
+	 * @param string $code Six-digit code.
+	 * @throws InvalidArgumentException When the code shape is invalid.
+	 */
+	private function issued_digest( string $code ): string {
+		if ( 1 !== preg_match( '/^[0-9]{6}$/D', $code ) ) {
+			throw new InvalidArgumentException( 'OTP code is invalid.' );
+		}
+
+		return hash_hmac( 'sha256', 'activation-otp-issued:v1:' . $code, $this->secrets->otp_pepper );
 	}
 
 	/**
