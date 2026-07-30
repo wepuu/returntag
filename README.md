@@ -362,3 +362,20 @@ state pages. Mutation methods remain `405` and are never redirected.
 RT-302 adds no Tag or Batch lookup, database or Schema change, state page,
 activation, finder flow, theme dependency, WooCommerce behavior, Event,
 queue, email, option, dependency, or plugin-version change.
+
+## RT-303 public Tag state pages
+
+RT-303 resolves one canonical public Tag ID through a narrow Tag and Batch
+projection. It renders separate invalid, activation, Owner, Finder,
+suspended, retired, and fail-closed service pages from server-owned state,
+feature flags, and the current WordPress identity.
+
+The standalone plugin UI extends the approved RT-301 mobile-first design and
+does not depend on the active theme. Owner identity never reaches the
+renderer. Finder pages can receive only the public product type,
+`public_label`, and approved Lost Mode content; private item names, emails,
+orders, messages, devices, and locations are excluded.
+
+RT-303 performs no activation, OTP, Finder message, email, queue, Event,
+database write, Schema or dependency change. Those workflows remain assigned
+to their later milestone tickets.

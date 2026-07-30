@@ -371,3 +371,17 @@ action, external request, or asset change. Code rollback removes canonical
 redirect behavior while preserving the RT-301 route and all stored data.
 Disabling TagCore remains the immediate containment action. No generated
 identifier or audit evidence may be deleted or reused.
+
+RT-303 leaves project and plugin version `0.3.0` and Schema version `8`
+unchanged. Deployment must verify the invalid, activation, Owner, Finder,
+suspended, retired, and fail-closed service states; `301` canonicalization;
+`405` mutation rejection; privacy headers; current-user Owner recognition;
+Finder feature control; escaping; and exclusion of private item and identity
+data.
+
+RT-303 adds one read-only primary-key Tag/Batch query and an updated local
+public stylesheet. It performs no Migration, write, Event, queue, email,
+WooCommerce action, token exchange, activation, or Finder message. Code
+rollback restores the RT-302 generic response and is fully compatible with
+Schema version `8`. Disabling TagCore remains the immediate containment
+action, and rollback must not delete or reuse any Tag ID or audit evidence.

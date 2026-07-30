@@ -508,3 +508,33 @@ write, state transition, capability decision, Event, queue, email,
 WooCommerce operation, third-party request, template redesign, theme
 integration, Schema change, Option change, dependency change, or feature-flag
 change.
+
+## RT-303 public Tag state resolution
+
+RT-303 adds a read-only Application use case and pure page policy between the
+canonical route adapter and a dedicated Infrastructure projection. The query
+uses the Tags primary key and a left join to the owning Batch primary key. A
+missing Tag becomes the generic invalid page; a present Tag whose Batch row is
+missing remains observable to the policy and fails closed as a data-integrity
+error.
+
+The projection selects only `owner_id`, `tag_type`, `public_label`,
+`tag_status`, `lost_mode`, `lost_message`, `activated_at`, `batch_status`, and
+Batch `activation_enabled`. `owner_id` is consumed only inside Application to
+compare the server-derived current WordPress user. It is never copied into
+the public page model or template. `item_name`, emails, Batch codes, orders,
+messages, tokens, devices, pairing, and location data are not selected.
+
+The Application policy owns Tag and Batch state precedence. Suspended and
+retired Tags select their service pages. Unregistered Tags reuse the shared
+activation-availability policy and site/Batch controls. Active Owners remain
+active when a Batch is later suspended or voided. Active non-Owners receive a
+Finder entry only while `returntag_finder_contact_enabled` is enabled. Lost
+Mode content is copied into the public page model only for that Finder state.
+
+`PublicSite` owns current-user adaptation, Schema-current checks, HTTP status,
+privacy headers, translatable presentation copy, and standalone rendering.
+Templates receive a pre-decided render view and do not query, authorize, or
+derive business state. RT-303 introduces no theme, state transition, write,
+Event, queue, email, WooCommerce operation, Migration, dependency, or new
+feature flag.

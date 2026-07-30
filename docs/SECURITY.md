@@ -488,3 +488,37 @@ to a mutation. RT-302 adds no existence oracle, authentication decision,
 owner or finder notification, rate-limit storage, Event, personal data,
 secret, external request, or new kill switch. Disabling TagCore remains the
 operational containment and rollback control.
+
+## 17. RT-303 public state-page controls
+
+RT-303 performs one exact lookup only after canonical validation and a
+Schema-current check. The query is parameterized and names a minimal
+projection. It does not hydrate the complete Tag record. Invalid and unknown
+IDs share one generic `404` page with no validation detail, raw input, or
+canonical ID reflection. Persistence, mapping, missing-Batch, and stale-Schema
+conditions share the generic `503` service page and expose no SQL or stored
+value.
+
+The public route necessarily distinguishes a known Tag from an unknown ID in
+order to render the PRD state pages. The six-character ID is public and not an
+authentication secret. Residual enumeration risk is limited by the
+cryptographically random alphabet, exact one-ID route, absence of bulk or
+partial search, no-index/no-store controls, and the lack of any mutation,
+Owner identity, email, or private item response. RT-309 remains responsible
+for stateful activation-attempt rate limiting; RT-303 does not add passive-GET
+rate-limit storage.
+
+Current WordPress identity is obtained server-side. `owner_id` is used only
+for an equality decision inside Application and is not present in the public
+page model, HTML, headers, URLs, or ordinary logs. Finder output is limited to
+the public product type and, only when Finder contact is enabled, the approved
+`public_label` and Lost Mode content. `item_name`, owner email, finder email,
+Batch code, messages, tokens, orders, devices, pairing state, and locations
+are neither selected nor rendered. All stored public strings are escaped at
+render time.
+
+Every response retains `Cache-Control: no-store, private`, `Pragma: no-cache`,
+`Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, and
+`X-Robots-Tag: noindex, nofollow, noarchive`. The standalone page loads only
+the local TagCore stylesheet. `GET` and `HEAD` perform no write, notification,
+Event, queue, email, or token action; mutation methods remain `405`.

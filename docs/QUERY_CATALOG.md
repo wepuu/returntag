@@ -183,3 +183,30 @@ RT-302 adds no query shape. The public route normalizes and validates one
 bounded path segment entirely before the Repository boundary. It neither uses
 the exact Tag primary-key lookup documented for RT-209 nor tests whether a Tag
 or Batch exists. RT-303 owns the first approved public state-resolution query.
+
+## 13. RT-303 public state resolution
+
+| Read shape | Predicate, join, and bound | Candidate indexes |
+|---|---|---|
+| Public Tag state | `t.tag_id = ?`, left join `b.batch_id = t.batch_id`, limit `1` | Tags `PRIMARY`, Batches `PRIMARY` |
+
+The projection names only:
+
+```text
+t.owner_id
+t.tag_type
+t.public_label
+t.tag_status
+t.lost_mode
+t.lost_message
+t.activated_at
+b.batch_status
+b.activation_enabled
+```
+
+The left join preserves a present Tag whose Batch row is missing so
+Application can fail closed as a data-integrity error. `owner_id` is used only
+for a server-side equality decision and is not part of the rendered page
+model. The query never selects private item names, Batch codes, emails,
+orders, messages, tokens, scan history, devices, pairing state, or locations.
+It performs no write and requires no new Schema version 8 index.

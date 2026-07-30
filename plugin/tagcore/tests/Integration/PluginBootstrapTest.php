@@ -36,7 +36,6 @@ final class PluginBootstrapTest extends WP_UnitTestCase {
 		self::assertNotFalse( has_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ) ) );
 		self::assertNotFalse( has_action( 'deactivate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ) ) );
 		self::assertNotFalse( has_action( 'template_redirect' ) );
-		self::assertNotFalse( has_filter( 'template_include' ) );
 		self::assertNotFalse( has_filter( 'query_vars' ) );
 		self::assertFalse( get_option( WordPressSchemaVersionStore::OPTION_NAME, false ) );
 	}

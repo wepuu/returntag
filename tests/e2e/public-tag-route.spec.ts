@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-test.describe( 'RT-302 public Tag ID normalization', () => {
-	test( 'fails closed with a private theme-independent page', async ( {
+test.describe( 'RT-303 public Tag state pages', () => {
+	test( 'renders an unknown ID as a private theme-independent page', async ( {
 		browserName,
 		page,
 	} ) => {
@@ -24,7 +24,7 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 		} );
 
 		expect( response ).not.toBeNull();
-		expect( response?.status() ).toBe( 503 );
+		expect( response?.status() ).toBe( 404 );
 		expect( response?.headers()[ 'cache-control' ] ).toBe(
 			'no-store, private'
 		);
@@ -37,7 +37,7 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'Tag service is temporarily unavailable',
+				name: 'We could not find this ReturnTag',
 			} )
 		).toBeVisible();
 		await expect(
@@ -45,7 +45,7 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 		).toHaveAttribute( 'href', /\/$/ );
 		await expect( page.locator( 'body' ) ).not.toContainText( 'A7R2W9' );
 		await expect( page.locator( 'body' ) ).toHaveClass(
-			/returntag-public--unavailable/
+			/returntag-public--invalid/
 		);
 
 		const homeLink = page.getByRole( 'link', {
@@ -81,7 +81,7 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 			consoleErrors.filter(
 				( message ) =>
 					message !==
-					'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
+					'Failed to load resource: the server responded with a status of 404 (Not Found)'
 			)
 		).toEqual( [] );
 		expect( pageErrors ).toEqual( [] );
@@ -133,7 +133,7 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 		} );
 
 		expect( response ).not.toBeNull();
-		expect( response?.status() ).toBe( 503 );
+		expect( response?.status() ).toBe( 404 );
 		await expect( page ).toHaveURL( /\/t\/A7R2W9$/ );
 		await expect( page.locator( 'body' ) ).not.toContainText( 'A7R2W9' );
 
@@ -141,11 +141,11 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 			maxRedirects: 0,
 		} );
 
-		expect( canonical.status() ).toBe( 503 );
+		expect( canonical.status() ).toBe( 404 );
 		expect( canonical.headers().location ).toBeUndefined();
 	} );
 
-	test( 'keeps invalid input on the generic fail-closed response', async ( {
+	test( 'keeps malformed input on the same generic invalid response', async ( {
 		page,
 	} ) => {
 		const response = await page.goto( '/t/A7R2W0', {
@@ -153,12 +153,12 @@ test.describe( 'RT-302 public Tag ID normalization', () => {
 		} );
 
 		expect( response ).not.toBeNull();
-		expect( response?.status() ).toBe( 503 );
+		expect( response?.status() ).toBe( 404 );
 		await expect( page ).toHaveURL( /\/t\/A7R2W0$/ );
 		expect( response?.headers().location ).toBeUndefined();
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'Tag service is temporarily unavailable',
+				name: 'We could not find this ReturnTag',
 			} )
 		).toBeVisible();
 		await expect( page.locator( 'body' ) ).not.toContainText( 'A7R2W0' );
