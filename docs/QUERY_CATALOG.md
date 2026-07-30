@@ -226,3 +226,24 @@ Email and Tag count queries remain bounded by fixed recent windows. Direct IP
 counts do not scan `ip_hash`; atomic IP and global budgets use plugin-owned,
 non-autoloaded WordPress Option buckets under a site-scoped advisory lock.
 Schema remains version `8`.
+
+## 15. RT-305 activation OTP verification
+
+| Read or write shape | Predicate and bound | Candidate index |
+|---|---|---|
+| Latest verification eligibility | purpose, subject type/ID, keyed email, newest one, `LIMIT 1` | `purpose_email_created_at` |
+| Latest verification lock | purpose, subject type/ID, keyed email, newest one, `LIMIT 1 FOR UPDATE` | `purpose_email_created_at` |
+| Wrong-code attempt | primary key, exact prior attempt, `< 5`, issued, open, unexpired | `PRIMARY` |
+| One-time success | primary key, `< 5`, issued, unverified, unconsumed, unexpired | `PRIMARY` |
+
+The first query is bounded to one row. Its purpose and keyed-email prefix uses
+`purpose_email_created_at`; subject predicates are applied to the small
+matching challenge set. Conditional primary-key writes execute within the same
+transaction and row lock.
+
+Direct-peer IP, Tag, and global verification budgets are reserved before the
+eligibility read. The keyed-email budget is reserved only after an eligible
+latest challenge is found, preventing unknown identities from allocating
+durable email buckets. All budgets use hashed, non-autoloaded
+`returntag_otp_verify_rate_*` Options under a site-scoped advisory lock. No
+unindexed challenge-table IP scan or Schema change is added.

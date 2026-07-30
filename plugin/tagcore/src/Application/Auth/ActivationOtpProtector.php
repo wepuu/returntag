@@ -60,4 +60,12 @@ interface ActivationOtpProtector {
 	 * @param string $code Six-digit code.
 	 */
 	public function hash_code( string $code ): OtpHash;
+
+	/**
+	 * Compare one six-digit code with an issued hash.
+	 *
+	 * @param string  $code Six-digit code.
+	 * @param OtpHash $hash Stored issued hash.
+	 */
+	public function verify_code( string $code, OtpHash $hash ): bool;
 }

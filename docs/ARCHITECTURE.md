@@ -563,3 +563,30 @@ material remains outside WordPress and its database.
 The design adds no Migration, Event, login, user provisioning, ownership
 mutation, Tag activation, Finder message, or WooCommerce behavior. ADR 0012
 records the Worker-issued and at-most-once dispatch decision.
+
+## 20. RT-305 activation OTP verification
+
+`PublicSite` extends the existing activation card with an email-and-code form.
+The adapter validates the same anonymous nonce and same-site signals, canonical
+email, exact six-digit ASCII code, and direct peer IP. It does not place the
+email, code, internal challenge ID, or a handoff token in HTML, URLs, cookies,
+logs, or Events.
+
+Application rechecks the global activation control and current activation-entry
+state, derives keyed email/IP lookups through the existing protection port,
+reserves bounded IP, Tag, and global budgets, confirms that the latest matching
+challenge is eligible, then reserves its keyed-email budget and delegates one
+atomic comparison to the persistence port. Unknown identities therefore cannot
+allocate durable email buckets. All public failures map to the same verification
+result.
+
+Infrastructure selects the latest Tag-and-email activation challenge and locks
+the row. It rejects unissued, expired, terminal, or five-attempt-exhausted rows
+before password-hash comparison. A mismatch increments the counter within the
+transaction; a match writes `verified_at` and `consumed_at` once. ADR 0013
+records the email re-entry, no-client-handle, and atomic terminal-transition
+decision.
+
+RT-305 creates no authenticated session, WordPress user, owner relationship,
+Tag status change, access token, Event, queue work, email, Migration, or
+WooCommerce side effect. RT-306 and RT-307 retain those later responsibilities.

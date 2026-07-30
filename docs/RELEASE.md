@@ -400,3 +400,15 @@ Worker, and cleanup hooks without a database rollback. Existing challenge rows
 and rate-limit Options remain opaque and may expire; never expose, decrypt for
 support, or reconstruct OTP values. Action Scheduler requires a real Cron or
 WP-CLI runner and monitoring of the `returntag-activation-otp` group.
+
+RT-305 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Acceptance must verify exact six-digit input, unissued and expired rejection,
+five-attempt lockout, atomic success, replay rejection, generic failure copy,
+separate durable verification budgets, and absence of client challenge
+identifiers or reflected email values.
+
+No key, Cron, queue, or Migration change is added beyond the RT-304
+requirements. Contain a verification incident with
+`returntag_global_activation_enabled=0`. Code rollback removes verification
+behavior while retaining attempt, verified, and consumed state plus expiring
+verification-limit Options; never reset those values to resurrect a code.

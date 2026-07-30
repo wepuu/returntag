@@ -11,7 +11,10 @@ namespace ReturnTag\TagCore\PublicSite;
 
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpRequestResult;
+use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
+use ReturnTag\TagCore\Application\Auth\VerifyActivationOtp;
+use ReturnTag\TagCore\Domain\Auth\ActivationOtpCode;
 use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 use ReturnTag\TagCore\Domain\Tag\TagId;
 use Throwable;
@@ -26,12 +29,24 @@ final readonly class ActivationOtpFormHandler {
 
 	public const EMAIL_FIELD = 'returntag_activation_email';
 
+	public const CODE_FIELD = 'returntag_activation_code';
+
+	public const ACTION_FIELD = 'returntag_activation_action';
+
+	public const REQUEST_ACTION = 'request_code';
+
+	public const VERIFY_ACTION = 'verify_code';
+
 	/**
 	 * Create the form handler.
 	 *
 	 * @param RequestActivationOtp|null $requests Configured request use case.
+	 * @param VerifyActivationOtp|null  $verifications Configured verification use case.
 	 */
-	public function __construct( private ?RequestActivationOtp $requests ) {
+	public function __construct(
+		private ?RequestActivationOtp $requests,
+		private ?VerifyActivationOtp $verifications
+	) {
 	}
 
 	/**
@@ -40,8 +55,29 @@ final readonly class ActivationOtpFormHandler {
 	 * @param TagId $tag_id Server-resolved eligible Tag.
 	 */
 	public function submit( TagId $tag_id ): ActivationOtpFormState {
-		if ( null === $this->requests || ! $this->same_site_request() || ! $this->valid_nonce() ) {
-			return ActivationOtpFormState::ERROR;
+		$action = $this->post_string( self::ACTION_FIELD, 32 );
+
+		if ( ! $this->same_site_request() || ! $this->valid_nonce() ) {
+			return self::VERIFY_ACTION === $action
+				? ActivationOtpFormState::VERIFICATION_INVALID
+				: ActivationOtpFormState::REQUEST_ERROR;
+		}
+
+		return match ( $action ) {
+			self::REQUEST_ACTION => $this->request_code( $tag_id ),
+			self::VERIFY_ACTION => $this->verify_code( $tag_id ),
+			default => ActivationOtpFormState::REQUEST_ERROR,
+		};
+	}
+
+	/**
+	 * Submit one OTP request.
+	 *
+	 * @param TagId $tag_id Server-resolved eligible Tag.
+	 */
+	private function request_code( TagId $tag_id ): ActivationOtpFormState {
+		if ( null === $this->requests ) {
+			return ActivationOtpFormState::REQUEST_ERROR;
 		}
 
 		$email_input = $this->post_string( self::EMAIL_FIELD, 254 );
@@ -50,13 +86,13 @@ final readonly class ActivationOtpFormHandler {
 			$email = new EmailAddress( $email_input );
 			$ip    = $this->client_ip();
 		} catch ( InvalidArgumentException ) {
-			return ActivationOtpFormState::INVALID_EMAIL;
+			return ActivationOtpFormState::REQUEST_INVALID_EMAIL;
 		}
 
 		try {
 			$result = $this->requests->execute( $tag_id, $email, $ip );
 		} catch ( Throwable ) {
-			return ActivationOtpFormState::ERROR;
+			return ActivationOtpFormState::REQUEST_ERROR;
 		}
 
 		return in_array(
@@ -64,8 +100,37 @@ final readonly class ActivationOtpFormHandler {
 			array( ActivationOtpRequestResult::ACCEPTED, ActivationOtpRequestResult::THROTTLED ),
 			true
 		)
-			? ActivationOtpFormState::ACCEPTED
-			: ActivationOtpFormState::ERROR;
+			? ActivationOtpFormState::REQUEST_ACCEPTED
+			: ActivationOtpFormState::REQUEST_ERROR;
+	}
+
+	/**
+	 * Submit one OTP verification without authenticating or activating.
+	 *
+	 * @param TagId $tag_id Server-resolved eligible Tag.
+	 */
+	private function verify_code( TagId $tag_id ): ActivationOtpFormState {
+		if ( null === $this->verifications ) {
+			return ActivationOtpFormState::VERIFICATION_INVALID;
+		}
+
+		try {
+			$email = new EmailAddress( $this->post_string( self::EMAIL_FIELD, 254 ) );
+			$code  = new ActivationOtpCode( $this->post_string( self::CODE_FIELD, 6 ) );
+			$ip    = $this->client_ip();
+		} catch ( InvalidArgumentException ) {
+			return ActivationOtpFormState::VERIFICATION_INVALID;
+		}
+
+		try {
+			$result = $this->verifications->execute( $tag_id, $email, $code, $ip );
+		} catch ( Throwable ) {
+			return ActivationOtpFormState::VERIFICATION_INVALID;
+		}
+
+		return ActivationOtpVerificationResult::VERIFIED === $result
+			? ActivationOtpFormState::VERIFIED
+			: ActivationOtpFormState::VERIFICATION_INVALID;
 	}
 
 	/**

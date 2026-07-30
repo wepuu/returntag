@@ -396,3 +396,23 @@ environment values. Missing keys fail closed. Persistent and atomic limits
 cover email, Tag, direct-peer IP, and global request volume. RT-304 keeps
 Schema version `8` and performs no verification, login, registration,
 ownership assignment, activation, Event append, or WooCommerce operation.
+
+## RT-305 activation OTP verification
+
+RT-305 adds a second, labelled form to the existing activation card for the
+same email address and six-digit code. The browser receives no challenge ID
+and retains no email in a URL, cookie, hidden field, or rendered value.
+
+Verification derives the keyed email lookup, locks the latest matching
+activation challenge, rejects unissued, expired, consumed, verified, or
+attempt-exhausted rows before comparison, and records each mismatch under the
+same lock. A correct code atomically writes `verified_at` and `consumed_at` and
+cannot be replayed. Separate durable hashed verification budgets cover email,
+Tag, direct-peer IP, and global volume; unknown challenge identities consume
+only the bounded IP, Tag, and global scopes and cannot allocate durable email
+buckets.
+
+RT-305 keeps Schema version `8` and plugin version `0.3.0`. It performs no
+WordPress login or registration, ownership assignment, Tag activation, Event
+append, token issuance, email send, or WooCommerce operation. Those later
+flows remain outside this ticket.

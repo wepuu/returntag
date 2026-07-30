@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\PublicSite;
 
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
+use ReturnTag\TagCore\Application\Auth\VerifyActivationOtp;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
@@ -26,6 +27,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
@@ -63,7 +65,7 @@ final class PublicSiteBootstrap {
 			$feature_flags,
 			new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
 		);
-		$otp_requests  = self::otp_requests( $wpdb, $gateway, $tables, $dates, $pages, $feature_flags );
+		$otp_services  = self::otp_services( $wpdb, $gateway, $tables, $dates, $pages, $feature_flags );
 		$route         = new PublicTagRouteController(
 			$plugin_dir,
 			new PublicTagResponsePolicy(),
@@ -71,7 +73,7 @@ final class PublicSiteBootstrap {
 			$pages,
 			$schema_state,
 			new PublicTagTemplateRenderer( $plugin_dir ),
-			new ActivationOtpFormHandler( $otp_requests )
+			new ActivationOtpFormHandler( $otp_services['request'], $otp_services['verify'] )
 		);
 
 		$route->register_hooks();
@@ -79,7 +81,7 @@ final class PublicSiteBootstrap {
 	}
 
 	/**
-	 * Build the OTP request use case only when external secrets are available.
+	 * Build OTP request and verification use cases when secrets are available.
 	 *
 	 * @param wpdb                             $database Active database connection.
 	 * @param WpdbGateway                      $gateway Safe query gateway.
@@ -87,19 +89,23 @@ final class PublicSiteBootstrap {
 	 * @param DatabaseDateTimeCodec            $dates UTC codec.
 	 * @param ResolvePublicTagPage             $pages Public state resolver.
 	 * @param WordPressOptionFeatureFlagReader $feature_flags Operational controls.
+	 * @return array{request: RequestActivationOtp|null, verify: VerifyActivationOtp|null}
 	 */
-	private static function otp_requests(
+	private static function otp_services(
 		wpdb $database,
 		WpdbGateway $gateway,
 		TableNames $tables,
 		DatabaseDateTimeCodec $dates,
 		ResolvePublicTagPage $pages,
 		WordPressOptionFeatureFlagReader $feature_flags
-	): ?RequestActivationOtp {
+	): array {
 		try {
 			$protector = new SodiumActivationOtpProtector( ActivationOtpSecrets::load() );
 		} catch ( RuntimeException ) {
-			return null;
+			return array(
+				'request' => null,
+				'verify'  => null,
+			);
 		}
 
 		$challenges = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
@@ -111,14 +117,26 @@ final class PublicSiteBootstrap {
 			new WpdbTransactionManager( $database )
 		);
 
-		return new RequestActivationOtp(
-			$pages,
-			$feature_flags,
-			$store,
-			$protector,
-			new WordPressOptionActivationOtpRateLimiter( $database, get_current_blog_id() ),
-			new ActionSchedulerActivationOtpScheduler(),
-			new SystemClock()
+		$clock = new SystemClock();
+
+		return array(
+			'request' => new RequestActivationOtp(
+				$pages,
+				$feature_flags,
+				$store,
+				$protector,
+				new WordPressOptionActivationOtpRateLimiter( $database, get_current_blog_id() ),
+				new ActionSchedulerActivationOtpScheduler(),
+				$clock
+			),
+			'verify'  => new VerifyActivationOtp(
+				$pages,
+				$feature_flags,
+				$store,
+				$protector,
+				new WordPressOptionActivationOtpVerificationRateLimiter( $database, get_current_blog_id() ),
+				$clock
+			),
 		);
 	}
 }

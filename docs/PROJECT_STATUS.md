@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-304 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-305 implemented; schema remains `8`)
 
 
 
@@ -97,6 +97,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-303 - Privacy-minimized Tag and Batch state pages
 
 \* RT-304 - Worker-issued activation OTP request
+
+\* RT-305 - Atomic activation OTP verification
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -527,6 +529,20 @@ RT-304 adds:
 - seven-day post-expiry challenge retention and bounded daily cleanup;
 - no OTP verification, login, user creation, ownership change, activation,
   Event, Migration, dependency, plugin-version, or WooCommerce behavior.
+
+RT-305 adds:
+
+- exact six-ASCII-digit OTP validation and keyed adaptive-hash comparison;
+- latest Tag-and-email challenge selection under a database row lock;
+- pre-comparison rejection for unissued, expired, verified, consumed, and
+  five-attempt-exhausted challenges;
+- atomic mismatch counting and one-time `verified_at` plus `consumed_at`
+  completion;
+- separate durable email, Tag, direct-peer IP, and global verification limits,
+  with email buckets gated by latest-challenge eligibility;
+- generic privacy-safe failure feedback and no browser challenge identifier;
+- no login, user creation, ownership change, Tag activation, Event, token,
+  Migration, dependency, plugin-version, or WooCommerce behavior.
 
 
 

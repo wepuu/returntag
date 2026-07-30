@@ -845,3 +845,31 @@ Expired challenges are retained for seven additional days and then deleted in
 bounded chunks. This retention cleanup does not delete accepted business
 messages, ownership records, Tag IDs, exports, or Events. Code rollback remains
 compatible with Schema 8; inert limiter Options may expire independently.
+
+## 13. RT-305 activation OTP verification operations
+
+RT-305 keeps Schema version `8`. Verification selects the latest
+`activation_otp` challenge for the canonical Tag subject and keyed email lookup,
+ordered by `created_at DESC, challenge_id DESC`, with `LIMIT 1 FOR UPDATE`.
+The row is rejected before comparison when `send_count=0`, expired, verified,
+consumed, or `attempt_count >= 5`.
+
+A mismatch conditionally increments `attempt_count` under the same row lock. A
+match conditionally writes one UTC timestamp to both `verified_at` and
+`consumed_at`. The conditional predicates preserve the five-attempt ceiling
+and prevent successful replay even if another verifier races the request.
+
+Durable verification budgets use non-autoloaded
+`returntag_otp_verify_rate_*` WordPress Options containing only counts, expiry,
+and hashed scopes. IP, Tag, and global buckets are reserved before challenge
+lookup. Email buckets are reserved only after a bounded latest-challenge
+eligibility read confirms an issued, open, unexpired, below-attempt-limit row;
+the locked verification query repeats all predicates before mutation. Unknown
+identities therefore cannot create unbounded durable email rows. The buckets
+are isolated from RT-304 request budgets and removed by the existing bounded
+cleanup hook. No column, index, Migration, or Schema version change is required.
+
+Code rollback removes the verification path without reverting data. Completed
+challenge timestamps and attempt counts remain intact; expired limiter Options
+may be cleaned normally. Never clear attempts or consumed state to make a code
+reusable.
