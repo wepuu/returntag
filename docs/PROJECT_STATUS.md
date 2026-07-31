@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-306 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-309 implemented; schema remains `8`)
 
 
 
@@ -607,6 +607,33 @@ RT-309 adds:
 - bounded cleanup through the existing daily maintenance action;
 - no Migration, index, Schema, dependency, plugin-version, theme, success
   email, new route, conflict page, support action, or WooCommerce change.
+
+## Approved frontend architecture baseline
+
+ADR 0017 records the approved boundary for future frontend work:
+
+- one WordPress site will contain the brand site, WooCommerce shop, TagCore
+  public flows, and authenticated Owner account;
+- a future ReturnTag block theme may own brand, content, navigation, support,
+  and WooCommerce presentation, but no TagCore business behavior;
+- desktop website visitors select Activate or Report before a TagCore-owned
+  modal requests the Tag ID;
+- mobile website visitors use a TagCore-owned full-screen manual-entry surface;
+- QR scans navigate directly to `/t/{tag_id}` without Tag ID re-entry;
+- the selected Activate or Report intent never overrides server-resolved Tag
+  state;
+- `/t/{tag_id}` registration, normalization, state resolution, access control,
+  privacy controls, and business processing remain exclusively in TagCore;
+- the canonical route remains standalone and theme-independent;
+- PHP server rendering, optional Interactivity API progressive enhancement,
+  and plugin-scoped CSS remain the phase-one frontend baseline; Next.js and
+  Tailwind are not approved for phase one.
+
+The generated low-fidelity wireframes are non-normative references only.
+Future user-supplied page-effect designs require review before they become an
+implementation target. This documentation decision starts no new RT ticket,
+adds no theme or code, and changes no route, Schema, Option, dependency,
+plugin version, or stored data.
 
 
 

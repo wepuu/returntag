@@ -84,6 +84,28 @@ smart_tag
 
 Smart Tag 另行支持 Apple Find My 或其他兼容智能寻找网络，但智能定位网络与 ReturnTag QR 找回系统是两个相互独立、平行运行的系统。
 
+### 3.1 网站与 Tag 入口
+
+ReturnTag 使用同一个 WordPress 网站承载：
+
+- 品牌官网与帮助内容；
+- Tag 激活；
+- Finder Report；
+- Owner Dashboard；
+- WooCommerce Shop、购物车和结账。
+
+品牌网站提供 `Activate` 和 `Report` 两个明确入口。桌面端用户先点击入口，
+再由 TagCore 打开弹窗并要求输入 6 位 Tag ID；品牌页面在用户点击前不直接
+显示 Tag ID 输入框。移动端点击入口后进入 TagCore 全屏输入页面，不使用
+弹窗。
+
+扫描实体 QR 时，二维码已经提供 Tag ID，浏览器直接进入
+`/t/{tag_id}`，不得要求用户再次输入 ID。
+
+`Activate` 和 `Report` 只表达用户意图，不决定实际业务路径。TagCore
+标准化并查询 ID 后，必须按服务端 Tag、Batch、功能开关和当前用户状态
+进入激活、Owner、Finder、无效或状态说明页面。
+
 ---
 
 ## 4. 产品定位与核心价值
@@ -759,6 +781,41 @@ GET /t/{tag_id}
 | Tag 为 Active 且当前用户不是 Owner | Finder 联系页 |
 | Tag 为 Suspended | 暂停服务页 |
 | Tag 为 Retired | 标签已停用页 |
+
+#### 14.3.1 站内手动入口与扫码入口
+
+站内手动入口遵循：
+
+```text
+桌面品牌页面点击 Activate 或 Report
+→ TagCore 弹窗输入 Tag ID
+→ 标准化并解析服务端状态
+→ 进入对应 TagCore 流程
+```
+
+```text
+移动品牌页面点击 Activate 或 Report
+→ TagCore 全屏页面输入 Tag ID
+→ 标准化并解析服务端状态
+→ 进入对应 TagCore 流程
+```
+
+扫码入口遵循：
+
+```text
+扫描 QR
+→ 直接访问 /t/{tag_id}
+→ 标准化并解析服务端状态
+→ 进入对应 TagCore 流程
+```
+
+入口按钮不得强制指定状态。用户从 `Activate` 输入 Active ID 时，仍必须
+按 Owner 或 Finder 规则处理；用户从 `Report` 输入 Unregistered ID 时，
+仍必须按激活规则处理。
+
+`/t/{tag_id}` 的路由注册、规范化、状态解析、当前用户判断、访问控制、
+隐私响应头、限流和业务处理全部属于 TagCore。主题不得复制这些逻辑。
+该路由必须在主题更换、主题集成不可用或 JavaScript 不可用时独立工作。
 
 ### 14.4 原子激活
 
@@ -1661,6 +1718,19 @@ Trusted Contact
 52. 重复触发 Hook 不重复发送大量邮件。
 53. 必须兼容 WooCommerce HPOS。
 
+### 27.7 前端交付边界
+
+54. 桌面品牌页面必须先由用户点击 `Activate` 或 `Report`，再显示 Tag ID 输入弹窗。
+55. 移动端从品牌页面点击 `Activate` 或 `Report` 后，必须使用全屏 TagCore 输入页面。
+56. 扫描 QR 进入 `/t/{tag_id}` 后不得再次要求输入 Tag ID。
+57. `Activate` 或 `Report` 入口意图不得覆盖服务端解析的 Tag 状态。
+58. `/t/{tag_id}` 必须在主题更换或 JavaScript 不可用时独立工作。
+59. 主题不得注册 Tag 路由、查询 TagCore 表、判断 Owner 或执行产品业务操作。
+60. 桌面弹窗和移动全屏流程必须复用 TagCore 的验证、访问控制和业务服务。
+61. 敏感 TagCore 页面不得通过 iframe 嵌入，也不得加载不必要的第三方追踪。
+62. 低保真线框图仅作为设计参考，不构成最终视觉、布局或文案验收基准。
+63. 后续页面效果图必须经过产品、响应式、隐私、安全和可访问性复核后才能成为实施目标。
+
 ---
 
 ## 28. 开发与发布约束
@@ -1680,6 +1750,29 @@ plugin/tagcore/
 - 页面模板；
 - WooCommerce 邮件模板；
 - 单个超大 PHP 文件。
+
+ReturnTag WordPress 主题可以负责：
+
+- 品牌官网、导航、页脚、帮助和编辑内容；
+- WooCommerce 商品、购物车和结账的表现层；
+- 放置 TagCore 提供的 Activate、Report、Account 等集成组件；
+- 提供经批准的品牌设计 Token。
+
+主题不得：
+
+- 注册或接管 `/t/{tag_id}`；
+- 查询 TagCore 数据表或判断 Tag、Batch、Owner 状态；
+- 实现激活、Finder、Secure Reply 或 Owner Dashboard 业务操作；
+- 将浏览器提交的 Owner ID 当作权限依据；
+- 复制 TagCore 的桌面弹窗或移动全屏业务表单。
+
+桌面弹窗、移动全屏手动入口和扫码直达页面必须复用同一个 TagCore
+状态模型。桌面弹窗是渐进增强，不得成为完成流程的唯一方式，也不得使用
+iframe 嵌入敏感的 `/t/{tag_id}` 页面。
+
+一期公开与账户页面继续使用 PHP 服务端渲染、语义化 HTML、可选的
+WordPress Interactivity API 渐进增强以及插件作用域 CSS。不引入
+Next.js、Tailwind 或全局 CSS Reset。
 
 ### 28.2 代码分层
 
