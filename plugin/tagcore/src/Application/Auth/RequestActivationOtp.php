@@ -33,13 +33,14 @@ final readonly class RequestActivationOtp {
 	/**
 	 * Create the OTP request use case.
 	 *
-	 * @param ResolvePublicTagPage      $pages Public state resolver.
-	 * @param FeatureFlagReader         $feature_flags Operational controls.
-	 * @param ActivationOtpRequestStore $store Challenge persistence.
-	 * @param ActivationOtpProtector    $protector Sensitive-data protection.
-	 * @param ActivationOtpRateLimiter  $rate_limiter IP and global limiter.
-	 * @param ActivationOtpScheduler    $scheduler Challenge scheduler.
-	 * @param Clock                     $clock UTC clock.
+	 * @param ResolvePublicTagPage        $pages Public state resolver.
+	 * @param FeatureFlagReader           $feature_flags Operational controls.
+	 * @param ActivationOtpRequestStore   $store Challenge persistence.
+	 * @param ActivationOtpProtector      $protector Sensitive-data protection.
+	 * @param ActivationOtpRateLimiter    $rate_limiter IP and global limiter.
+	 * @param ActivationOtpScheduler      $scheduler Challenge scheduler.
+	 * @param WordPressAccountEmailPolicy $email_policy WordPress storage limit.
+	 * @param Clock                       $clock UTC clock.
 	 */
 	public function __construct(
 		private ResolvePublicTagPage $pages,
@@ -48,6 +49,7 @@ final readonly class RequestActivationOtp {
 		private ActivationOtpProtector $protector,
 		private ActivationOtpRateLimiter $rate_limiter,
 		private ActivationOtpScheduler $scheduler,
+		private WordPressAccountEmailPolicy $email_policy,
 		private Clock $clock
 	) {
 	}
@@ -60,6 +62,10 @@ final readonly class RequestActivationOtp {
 	 * @param string       $ip_address Direct client IP.
 	 */
 	public function execute( TagId $tag_id, EmailAddress $email, string $ip_address ): ActivationOtpRequestResult {
+		if ( ! $this->email_policy->allows( $email ) ) {
+			return ActivationOtpRequestResult::UNAVAILABLE;
+		}
+
 		if (
 			! $this->feature_flags->is_enabled( FeatureFlag::GLOBAL_ACTIVATION )
 			|| ! $this->feature_flags->is_enabled( FeatureFlag::EMAIL_DISPATCH )

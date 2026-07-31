@@ -21,6 +21,7 @@ use ReturnTag\TagCore\Application\Auth\ActivationOtpRequestStore;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpScheduler;
 use ReturnTag\TagCore\Application\Auth\DispatchActivationOtp;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
+use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\FeatureFlagReader;
 use ReturnTag\TagCore\Application\Persistence\Record\AuthChallengeRecord;
@@ -104,8 +105,19 @@ final class ActivationOtpWorkflowTest extends TestCase {
 			$protector,
 			$limiter,
 			$scheduler,
+			new WordPressAccountEmailPolicy(),
 			$clock
 		);
+
+		self::assertSame(
+			ActivationOtpRequestResult::UNAVAILABLE,
+			$request->execute(
+				TagId::from_canonical( 'A7R2W9' ),
+				new EmailAddress( str_repeat( 'a', 64 ) . '@' . str_repeat( 'b', 30 ) . '.example.test' ),
+				'192.0.2.4'
+			)
+		);
+		self::assertSame( array(), $scheduler->challenge_ids );
 
 		self::assertSame(
 			ActivationOtpRequestResult::ACCEPTED,

@@ -590,3 +590,31 @@ decision.
 RT-305 creates no authenticated session, WordPress user, owner relationship,
 Tag status change, access token, Event, queue work, email, Migration, or
 WooCommerce side effect. RT-306 and RT-307 retain those later responsibilities.
+
+## 21. RT-306 passwordless WordPress authentication
+
+`PublicSite` keeps the existing activation card and checks the server-derived
+WordPress session before processing a POST. Authenticated visitors receive the
+signed-in state without an OTP form. An authenticated stale POST redirects
+without reading, verifying, or consuming the submitted identity fields.
+
+For an anonymous request, Application composes the existing one-time OTP
+verifier with explicit account-provisioning and authenticated-session ports.
+The verified canonical email remains in process memory. No challenge ID,
+email, lookup digest, handoff token, or custom session value crosses into the
+browser. A successful composition establishes the session and returns a
+same-site `303` to the canonical Tag URL.
+
+Infrastructure owns the WordPress identity boundary. A single provisioner uses
+a network-scoped HMAC-derived MySQL advisory lock, repeats exact user lookup
+inside the lock, reuses existing users without changing credentials or roles,
+and creates only opaque `subscriber` accounts. A marked new account must have
+a metadata-free `account_passwordless_created` audit Event before session
+issuance. WordPress generates the native authentication values and session
+token; TagCore emits those values with explicit `HttpOnly` and
+`SameSite=Lax` attributes and WordPress-derived path and HTTPS decisions.
+
+RT-306 keeps Schema version 8 and project/plugin version `0.3.0`. It adds no
+Migration, Tag ownership mutation, Tag status change, activation Event, Finder
+workflow, email, WooCommerce order behavior, dependency, or theme. ADR 0014
+records the concurrency, failure, audit, cookie, and rollback decisions.

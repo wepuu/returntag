@@ -873,3 +873,28 @@ Code rollback removes the verification path without reverting data. Completed
 challenge timestamps and attempt counts remain intact; expired limiter Options
 may be cleaned normally. Never clear attempts or consumed state to make a code
 reusable.
+
+## 16. RT-306 passwordless identity operations
+
+RT-306 keeps Schema version `8` and adds no TagCore Migration, table, column,
+or index. It reads and writes WordPress core User and User Meta storage only
+through WordPress APIs, plus one metadata-free append to the existing
+`returntag_events` table for each ReturnTag-created passwordless account.
+
+The supported WordPress User email storage limit is 100 ASCII bytes. A
+network-scoped MySQL advisory lock contains only a truncated keyed email lookup
+and serializes all ReturnTag passwordless account creation for that network.
+Exact email lookup is repeated inside the lock, and more than one exact match
+fails closed. The lock is not persisted and is released after the bounded
+lookup/create/audit operation.
+
+New account source and audit Event identifiers are stored as versioned User
+Meta so a verified retry can reuse a partially created account and repair a
+missing Event before Session issuance. An interruption after Event append but
+before its marker may create a duplicate audit Event on repair; deleting a
+WordPress user or audit record is not an allowed compensation.
+
+Code rollback preserves WordPress users, User Meta, account audit Events,
+consumed authentication challenges, and existing WordPress sessions. The
+previous code ignores the RT-306 User Meta and remains compatible with Schema
+version 8.

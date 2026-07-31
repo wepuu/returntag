@@ -412,3 +412,18 @@ requirements. Contain a verification incident with
 `returntag_global_activation_enabled=0`. Code rollback removes verification
 behavior while retaining attempt, verified, and consumed state plus expiring
 verification-limit Options; never reset those values to resurrect a code.
+
+RT-306 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Deployment must verify existing-user reuse without password or role changes,
+single-account creation under ReturnTag concurrency, exact rejection of
+ambiguous identities, the 100-byte WordPress email boundary, metadata-free
+account audit, fresh non-persistent WordPress sessions, explicit cookie
+attributes, and same-site `303` return to the canonical Tag route.
+
+Acceptance must run with both the minimum WordPress environment and the
+supported WooCommerce environment. New account creation must not send a
+password or marketing email, create a WooCommerce order/customer mapping, or
+change a Tag. Contain an incident with
+`returntag_global_activation_enabled=0`. Code rollback preserves WordPress
+users, User Meta, account audit Events, consumed OTP state, and existing
+sessions; never delete an account or reset a challenge to simulate rollback.

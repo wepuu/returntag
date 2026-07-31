@@ -14,6 +14,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult;
+use ReturnTag\TagCore\Application\Auth\AuthenticatedSession;
+use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\Persistence\Record\NewAuthChallengeRecord;
 use ReturnTag\TagCore\Application\Persistence\Value\LookupDigest;
@@ -129,7 +131,28 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			$pages,
 			$schema_state,
 			$this->renderer,
-			new ActivationOtpFormHandler( null, null )
+			new ActivationOtpFormHandler(
+				null,
+				null,
+				new class() implements AuthenticatedSession {
+					/**
+					 * Return an anonymous test identity.
+					 */
+					public function current_user_id(): ?int {
+						return null;
+					}
+
+					/**
+					 * Ignore the unused test session operation.
+					 *
+					 * @param int $user_id Unused WordPress User ID.
+					 */
+					public function authenticate( int $user_id ): void {
+						unset( $user_id );
+					}
+				},
+				new WordPressAccountEmailPolicy()
+			)
 		);
 
 		$this->original_permalink_structure = (string) $wp_rewrite->permalink_structure;
@@ -247,6 +270,26 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'Email me a code', $html );
 		self::assertStringContainsString( 'Verify code', $html );
 		self::assertStringNotContainsString( 'owner@example.test', $html );
+	}
+
+	/**
+	 * Authenticated visitors see a ready state without stale identity forms.
+	 */
+	public function test_authenticated_activation_entry_hides_otp_forms(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::AUTHENTICATED
+			)
+		);
+
+		self::assertStringContainsString( 'You are signed in', $html );
+		self::assertStringContainsString( 'Activating this ReturnTag is the next step.', $html );
+		self::assertStringNotContainsString( '<form', $html );
+		self::assertStringNotContainsString( 'test-nonce', $html );
+		self::assertStringNotContainsString( 'Email address', $html );
 	}
 
 	/**

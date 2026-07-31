@@ -247,3 +247,18 @@ latest challenge is found, preventing unknown identities from allocating
 durable email buckets. All budgets use hashed, non-autoloaded
 `returntag_otp_verify_rate_*` Options under a site-scoped advisory lock. No
 unindexed challenge-table IP scan or Schema change is added.
+
+## 16. RT-306 passwordless identity provisioning
+
+| Read or write shape | Predicate and bound | Authority |
+|---|---|---|
+| Account advisory lock | network ID plus truncated keyed email lookup, two-second wait | MySQL named lock |
+| Exact WordPress user lookup | canonical email, at most three candidates, exact in-process comparison | WordPress User API and `user_email` index |
+| New WordPress user | fixed Subscriber role, opaque random login, canonical email | WordPress User API |
+| Account audit append | `account_passwordless_created`, numeric User target, no metadata | `returntag_events` append |
+
+The advisory lock contains no raw email and coordinates every ReturnTag
+passwordless account creation path. The WordPress `user_email` and
+`user_login` indexes are not treated as unique database constraints. More than
+one exact email match fails closed. No Tag, Batch, order, shipment, ownership,
+or activation query is added.

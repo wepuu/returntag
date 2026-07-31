@@ -11,9 +11,11 @@ namespace ReturnTag\TagCore\PublicSite;
 
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpRequestResult;
-use ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult;
+use ReturnTag\TagCore\Application\Auth\AuthenticatedSession;
+use ReturnTag\TagCore\Application\Auth\CompletePasswordlessAuthentication;
+use ReturnTag\TagCore\Application\Auth\PasswordlessAuthenticationResult;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
-use ReturnTag\TagCore\Application\Auth\VerifyActivationOtp;
+use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Domain\Auth\ActivationOtpCode;
 use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 use ReturnTag\TagCore\Domain\Tag\TagId;
@@ -40,13 +42,24 @@ final readonly class ActivationOtpFormHandler {
 	/**
 	 * Create the form handler.
 	 *
-	 * @param RequestActivationOtp|null $requests Configured request use case.
-	 * @param VerifyActivationOtp|null  $verifications Configured verification use case.
+	 * @param RequestActivationOtp|null               $requests Configured request use case.
+	 * @param CompletePasswordlessAuthentication|null $authentication Configured authentication use case.
+	 * @param AuthenticatedSession                    $session Current WordPress session.
+	 * @param WordPressAccountEmailPolicy             $email_policy WordPress account email boundary.
 	 */
 	public function __construct(
 		private ?RequestActivationOtp $requests,
-		private ?VerifyActivationOtp $verifications
+		private ?CompletePasswordlessAuthentication $authentication,
+		private AuthenticatedSession $session,
+		private WordPressAccountEmailPolicy $email_policy
 	) {
+	}
+
+	/**
+	 * Determine whether WordPress already has an authenticated identity.
+	 */
+	public function is_authenticated(): bool {
+		return null !== $this->session->current_user_id();
 	}
 
 	/**
@@ -89,6 +102,10 @@ final readonly class ActivationOtpFormHandler {
 			return ActivationOtpFormState::REQUEST_INVALID_EMAIL;
 		}
 
+		if ( ! $this->email_policy->allows( $email ) ) {
+			return ActivationOtpFormState::REQUEST_INVALID_EMAIL;
+		}
+
 		try {
 			$result = $this->requests->execute( $tag_id, $email, $ip );
 		} catch ( Throwable ) {
@@ -105,12 +122,12 @@ final readonly class ActivationOtpFormHandler {
 	}
 
 	/**
-	 * Submit one OTP verification without authenticating or activating.
+	 * Verify one OTP and establish a passwordless WordPress session.
 	 *
 	 * @param TagId $tag_id Server-resolved eligible Tag.
 	 */
 	private function verify_code( TagId $tag_id ): ActivationOtpFormState {
-		if ( null === $this->verifications ) {
+		if ( null === $this->authentication ) {
 			return ActivationOtpFormState::VERIFICATION_INVALID;
 		}
 
@@ -123,13 +140,20 @@ final readonly class ActivationOtpFormHandler {
 		}
 
 		try {
-			$result = $this->verifications->execute( $tag_id, $email, $code, $ip );
+			$result = $this->authentication->execute( $tag_id, $email, $code, $ip );
 		} catch ( Throwable ) {
 			return ActivationOtpFormState::VERIFICATION_INVALID;
 		}
 
-		return ActivationOtpVerificationResult::VERIFIED === $result
-			? ActivationOtpFormState::VERIFIED
+		return in_array(
+			$result,
+			array(
+				PasswordlessAuthenticationResult::AUTHENTICATED,
+				PasswordlessAuthenticationResult::ALREADY_AUTHENTICATED,
+			),
+			true
+		)
+			? ActivationOtpFormState::AUTHENTICATED
 			: ActivationOtpFormState::VERIFICATION_INVALID;
 	}
 

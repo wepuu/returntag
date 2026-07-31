@@ -9,12 +9,18 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\PublicSite;
 
+use ReturnTag\TagCore\Application\Auth\CompletePasswordlessAuthentication;
+use ReturnTag\TagCore\Application\Auth\PasswordlessAccountEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
 use ReturnTag\TagCore\Application\Auth\VerifyActivationOtp;
+use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
+use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
+use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedSession;
+use ReturnTag\TagCore\Infrastructure\Auth\WordPressPasswordlessAccountProvisioner;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -22,6 +28,7 @@ use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbActivationOtpRequestStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAuthChallengeRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
@@ -65,7 +72,18 @@ final class PublicSiteBootstrap {
 			$feature_flags,
 			new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
 		);
-		$otp_services  = self::otp_services( $wpdb, $gateway, $tables, $dates, $pages, $feature_flags );
+		$session       = new WordPressAuthenticatedSession();
+		$email_policy  = new WordPressAccountEmailPolicy();
+		$otp_services  = self::otp_services(
+			$wpdb,
+			$gateway,
+			$tables,
+			$dates,
+			$pages,
+			$feature_flags,
+			$session,
+			$email_policy
+		);
 		$route         = new PublicTagRouteController(
 			$plugin_dir,
 			new PublicTagResponsePolicy(),
@@ -73,7 +91,12 @@ final class PublicSiteBootstrap {
 			$pages,
 			$schema_state,
 			new PublicTagTemplateRenderer( $plugin_dir ),
-			new ActivationOtpFormHandler( $otp_services['request'], $otp_services['verify'] )
+			new ActivationOtpFormHandler(
+				$otp_services['request'],
+				$otp_services['authenticate'],
+				$session,
+				$email_policy
+			)
 		);
 
 		$route->register_hooks();
@@ -89,7 +112,9 @@ final class PublicSiteBootstrap {
 	 * @param DatabaseDateTimeCodec            $dates UTC codec.
 	 * @param ResolvePublicTagPage             $pages Public state resolver.
 	 * @param WordPressOptionFeatureFlagReader $feature_flags Operational controls.
-	 * @return array{request: RequestActivationOtp|null, verify: VerifyActivationOtp|null}
+	 * @param WordPressAuthenticatedSession    $session Native WordPress session adapter.
+	 * @param WordPressAccountEmailPolicy      $email_policy WordPress account email boundary.
+	 * @return array{request: RequestActivationOtp|null, authenticate: CompletePasswordlessAuthentication|null}
 	 */
 	private static function otp_services(
 		wpdb $database,
@@ -97,14 +122,16 @@ final class PublicSiteBootstrap {
 		TableNames $tables,
 		DatabaseDateTimeCodec $dates,
 		ResolvePublicTagPage $pages,
-		WordPressOptionFeatureFlagReader $feature_flags
+		WordPressOptionFeatureFlagReader $feature_flags,
+		WordPressAuthenticatedSession $session,
+		WordPressAccountEmailPolicy $email_policy
 	): array {
 		try {
 			$protector = new SodiumActivationOtpProtector( ActivationOtpSecrets::load() );
 		} catch ( RuntimeException ) {
 			return array(
-				'request' => null,
-				'verify'  => null,
+				'request'      => null,
+				'authenticate' => null,
 			);
 		}
 
@@ -117,24 +144,40 @@ final class PublicSiteBootstrap {
 			new WpdbTransactionManager( $database )
 		);
 
-		$clock = new SystemClock();
+		$clock        = new SystemClock();
+		$verification = new VerifyActivationOtp(
+			$pages,
+			$feature_flags,
+			$store,
+			$protector,
+			new WordPressOptionActivationOtpVerificationRateLimiter( $database, get_current_blog_id() ),
+			$clock
+		);
+		$events       = new WpdbEventRepository(
+			$gateway,
+			$tables,
+			$dates,
+			new DenyAllEventMetadataPolicy(),
+			new PasswordlessAccountEventIdentityPolicy()
+		);
 
 		return array(
-			'request' => new RequestActivationOtp(
+			'request'      => new RequestActivationOtp(
 				$pages,
 				$feature_flags,
 				$store,
 				$protector,
 				new WordPressOptionActivationOtpRateLimiter( $database, get_current_blog_id() ),
 				new ActionSchedulerActivationOtpScheduler(),
+				$email_policy,
 				$clock
 			),
-			'verify'  => new VerifyActivationOtp(
-				$pages,
-				$feature_flags,
-				$store,
+			'authenticate' => new CompletePasswordlessAuthentication(
+				$verification,
 				$protector,
-				new WordPressOptionActivationOtpVerificationRateLimiter( $database, get_current_blog_id() ),
+				new WordPressPasswordlessAccountProvisioner( $database, $events ),
+				$session,
+				$email_policy,
 				$clock
 			),
 		);
