@@ -141,13 +141,30 @@ final class PublicTagRouteController {
 		$activation_post = 'POST' === $method
 			&& PublicTagPageState::ACTIVATION_ENTRY === $page->state
 			&& null !== $tag_id;
-		$form_state      = $this->activation_form->is_authenticated()
+		$authenticated   = $this->activation_form->is_authenticated();
+		$form_state      = $authenticated
 			? ActivationOtpFormState::AUTHENTICATED
 			: ( $activation_post
 				? $this->activation_form->submit( $tag_id )
 				: ActivationOtpFormState::READY );
 
-		if ( $activation_post && ActivationOtpFormState::AUTHENTICATED === $form_state ) {
+		if ( $activation_post && $authenticated && $this->activation_form->is_activation_action() ) {
+			$attempt = $this->activation_form->activate( $tag_id );
+
+			if ( null === $attempt || PublicTagPageState::ACTIVATION_ENTRY === $attempt->page->state ) {
+				$form_state = ActivationOtpFormState::ACTIVATION_ERROR;
+			} else {
+				$page = $attempt->page;
+			}
+		}
+
+		if (
+			$activation_post
+			&& (
+				( $authenticated && ! $this->activation_form->is_activation_action() )
+				|| PublicTagPageState::ACTIVATION_ENTRY !== $page->state
+			)
+		) {
 			foreach ( $this->responses->headers_for_method( $method, true ) as $name => $value ) {
 				header( $name . ': ' . $value, true );
 			}

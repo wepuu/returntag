@@ -593,6 +593,21 @@ RT-308 adds:
 - no Migration, index, Schema, dependency, plugin-version, asset, email,
   queue, theme, or WooCommerce change.
 
+RT-309 adds:
+
+- a working authenticated `Activate my tag` POST in the existing mobile public
+  activation card;
+- same-site and nonce validation with WordPress Session-derived User and email
+  identity plus direct-peer IP;
+- dedicated durable User 5/hour and 10/day, keyed email 5/hour and 10/day,
+  keyed IP 30/hour and 100/day, Tag 10/hour, and global 100/minute and
+  2,000/hour activation-attempt budgets;
+- generic throttling and failure feedback followed by existing committed-state
+  convergence and canonical `303` GET routing;
+- bounded cleanup through the existing daily maintenance action;
+- no Migration, index, Schema, dependency, plugin-version, theme, success
+  email, new route, conflict page, support action, or WooCommerce change.
+
 
 
 Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.

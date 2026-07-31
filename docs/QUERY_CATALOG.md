@@ -287,3 +287,17 @@ the write outcome to an existing Owner, Finder, invalid, or explanation page.
 No conflict row or Event is written, and no Owner identifier crosses the
 Application-to-renderer boundary. Candidate indexes and Schema version remain
 unchanged.
+
+## 19. RT-309 authenticated activation budgets
+
+| Read or write shape | Predicate and bound | Authority |
+|---|---|---|
+| Nine fixed-window budget reads/writes | exact hashed Option name | WordPress Options primary key |
+| Limiter lock | site-derived fixed lock name, two-second wait | MySQL named lock |
+| Expired bucket cleanup | activation Option prefix, ordered, limit `500` | WordPress Options name index |
+| Activation and convergence | existing RT-307 write/lock plus RT-303 committed-state read | Existing documented indexes |
+
+Budget Option names contain expiry plus SHA-256 scope hashes. Values contain
+only count and expiry. Raw email, IP, Tag ID, User profile, cookie, Session,
+OTP, item, order, message, device, and location data are not selected or
+stored. Schema version 8 requires no new index.

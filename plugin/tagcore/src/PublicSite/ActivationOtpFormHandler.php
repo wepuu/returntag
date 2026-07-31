@@ -11,11 +11,15 @@ namespace ReturnTag\TagCore\PublicSite;
 
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Auth\ActivationOtpRequestResult;
+use ReturnTag\TagCore\Application\Auth\ActivationOtpProtector;
 use ReturnTag\TagCore\Application\Auth\AuthenticatedSession;
+use ReturnTag\TagCore\Application\Auth\AuthenticatedUserEmailReader;
 use ReturnTag\TagCore\Application\Auth\CompletePasswordlessAuthentication;
 use ReturnTag\TagCore\Application\Auth\PasswordlessAuthenticationResult;
 use ReturnTag\TagCore\Application\Auth\RequestActivationOtp;
 use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
+use ReturnTag\TagCore\Application\Tag\RateLimitedTagActivation;
+use ReturnTag\TagCore\Application\Tag\TagActivationAttemptResult;
 use ReturnTag\TagCore\Domain\Auth\ActivationOtpCode;
 use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 use ReturnTag\TagCore\Domain\Tag\TagId;
@@ -39,6 +43,8 @@ final readonly class ActivationOtpFormHandler {
 
 	public const VERIFY_ACTION = 'verify_code';
 
+	public const ACTIVATE_ACTION = 'activate_tag';
+
 	/**
 	 * Create the form handler.
 	 *
@@ -46,12 +52,18 @@ final readonly class ActivationOtpFormHandler {
 	 * @param CompletePasswordlessAuthentication|null $authentication Configured authentication use case.
 	 * @param AuthenticatedSession                    $session Current WordPress session.
 	 * @param WordPressAccountEmailPolicy             $email_policy WordPress account email boundary.
+	 * @param RateLimitedTagActivation|null           $activation Configured authenticated activation.
+	 * @param AuthenticatedUserEmailReader|null       $user_emails Server-side User email reader.
+	 * @param ActivationOtpProtector|null             $protector Keyed lookup protection.
 	 */
 	public function __construct(
 		private ?RequestActivationOtp $requests,
 		private ?CompletePasswordlessAuthentication $authentication,
 		private AuthenticatedSession $session,
-		private WordPressAccountEmailPolicy $email_policy
+		private WordPressAccountEmailPolicy $email_policy,
+		private ?RateLimitedTagActivation $activation,
+		private ?AuthenticatedUserEmailReader $user_emails,
+		private ?ActivationOtpProtector $protector
 	) {
 	}
 
@@ -60,6 +72,56 @@ final readonly class ActivationOtpFormHandler {
 	 */
 	public function is_authenticated(): bool {
 		return null !== $this->session->current_user_id();
+	}
+
+	/**
+	 * Determine whether the bounded POST action requests Tag activation.
+	 */
+	public function is_activation_action(): bool {
+		return self::ACTIVATE_ACTION === $this->post_string( self::ACTION_FIELD, 32 );
+	}
+
+	/**
+	 * Validate and submit one authenticated activation attempt.
+	 *
+	 * @param TagId $tag_id Server-resolved eligible Tag.
+	 */
+	public function activate( TagId $tag_id ): ?TagActivationAttemptResult {
+		if (
+			! $this->is_activation_action()
+			|| ! $this->same_site_request()
+			|| ! $this->valid_nonce()
+			|| null === $this->activation
+			|| null === $this->user_emails
+			|| null === $this->protector
+		) {
+			return null;
+		}
+
+		$user_id = $this->session->current_user_id();
+
+		if ( null === $user_id ) {
+			return null;
+		}
+
+		$email = $this->user_emails->find( $user_id );
+
+		if ( null === $email ) {
+			return null;
+		}
+
+		try {
+			$ip = $this->client_ip();
+
+			return $this->activation->execute(
+				$tag_id,
+				$user_id,
+				$this->protector->email_lookup( $email ),
+				$this->protector->ip_lookup( $ip )
+			);
+		} catch ( Throwable ) {
+			return null;
+		}
 	}
 
 	/**

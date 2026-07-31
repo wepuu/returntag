@@ -651,3 +651,29 @@ responses. No support or dispute action is inferred from a failed write.
 Persistence exceptions remain fail-closed for the later PublicSite adapter.
 RT-308 adds no public endpoint, token, nonce decision, rate-limit bypass,
 Event, log field, email, or personal-data storage.
+
+## 23. RT-309 activation-attempt controls
+
+The authenticated activation POST contains only a closed action and WordPress
+nonce. Same-site Fetch Metadata and Origin evidence are validated before any
+business work. User ID and email are loaded server-side from the authenticated
+WordPress identity; user-supplied identity fields are not accepted.
+
+The email and direct-peer IP are transformed by the existing independent keyed
+lookup protection before rate limiting. Proxy forwarding headers are ignored.
+The limiter atomically checks the approved User 5/hour and 10/day, email
+5/hour and 10/day, IP 30/hour and 100/day, Tag 10/hour, and global 100/minute
+and 2,000/hour budgets under one site lock.
+
+Ineligible state consumes no activation budget. Throttling, invalid nonce,
+cross-site evidence, missing User email, missing keys, limiter lock/storage
+failure, and unexpected Application failure use the same retryable feedback
+when the activation entry remains visible. No response, URL, header, template,
+Option, log, or Event exposes the limiting scope, email, IP, Owner, cookie, or
+Session identifier.
+
+Only a reserved attempt reaches the RT-307 atomic ownership transaction.
+Success and committed state changes use `303` to a canonical GET. The page
+retains no-store, no-referrer, no-index, CSP, output escaping, and local-only
+asset controls. Disable `returntag_global_activation_enabled` to stop new OTP
+and ownership work.

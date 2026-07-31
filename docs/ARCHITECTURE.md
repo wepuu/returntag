@@ -658,3 +658,25 @@ RT-308 remains an Application boundary without a public POST. RT-309 will
 invoke it only after activation-attempt limits are reserved. Schema, plugin
 version, dependencies, theme, assets, email, queue, and WooCommerce behavior
 remain unchanged.
+
+## 24. RT-309 authenticated activation boundary
+
+`PublicSite` extends the existing authenticated activation card with one
+same-site, nonce-protected POST containing only a closed action and the nonce.
+The adapter derives the current User ID from the WordPress Session, reads that
+User's canonical email through a narrow port, accepts only the direct peer IP,
+and converts email and IP to keyed lookup digests through the existing
+protection adapter.
+
+Application first resolves current eligibility. It then reserves User, keyed
+email, keyed IP, Tag, and global budgets before invoking RT-307 and RT-308. A
+denied reservation re-resolves committed state and exposes only generic
+throttling feedback when the Tag remains eligible. Completed or changed state
+uses a same-site `303` back to the canonical GET.
+
+Infrastructure stores dedicated non-autoloaded fixed-window WordPress Options
+under a site-scoped advisory lock and extends the existing bounded maintenance
+hook to remove expired buckets. The UI reuses the RT-301 public design system;
+there is no theme, new route, conflict page, support action, email, queue,
+WooCommerce behavior, dependency, Migration, or Schema change. ADR 0016
+records the exact limits and privacy decisions.

@@ -452,3 +452,17 @@ No public POST, Migration, index, dependency, asset, key, email, queue, theme,
 or WooCommerce change is added. Code rollback removes the unused convergence
 composition while preserving all committed state and Events. RT-309 must
 reserve durable activation-attempt budgets before exposing this use case.
+
+RT-309 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Deployment requires the existing RT-304 email-lookup HMAC key because
+authenticated User email and direct-peer IP are converted to keyed limiter
+scopes. Acceptance must verify the exact User, email, IP, Tag, and global
+limits; same-site nonce enforcement; session-derived identity; generic
+throttling; atomic activation; `303` convergence; and absence of private
+values in HTML, URLs, headers, logs, Events, and Options.
+
+The existing daily Action Scheduler maintenance hook now cleans expired
+activation limiter Options in bounded work. Contain an incident with
+`returntag_global_activation_enabled=0`. Code rollback removes the public
+activation POST and leaves opaque counters to expire; it preserves every
+Owner, activation timestamp, active state, and audit Event.

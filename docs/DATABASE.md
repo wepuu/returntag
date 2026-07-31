@@ -935,3 +935,22 @@ not persisted as a conflict and creates no conflict Event.
 Schema remains version `8`; there is no Migration, column, index, lock, data
 conversion, or cleanup task. Rollback removes only the composition service and
 preserves every Owner assignment, activation Event, and existing Tag state.
+
+## 19. RT-309 activation rate-limit storage
+
+RT-309 keeps Schema version `8` and adds no product table, column, or index.
+Nine fixed-window counters are stored as non-autoloaded WordPress Options with
+the `returntag_activation_rate_` prefix. The Option name contains only bucket
+expiry and a SHA-256 hash of scope, window, and start time. The value contains
+only a non-negative count and integer expiry.
+
+User and canonical Tag values are inputs to the bucket-name hash; email and
+direct-peer IP enter only as keyed lookup digests. Raw email, IP, Tag ID,
+cookie, Session token, and OTP are never Option names or values. A
+site-scoped advisory lock serializes checks and increments. Lock or storage
+failure fails closed before the Tag mutation.
+
+The existing daily maintenance action deletes at most 500 inspected expired
+activation Options per run. Code rollback ignores remaining opaque counters;
+they may expire and be cleaned without a data Migration. Owner assignments and
+activation Events are never rollback targets.

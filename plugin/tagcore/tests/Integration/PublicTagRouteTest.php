@@ -44,6 +44,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionTagActivationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
@@ -151,7 +152,10 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 						unset( $user_id );
 					}
 				},
-				new WordPressAccountEmailPolicy()
+				new WordPressAccountEmailPolicy(),
+				null,
+				null,
+				null
 			)
 		);
 
@@ -273,9 +277,9 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Authenticated visitors see a ready state without stale identity forms.
+	 * Authenticated visitors see one working activation form without identity fields.
 	 */
-	public function test_authenticated_activation_entry_hides_otp_forms(): void {
+	public function test_authenticated_activation_entry_shows_activation_form(): void {
 		$html = $this->renderer->render_to_string(
 			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
 			new ActivationOtpFormView(
@@ -286,10 +290,32 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		);
 
 		self::assertStringContainsString( 'You are signed in', $html );
-		self::assertStringContainsString( 'Activating this ReturnTag is the next step.', $html );
-		self::assertStringNotContainsString( '<form', $html );
-		self::assertStringNotContainsString( 'test-nonce', $html );
+		self::assertStringContainsString( 'You can now activate this ReturnTag.', $html );
+		self::assertStringContainsString( '<form', $html );
+		self::assertStringContainsString( 'value="activate_tag"', $html );
+		self::assertStringContainsString( 'value="test-nonce"', $html );
+		self::assertStringContainsString( 'Activate my tag', $html );
 		self::assertStringNotContainsString( 'Email address', $html );
+		self::assertStringNotContainsString( 'Six-digit code', $html );
+	}
+
+	/**
+	 * Generic activation failure retains the same working form and no PII.
+	 */
+	public function test_authenticated_activation_error_is_generic_and_retryable(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::ACTIVATION_ERROR
+			)
+		);
+
+		self::assertStringContainsString( 'We could not activate this Tag right now.', $html );
+		self::assertStringContainsString( 'role="alert"', $html );
+		self::assertStringContainsString( 'Activate my tag', $html );
+		self::assertStringNotContainsString( 'owner@example.test', $html );
 	}
 
 	/**
@@ -483,10 +509,163 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * User and keyed-email scopes enforce five hourly and ten daily attempts.
+	 *
+	 * @param string $fixed_scope Scope held constant across attempts.
+	 * @dataProvider activation_identity_scope_provider
+	 */
+	public function test_activation_identity_limits_are_balanced( string $fixed_scope ): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() );
+		$start   = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+
+		for ( $attempt = 0; $attempt < 10; ++$attempt ) {
+			$time = $start->add( new DateInterval( $attempt < 5 ? 'PT0H' : 'PT2H' ) );
+			self::assertTrue( $this->reserve_activation_attempt( $limiter, $fixed_scope, $attempt, $time ) );
+		}
+
+		self::assertFalse(
+			$this->reserve_activation_attempt(
+				$limiter,
+				$fixed_scope,
+				10,
+				$start->add( new DateInterval( 'PT4H' ) )
+			)
+		);
+	}
+
+	/**
+	 * Provide server-derived identity scopes with identical approved limits.
+	 *
+	 * @return iterable<string, array{string}>
+	 */
+	public function activation_identity_scope_provider(): iterable {
+		yield 'WordPress User' => array( 'user' );
+		yield 'keyed email' => array( 'email' );
+	}
+
+	/**
+	 * Direct-peer IP allows thirty hourly and one hundred daily attempts.
+	 */
+	public function test_activation_ip_limits_are_balanced(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() );
+		$start   = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+
+		for ( $attempt = 0; $attempt < 100; ++$attempt ) {
+			$hour = intdiv( $attempt, 30 ) * 2;
+			self::assertTrue(
+				$this->reserve_activation_attempt(
+					$limiter,
+					'ip',
+					$attempt,
+					$start->add( new DateInterval( 'PT' . $hour . 'H' ) )
+				)
+			);
+		}
+
+		self::assertFalse(
+			$this->reserve_activation_attempt(
+				$limiter,
+				'ip',
+				100,
+				$start->add( new DateInterval( 'PT8H' ) )
+			)
+		);
+	}
+
+	/**
+	 * One Tag allows ten activation attempts per hour.
+	 */
+	public function test_activation_tag_limit_is_ten_per_hour(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() );
+		$now     = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+
+		for ( $attempt = 0; $attempt < 10; ++$attempt ) {
+			self::assertTrue( $this->reserve_activation_attempt( $limiter, 'tag', $attempt, $now ) );
+		}
+
+		self::assertFalse( $this->reserve_activation_attempt( $limiter, 'tag', 10, $now ) );
+	}
+
+	/**
+	 * Site-wide activation allows one hundred attempts per minute.
+	 */
+	public function test_activation_global_limit_is_one_hundred_per_minute(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() );
+		$now     = new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) );
+
+		for ( $attempt = 0; $attempt < 100; ++$attempt ) {
+			self::assertTrue( $this->reserve_activation_attempt( $limiter, 'global', $attempt, $now ) );
+		}
+
+		self::assertFalse( $this->reserve_activation_attempt( $limiter, 'global', 100, $now ) );
+	}
+
+	/**
+	 * Activation Options store only hashed bucket names, counts, and expiry.
+	 */
+	public function test_activation_limit_storage_contains_no_raw_scope_values(): void {
+		global $wpdb;
+
+		$limiter = new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() );
+		$email   = LookupDigest::from_digest( hash( 'sha256', 'private-email-scope' ) );
+		$ip      = LookupDigest::from_digest( hash( 'sha256', 'private-ip-scope' ) );
+
+		self::assertTrue(
+			$limiter->reserve(
+				424242,
+				$email,
+				$ip,
+				TagId::from_canonical( 'A7R2W9' ),
+				new DateTimeImmutable( '2026-07-30 00:00:00', new DateTimeZone( 'UTC' ) )
+			)
+		);
+
+		$like  = $wpdb->esc_like( WordPressOptionTagActivationRateLimiter::OPTION_PREFIX ) . '%';
+		$query = $wpdb->prepare( 'SELECT option_name, option_value, autoload FROM %i WHERE option_name LIKE %s', $wpdb->options, $like );
+		self::assertIsString( $query );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above; isolated inspection of plugin-owned test Options.
+		$rows = $wpdb->get_results( $query, ARRAY_A );
+		self::assertCount( 9, $rows );
+
+		foreach ( $rows as $row ) {
+			self::assertMatchesRegularExpression(
+				'/^returntag_activation_rate_[0-9]+_[a-f0-9]{64}$/D',
+				(string) $row['option_name']
+			);
+			self::assertSame( 'off', $row['autoload'] );
+			$value = maybe_unserialize( $row['option_value'] );
+			self::assertIsArray( $value );
+			self::assertSame(
+				array( 'count', 'expires_at' ),
+				array_keys( $value )
+			);
+		}
+
+		$stored = wp_json_encode( $rows );
+		self::assertIsString( $stored );
+		self::assertStringNotContainsString( 'A7R2W9', $stored );
+		self::assertStringNotContainsString( $email->value, $stored );
+		self::assertStringNotContainsString( $ip->value, $stored );
+	}
+
+	/**
 	 * Active owner identity comes only from the server-side WordPress session.
 	 */
 	public function test_active_owner_and_finder_experiences_are_separated(): void {
-		$owner_id = self::factory()->user->create();
+		$owner_id = self::factory()->user->create(
+			array(
+				'user_email'   => 'private-owner-rt309@example.test',
+				'display_name' => 'Private RT309 Owner',
+			)
+		);
 		$this->insert_tag(
 			'A7R2W9',
 			'active',
@@ -514,7 +693,9 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		$html = $this->renderer->render_to_string( $finder_page );
 		self::assertStringContainsString( 'Blue backpack', $html );
 		self::assertStringContainsString( 'Marked as lost', $html );
-		self::assertStringNotContainsString( (string) $owner_id, $html );
+		self::assertStringNotContainsString( 'private-owner-rt309@example.test', $html );
+		self::assertStringNotContainsString( 'Private RT309 Owner', $html );
+		self::assertStringNotContainsString( 'owner_id', $html );
 		self::assertStringNotContainsString( 'A7R2W9', $html );
 	}
 
@@ -780,12 +961,56 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Reserve one attempt while holding only the selected scope constant.
+	 *
+	 * @param WordPressOptionTagActivationRateLimiter $limiter Limiter under test.
+	 * @param string                                  $fixed_scope Fixed scope name.
+	 * @param int                                     $attempt Attempt sequence.
+	 * @param DateTimeImmutable                       $now Current test time.
+	 */
+	private function reserve_activation_attempt(
+		WordPressOptionTagActivationRateLimiter $limiter,
+		string $fixed_scope,
+		int $attempt,
+		DateTimeImmutable $now
+	): bool {
+		$owner_id = 'user' === $fixed_scope ? 42 : $attempt + 1;
+		$email    = LookupDigest::from_digest(
+			hash( 'sha256', 'email:' . ( 'email' === $fixed_scope ? 'fixed' : (string) $attempt ) )
+		);
+		$ip       = LookupDigest::from_digest(
+			hash( 'sha256', 'ip:' . ( 'ip' === $fixed_scope ? 'fixed' : (string) $attempt ) )
+		);
+		$tag_id   = 'tag' === $fixed_scope
+			? TagId::from_canonical( 'A7R2W9' )
+			: $this->tag_id_for_attempt( $attempt );
+
+		return $limiter->reserve( $owner_id, $email, $ip, $tag_id, $now );
+	}
+
+	/**
+	 * Build a deterministic canonical Tag ID for one bounded test attempt.
+	 *
+	 * @param int $attempt Attempt sequence.
+	 */
+	private function tag_id_for_attempt( int $attempt ): TagId {
+		$value = str_repeat( TagId::ALPHABET[0], TagId::LENGTH );
+
+		for ( $position = TagId::LENGTH - 1; $position >= 0; --$position ) {
+			$value[ $position ] = TagId::ALPHABET[ $attempt % strlen( TagId::ALPHABET ) ];
+			$attempt            = intdiv( $attempt, strlen( TagId::ALPHABET ) );
+		}
+
+		return TagId::from_canonical( $value );
+	}
+
+	/**
 	 * Delete only expired-test limiter options.
 	 *
 	 * @param wpdb $database Test database.
 	 */
 	private function clear_rate_limit_options( wpdb $database ): void {
-		foreach ( array( WordPressOptionActivationOtpRateLimiter::OPTION_PREFIX, WordPressOptionActivationOtpVerificationRateLimiter::OPTION_PREFIX ) as $prefix ) {
+		foreach ( array( WordPressOptionActivationOtpRateLimiter::OPTION_PREFIX, WordPressOptionActivationOtpVerificationRateLimiter::OPTION_PREFIX, WordPressOptionTagActivationRateLimiter::OPTION_PREFIX ) as $prefix ) {
 			$like = $database->esc_like( $prefix ) . '%';
 			$sql  = $database->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $database->options, $like );
 
