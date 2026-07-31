@@ -18,5 +18,5 @@ enum ActivationOtpFormState: string {
 	case REQUEST_INVALID_EMAIL = 'request_invalid_email';
 	case REQUEST_ERROR         = 'request_error';
 	case VERIFICATION_INVALID  = 'verification_invalid';
-	case VERIFIED              = 'verified';
+	case AUTHENTICATED         = 'authenticated';
 }

@@ -580,3 +580,37 @@ Successful verification is not authentication and grants no authorization.
 RT-305 creates no account, session, owner assignment, Tag activation, access
 token, Event, queue work, or email. Disabling global activation is the kill
 switch for both OTP request and verification.
+
+## 20. RT-306 passwordless authentication controls
+
+The current authenticated WordPress identity is checked before OTP form
+handling. An already authenticated POST cannot consume a submitted OTP or
+switch the browser to another account. Anonymous email identities must be
+canonical ASCII values of at most 100 bytes so a code is not issued for a
+value that the supported WordPress User table cannot store.
+
+After RT-305 verifies and consumes the code, one provisioner derives only a
+keyed lock scope, acquires a short network-scoped advisory lock, repeats exact
+WordPress email lookup, and fails closed for ambiguous identity data. Existing
+passwords, roles, display names, and profiles are never overwritten. New users
+receive only `subscriber`, an opaque random login, a high-entropy unknown
+password, and no password notification.
+
+New ReturnTag-created accounts must append or repair a metadata-free
+`account_passwordless_created` Event before session issuance. The Event has a
+system actor and numeric User target and contains no metadata, email, Tag ID,
+IP, lookup digest, OTP, cookie, or Session identifier. Account and Event
+recovery is at-least-once because WordPress user hooks cannot be rolled back
+safely with the challenge transaction.
+
+WordPress creates a fresh non-persistent session token. TagCore sends the
+native cookie values with `HttpOnly` and `SameSite=Lax`; HTTPS determines
+`Secure` through the WordPress security policy. No custom authentication
+cookie is introduced. Success redirects with a server-constructed same-site
+`303`; all activation pages remain no-store, no-referrer, no-index, and under
+the restrictive local-only Content Security Policy.
+
+Provisioning, Event, cookie, or redirect failure never resurrects an OTP,
+deletes a user, assigns ownership, or changes a Tag. Disable
+`returntag_global_activation_enabled` to stop new passwordless activation
+authentication.

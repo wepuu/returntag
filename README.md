@@ -416,3 +416,20 @@ RT-305 keeps Schema version `8` and plugin version `0.3.0`. It performs no
 WordPress login or registration, ownership assignment, Tag activation, Event
 append, token issuance, email send, or WooCommerce operation. Those later
 flows remain outside this ticket.
+
+## RT-306 passwordless WordPress session
+
+RT-306 composes successful activation OTP verification with one
+concurrency-controlled WordPress account boundary. An exact existing email
+reuses its account without changing its password or roles. A new identity
+receives one opaque-login `subscriber` account, a metadata-free creation
+Event, and a fresh non-persistent native WordPress session. Ambiguous duplicate
+email identities fail closed.
+
+The logged-in state replaces both OTP forms on the activation card. An
+authenticated stale POST redirects to the canonical Tag URL without consuming
+an OTP or switching accounts. Authentication cookies retain WordPress-native
+values and paths while adding explicit `HttpOnly` and `SameSite=Lax`
+attributes. RT-306 keeps Schema version `8` and plugin version `0.3.0`; it does
+not assign ownership, activate a Tag, send additional email, or call
+WooCommerce.

@@ -41,10 +41,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php if ( null !== $view->activation_form ) : ?>
 				<div class="returntag-public__activation">
-					<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::VERIFIED === $view->activation_form->state ) : ?>
+					<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED === $view->activation_form->state ) : ?>
 						<div class="returntag-public__notice returntag-public__notice--success" role="status">
-							<h2><?php esc_html_e( 'Email verified', 'tagcore' ); ?></h2>
-							<p><?php esc_html_e( 'This code was accepted and cannot be reused. Passwordless account setup is the next step.', 'tagcore' ); ?></p>
+							<h2><?php esc_html_e( 'You are signed in', 'tagcore' ); ?></h2>
+							<p><?php esc_html_e( 'Your identity is confirmed. Activating this ReturnTag is the next step.', 'tagcore' ); ?></p>
 						</div>
 					<?php else : ?>
 						<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::REQUEST_ACCEPTED === $view->activation_form->state ) : ?>

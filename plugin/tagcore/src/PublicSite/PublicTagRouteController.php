@@ -141,10 +141,25 @@ final class PublicTagRouteController {
 		$activation_post = 'POST' === $method
 			&& PublicTagPageState::ACTIVATION_ENTRY === $page->state
 			&& null !== $tag_id;
-		$form_state      = $activation_post
-			? $this->activation_form->submit( $tag_id )
-			: ActivationOtpFormState::READY;
-		$form            = PublicTagPageState::ACTIVATION_ENTRY === $page->state && null !== $tag_id
+		$form_state      = $this->activation_form->is_authenticated()
+			? ActivationOtpFormState::AUTHENTICATED
+			: ( $activation_post
+				? $this->activation_form->submit( $tag_id )
+				: ActivationOtpFormState::READY );
+
+		if ( $activation_post && ActivationOtpFormState::AUTHENTICATED === $form_state ) {
+			foreach ( $this->responses->headers_for_method( $method, true ) as $name => $value ) {
+				header( $name . ': ' . $value, true );
+			}
+
+			wp_safe_redirect(
+				home_url( '/t/' . rawurlencode( $tag_id->value ) ),
+				303,
+				'TagCore'
+			);
+			exit;
+		}
+		$form = PublicTagPageState::ACTIVATION_ENTRY === $page->state && null !== $tag_id
 			? new ActivationOtpFormView(
 				home_url( '/t/' . rawurlencode( $tag_id->value ) ),
 				wp_create_nonce( ActivationOtpFormHandler::NONCE_ACTION ),

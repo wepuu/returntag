@@ -22,7 +22,7 @@ use ReturnTag\TagCore\Domain\Tag\TagId;
 /**
  * Coordinates eligibility, throttling, and atomic one-time verification.
  */
-final readonly class VerifyActivationOtp {
+final readonly class VerifyActivationOtp implements ActivationOtpVerifier {
 	public const MAXIMUM_ATTEMPTS = 5;
 
 	/**

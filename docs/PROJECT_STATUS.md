@@ -18,7 +18,7 @@
 
 \* Current completed milestone: Milestone 2 - Batch and ID production
 
-\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-305 implemented; schema remains `8`)
+\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-306 implemented; schema remains `8`)
 
 
 
@@ -99,6 +99,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-304 - Worker-issued activation OTP request
 
 \* RT-305 - Atomic activation OTP verification
+
+\* RT-306 - Passwordless WordPress login and account provisioning
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -543,6 +545,27 @@ RT-305 adds:
 - generic privacy-safe failure feedback and no browser challenge identifier;
 - no login, user creation, ownership change, Tag activation, Event, token,
   Migration, dependency, plugin-version, or WooCommerce behavior.
+
+RT-306 adds:
+
+- same-POST composition of one-time OTP verification, WordPress account
+  provisioning, and native Session establishment without a browser handoff
+  token;
+- an authenticated-session short circuit before OTP handling so stale forms
+  cannot consume a code or switch accounts;
+- a 100-byte WordPress account email boundary before OTP request and
+  verification;
+- network-scoped HMAC-derived advisory locking, exact duplicate detection,
+  existing-user reuse, opaque least-privilege account creation, and multisite
+  membership preservation;
+- metadata-free at-least-once account-creation audit with retry repair before
+  Session issuance;
+- non-persistent WordPress authentication values emitted with HttpOnly and
+  SameSite=Lax plus a same-site 303 return to the canonical Tag route;
+- a signed-in mobile activation state with no non-working activation control;
+- no ownership assignment, Tag status change, activation Event, Finder
+  workflow, WooCommerce order behavior, Migration, dependency, or
+  plugin-version change.
 
 
 
