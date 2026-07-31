@@ -23,7 +23,8 @@ TagCore uses semantic versioning:
 The plugin header, release tag, artifact name, and release record must identify
 the same version. Milestone 0 uses version `0.1.0`; Milestone 1 closes at
 version `0.2.0` with Schema version `8`; Milestone 2 closes at version `0.3.0`
-with Schema version `8`.
+with Schema version `8`; Milestone 3 closes at version `0.4.0` with Schema
+version `8`.
 
 ## 3. Git workflow
 
@@ -466,3 +467,20 @@ activation limiter Options in bounded work. Contain an incident with
 `returntag_global_activation_enabled=0`. Code rollback removes the public
 activation POST and leaves opaque counters to expire; it preserves every
 Owner, activation timestamp, active state, and audit Event.
+
+RT-310 updates the project and plugin version from `0.3.0` to `0.4.0` while
+leaving Schema version `8` unchanged. Deployment must verify that the static
+parallel-system guide appears only on eligible Smart Tag activation pages,
+remains translatable and mobile-safe, retains the existing privacy headers and
+local-only Content Security Policy, and does not appear on Sticker, Classic
+Tag, unavailable, Owner, Finder, suspended, retired, invalid, or fail-closed
+pages.
+
+The guide includes no remote link, SDK, account connection, pairing check,
+location feature, acknowledgement write, Event, queue, email, Option,
+Migration, query, dependency, theme, or WooCommerce behavior. Code rollback to
+`0.3.0` removes only the static presentation and is fully compatible with
+Schema version `8`. Existing Tags, Owners, activation timestamps, challenges,
+rate-limit Options, and audit Events remain untouched. Disabling global
+activation remains the immediate containment action for the surrounding
+activation flow.

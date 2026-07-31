@@ -677,3 +677,22 @@ Success and committed state changes use `303` to a canonical GET. The page
 retains no-store, no-referrer, no-index, CSP, output escaping, and local-only
 asset controls. Disable `returntag_global_activation_enabled` to stop new OTP
 and ownership work.
+
+## 24. RT-310 Smart Tag static-guide controls
+
+The Smart Tag guide is presentation-only and appears only after the existing
+server-side resolver selects an eligible Smart Tag activation entry. Browser
+input cannot select the stored product type or force the guide onto another
+state.
+
+The guide requests no Apple or Google login, loads no remote smart-network
+asset or SDK, follows no device or account link, and reads or stores no account
+identifier, access token, device identifier, pairing state, battery state,
+location, or location history. It does not claim that ReturnTag verified
+pairing or network availability.
+
+RT-310 does not write `owner_pairing_ack_at`; that field remains reserved for
+a later authenticated Owner acknowledgement use case. The guide reuses the
+existing no-store, no-referrer, no-index, local-only CSP, output-escaping, and
+theme-independent page controls. There is no new endpoint, nonce decision,
+rate-limit scope, Event, log field, external request, or personal data.

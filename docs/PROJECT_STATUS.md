@@ -14,11 +14,11 @@
 
 \* Plugin directory: `plugin/tagcore`
 
-\* Current baseline version: `0.3.0`
+\* Current baseline version: `0.4.0`
 
-\* Current completed milestone: Milestone 2 - Batch and ID production
+\* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: Milestone 3 public activation boundary (RT-301 through RT-309 implemented; schema remains `8`)
+\* Current workstream: Awaiting explicit authorization for the next RT ticket; Schema remains `8`
 
 
 
@@ -102,6 +102,14 @@ The following tickets are considered implemented in the current baseline:
 
 \* RT-306 - Passwordless WordPress login and account provisioning
 
+\* RT-307 - Atomic first-owner activation
+
+\* RT-308 - Committed activation-state convergence
+
+\* RT-309 - Authenticated activation-attempt limits
+
+\* RT-310 - Static Smart Tag parallel-system activation guide and Milestone 3 version `0.4.0`
+
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
 
@@ -114,7 +122,7 @@ The project uses Docker and `@wordpress/env`.
 
 
 
-Known environment for Milestone 2 acceptance:
+Known environment for Milestone 3 acceptance:
 
 
 
@@ -130,7 +138,7 @@ Known environment for Milestone 2 acceptance:
 
 \* WooCommerce: `10.9.4`
 
-\* TagCore: `0.3.0`
+\* TagCore: `0.4.0`
 
 \* TagCore status: active
 
@@ -607,6 +615,25 @@ RT-309 adds:
 - bounded cleanup through the existing daily maintenance action;
 - no Migration, index, Schema, dependency, plugin-version, theme, success
   email, new route, conflict page, support action, or WooCommerce change.
+
+RT-310 adds:
+
+- a static, translatable two-system guide only for eligible Smart Tag
+  activation entries;
+- explicit separation between the external smart finding network and
+  ReturnTag QR recovery;
+- privacy-safe copy stating that ReturnTag does not verify pairing or access
+  Apple, Google, device, battery, or location data;
+- mobile-first semantic markup and plugin-scoped styling that reuse the
+  existing theme-independent public page;
+- regression coverage proving the guide is absent from Sticker, Classic Tag,
+  unavailable, Owner, Finder, invalid, suspended, retired, and fail-closed
+  states;
+- project and plugin version `0.4.0`, closing Milestone 3 while Schema remains
+  version `8`;
+- no external link, account connection, acknowledgement write, query,
+  Migration, Option, Event, queue, email, dependency, theme, WooCommerce
+  behavior, or smart-network integration.
 
 ## Approved frontend architecture baseline
 

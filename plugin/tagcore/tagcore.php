@@ -2,7 +2,7 @@
 /**
  * Plugin Name: TagCore
  * Description: Core plugin foundation for the ReturnTag platform.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Requires at least: 6.9
  * Requires PHP: 8.3
  * Author: ReturnTag
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RETURNTAG_TAGCORE_VERSION', '0.3.0' );
+define( 'RETURNTAG_TAGCORE_VERSION', '0.4.0' );
 define( 'RETURNTAG_TAGCORE_FILE', __FILE__ );
 define( 'RETURNTAG_TAGCORE_DIR', __DIR__ );
 

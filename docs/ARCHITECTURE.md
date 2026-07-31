@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 2 complete at version 0.3.0 and Schema version 8
+**Status:** Milestone 3 complete at version 0.4.0 and Schema version 8
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -726,3 +726,27 @@ hook to remove expired buckets. The UI reuses the RT-301 public design system;
 there is no theme, new route, conflict page, support action, email, queue,
 WooCommerce behavior, dependency, Migration, or Schema change. ADR 0016
 records the exact limits and privacy decisions.
+
+## 25. RT-310 Smart Tag static activation guide
+
+`PublicSite` extends only the eligible Smart Tag activation entry with a
+static, translatable explanation of the two independent recovery systems. The
+presentation adapter derives visibility from the already resolved
+`ACTIVATION_ENTRY` state and canonical `SMART_TAG` type. Templates receive a
+pre-decided render view and do not infer Tag state or product type.
+
+The guide distinguishes the external smart finding network from ReturnTag QR
+recovery, states that QR recovery works independently, and explains that
+ReturnTag does not verify pairing or access Apple, Google, device, battery, or
+location data. It provides no external setup link, account connection,
+location control, device status, or acknowledgement mutation.
+
+Sticker, Classic Tag, unavailable activation, Owner, Finder, suspended,
+retired, invalid, and fail-closed pages do not receive the guide. The existing
+theme-independent PHP server rendering, local stylesheet, privacy headers,
+Content Security Policy, and activation form remain authoritative.
+
+RT-310 closes Milestone 3 at project/plugin version `0.4.0` while Schema
+version `8` remains unchanged. It adds no route, query, write, Migration,
+Option, Event, queue, email, dependency, theme, WooCommerce behavior, or
+smart-network integration.

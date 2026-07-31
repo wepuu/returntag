@@ -40,6 +40,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php echo esc_html( $view->message ); ?>
 			</p>
 
+			<?php if ( null !== $view->smart_tag_guide ) : ?>
+				<section class="returntag-public__smart-guide" aria-labelledby="returntag-smart-guide-title">
+					<h2 id="returntag-smart-guide-title">
+						<?php echo esc_html( $view->smart_tag_guide->title ); ?>
+					</h2>
+					<p class="returntag-public__smart-guide-summary">
+						<?php echo esc_html( $view->smart_tag_guide->summary ); ?>
+					</p>
+					<dl class="returntag-public__smart-guide-systems">
+						<div>
+							<dt><?php echo esc_html( $view->smart_tag_guide->network_label ); ?></dt>
+							<dd><?php echo esc_html( $view->smart_tag_guide->network_message ); ?></dd>
+						</div>
+						<div>
+							<dt><?php echo esc_html( $view->smart_tag_guide->qr_label ); ?></dt>
+							<dd><?php echo esc_html( $view->smart_tag_guide->qr_message ); ?></dd>
+						</div>
+					</dl>
+					<p class="returntag-public__smart-guide-privacy">
+						<?php echo esc_html( $view->smart_tag_guide->privacy_message ); ?>
+					</p>
+				</section>
+			<?php endif; ?>
+
 			<?php if ( null !== $view->activation_form ) : ?>
 				<div class="returntag-public__activation">
 					<?php if ( in_array( $view->activation_form->state, array( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED, ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR ), true ) ) : ?>

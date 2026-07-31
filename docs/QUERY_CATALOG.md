@@ -301,3 +301,12 @@ Budget Option names contain expiry plus SHA-256 scope hashes. Values contain
 only count and expiry. Raw email, IP, Tag ID, User profile, cookie, Session,
 OTP, item, order, message, device, and location data are not selected or
 stored. Schema version 8 requires no new index.
+
+## 20. RT-310 Smart Tag static guide
+
+RT-310 adds no read or write shape. Guide visibility uses the canonical
+`tag_type` and public page state already present in the RT-303 privacy-minimized
+projection and Application view model. It does not read or write
+`owner_pairing_ack_at`, account, device, pairing, battery, location, or
+smart-network data. Schema version 8 and all existing indexes remain
+unchanged.

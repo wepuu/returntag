@@ -277,6 +277,61 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Smart Tag activation explains the independent systems without integration claims.
+	 */
+	public function test_smart_tag_activation_renders_static_parallel_system_guide(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::SMART_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::READY
+			)
+		);
+
+		self::assertStringContainsString( 'id="returntag-smart-guide-title"', $html );
+		self::assertStringContainsString( 'Two separate recovery systems', $html );
+		self::assertStringContainsString( 'Location tracking is managed in Apple Find My or the compatible finding app.', $html );
+		self::assertStringContainsString( 'ReturnTag QR recovery', $html );
+		self::assertStringContainsString( 'QR recovery works independently', $html );
+		self::assertStringContainsString( 'ReturnTag does not verify pairing', $html );
+		self::assertStringContainsString( 'Email me a code', $html );
+		self::assertStringNotContainsString( 'Connected to Apple', $html );
+		self::assertStringNotContainsString( 'Apple pairing verified', $html );
+		self::assertStringNotContainsString( 'Current location', $html );
+		self::assertStringNotContainsString( 'Last seen location', $html );
+		self::assertStringNotContainsString( 'Battery reported by Apple', $html );
+		self::assertStringNotContainsString( 'Google account connected', $html );
+		self::assertStringNotContainsString( 'owner_pairing_ack_at', $html );
+		self::assertStringNotContainsString( 'https://', $html );
+	}
+
+	/**
+	 * The static Smart Tag guide never leaks into other product or route states.
+	 */
+	public function test_smart_tag_guide_is_limited_to_smart_activation_entry(): void {
+		$pages = array(
+			PublicTagPage::activation_entry( TagType::STICKER ),
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			PublicTagPage::activation_unavailable( TagType::SMART_TAG ),
+			PublicTagPage::owner_entry( TagType::SMART_TAG ),
+			PublicTagPage::finder_entry( TagType::SMART_TAG, 'Blue bag', false, null ),
+			PublicTagPage::finder_unavailable( TagType::SMART_TAG ),
+			PublicTagPage::invalid(),
+			PublicTagPage::suspended(),
+			PublicTagPage::retired(),
+			PublicTagPage::service_unavailable(),
+		);
+
+		foreach ( $pages as $page ) {
+			self::assertStringNotContainsString(
+				'returntag-public__smart-guide',
+				$this->renderer->render_to_string( $page )
+			);
+		}
+	}
+
+	/**
 	 * Authenticated visitors see one working activation form without identity fields.
 	 */
 	public function test_authenticated_activation_entry_shows_activation_form(): void {
