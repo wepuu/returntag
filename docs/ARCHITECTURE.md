@@ -639,3 +639,22 @@ are present. RT-308 will map changed state by reusing the existing public state
 resolver. Schema, plugin version, theme, email, queue, WooCommerce behavior,
 and feature flags remain unchanged. ADR 0015 records the shared routing and
 convergence decision.
+
+## 23. RT-308 activation state convergence
+
+Application composes the RT-307 atomic activation use case with the RT-303
+public state resolver. The activation persistence result is intentionally not
+returned to a controller or template. After every non-exceptional outcome, the
+same canonical Tag ID and server-derived current User ID are resolved again
+from committed storage.
+
+This composition produces only existing public page states: Owner for the
+committed Owner, Finder for another actor on an active Tag, invalid for an
+absent Tag, or the existing unavailable, suspended, and retired explanation
+states. There is no conflict view model, route, template, copy, Event, support
+action, or identity disclosure.
+
+RT-308 remains an Application boundary without a public POST. RT-309 will
+invoke it only after activation-attempt limits are reserved. Schema, plugin
+version, dependencies, theme, assets, email, queue, and WooCommerce behavior
+remain unchanged.

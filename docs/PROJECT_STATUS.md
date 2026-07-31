@@ -580,6 +580,19 @@ RT-307 adds:
 - no Migration, index, Schema, dependency, plugin-version, theme, email,
   queue, Finder, or WooCommerce change.
 
+RT-308 adds:
+
+- an Application composition that always resolves committed public state after
+  a non-exceptional activation outcome;
+- Owner convergence for the committed Owner, Finder convergence for another
+  actor, and existing invalid or state-explanation pages for absent or blocked
+  Tags;
+- no activation-conflict route, page, copy, Event, support action, or identity
+  disclosure;
+- no public POST until RT-309 reserves durable activation-attempt limits;
+- no Migration, index, Schema, dependency, plugin-version, asset, email,
+  queue, theme, or WooCommerce change.
+
 
 
 Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.

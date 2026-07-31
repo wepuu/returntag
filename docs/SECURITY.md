@@ -634,3 +634,20 @@ numeric User actor, canonical Tag target, success result, and no metadata,
 email, IP, OTP, lookup digest, cookie, or Session identifier. Event failure
 rolls back the Tag mutation. Disable `returntag_global_activation_enabled` to
 contain new activation; committed ownership and audit evidence remain intact.
+
+## 22. RT-308 convergence privacy controls
+
+Activation outcomes are internal control flow, not public facts. After any
+successful, idempotent, unavailable, or changed-state outcome, Application
+re-reads the committed privacy-minimized public projection and returns only an
+existing approved page state.
+
+The resolver compares the committed Owner ID with the server-derived current
+User ID in process. It never sends an Owner ID, email, activation-race reason,
+or conflict marker to the renderer. A different actor receives the normal
+Finder state, while missing and blocked Tags retain generic existing
+responses. No support or dispute action is inferred from a failed write.
+
+Persistence exceptions remain fail-closed for the later PublicSite adapter.
+RT-308 adds no public endpoint, token, nonce decision, rate-limit bypass,
+Event, log field, email, or personal-data storage.

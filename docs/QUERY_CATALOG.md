@@ -276,3 +276,14 @@ lock reads only Owner ID, Tag status, activation timestamp, Batch status, and
 Batch activation control. It runs only after a zero-row update and does not
 select email, item, label, Lost Mode content, order, shipment, message, token,
 device, or location data. Schema 8 requires no new index.
+
+## 18. RT-308 committed-state convergence
+
+RT-308 adds no query shape. It composes the RT-307 conditional activation and
+zero-row lock with the existing RT-303 exact public Tag/Batch state read. The
+second read is deliberate: it maps the committed database state rather than
+the write outcome to an existing Owner, Finder, invalid, or explanation page.
+
+No conflict row or Event is written, and no Owner identifier crosses the
+Application-to-renderer boundary. Candidate indexes and Schema version remain
+unchanged.

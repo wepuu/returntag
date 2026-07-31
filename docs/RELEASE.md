@@ -441,3 +441,14 @@ the unused activation service but preserves every committed Owner assignment,
 activation timestamp, active status, and audit Event. Disable
 `returntag_global_activation_enabled` before rollback; never clear ownership
 or delete audit evidence.
+
+RT-308 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Acceptance must verify Owner convergence after first activation and same-Owner
+retry, Finder convergence after another Owner wins, generic invalid state for
+an absent Tag, and preservation of suspended, retired, Finder-disabled, and
+activation-disabled explanation states.
+
+No public POST, Migration, index, dependency, asset, key, email, queue, theme,
+or WooCommerce change is added. Code rollback removes the unused convergence
+composition while preserving all committed state and Events. RT-309 must
+reserve durable activation-attempt budgets before exposing this use case.
