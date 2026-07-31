@@ -315,6 +315,52 @@ PRD update before implementation.
 - Testing: pure PHPUnit unit tests, WordPress integration tests, Jest-based
   TypeScript tests, and Playwright browser projects.
 
+## 11. Frontend delivery and theme boundary
+
+ReturnTag uses one WordPress site with a replaceable presentation theme and a
+theme-independent TagCore product application. The ReturnTag block theme owns
+the brand shell, navigation, footer, editorial and support content, and
+WooCommerce presentation. It may place TagCore blocks and expose approved
+brand design tokens, but it does not query TagCore tables, derive Tag state,
+authorize an actor, render duplicated product forms, or perform business
+mutations.
+
+TagCore `PublicSite` owns manual Tag entry, the canonical `/t/{tag_id}` route,
+normalization, state resolution, access control, activation, Finder reporting,
+secure-link presentation, privacy controls, and reusable desktop-modal and
+mobile-full-screen adapters. TagCore `Account` owns authenticated Owner views
+and actions. TagCore `WooCommerce` owns only the approved HPOS-compatible
+commerce hooks and adapters; WooCommerce orders remain separate from Tag
+ownership.
+
+The approved manual-entry behavior is intent-first:
+
+```text
+desktop: select Activate or Report -> TagCore modal -> enter Tag ID
+mobile:  select Activate or Report -> TagCore full-screen entry -> enter Tag ID
+QR:      open /t/{tag_id} directly -> no Tag ID re-entry
+```
+
+The selected desktop or mobile action changes initial presentation copy only.
+It is not authorization and cannot override the Application-derived Tag state.
+After normalization, the existing Owner, Finder, activation, invalid,
+suspended, retired, unavailable, and fail-closed policies remain
+authoritative.
+
+The canonical route must work without the theme integration and without
+JavaScript. Desktop modal behavior is progressive enhancement over that
+standalone contract. It must not iframe the canonical route because sensitive
+responses retain `frame-ancestors 'none'`. Public and account UI continues to
+use PHP server rendering, semantic HTML, optional Interactivity API Script
+Modules, and plugin-scoped CSS. Phase one does not add Next.js, Tailwind, or a
+global reset.
+
+Low-fidelity wireframes are planning references rather than source-of-truth
+visual specifications. User-supplied page-effect designs require a later
+design review before implementation, and they cannot change the architectural,
+security, privacy, state, or accessibility boundaries recorded here and in
+ADR 0017.
+
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and
 operations configuration. RT-101 supplies schema orchestration; RT-102 through
