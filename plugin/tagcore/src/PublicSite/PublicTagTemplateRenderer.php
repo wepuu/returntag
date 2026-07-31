@@ -125,7 +125,32 @@ final readonly class PublicTagTemplateRenderer {
 			$page->public_label,
 			$page->lost_mode,
 			$page->lost_message,
-			$activation_form
+			$activation_form,
+			$this->smart_tag_guide( $page )
+		);
+	}
+
+	/**
+	 * Build the static Smart Tag boundary guide for eligible activation only.
+	 *
+	 * @param PublicTagPage $page Privacy-minimized Application view model.
+	 */
+	private function smart_tag_guide( PublicTagPage $page ): ?SmartTagGuideView {
+		if (
+			PublicTagPageState::ACTIVATION_ENTRY !== $page->state
+			|| TagType::SMART_TAG !== $page->tag_type
+		) {
+			return null;
+		}
+
+		return new SmartTagGuideView(
+			__( 'Two separate recovery systems', 'tagcore' ),
+			__( 'Your Smart Tag uses two separate recovery systems. Location tracking is managed in Apple Find My or the compatible finding app. ReturnTag does not access your Apple, Google, or location data. Activate QR recovery below so anyone with a phone can privately contact you.', 'tagcore' ),
+			__( 'Smart finding network', 'tagcore' ),
+			__( 'Pairing, location, sound, and device features stay in Apple Find My or the compatible finding app.', 'tagcore' ),
+			__( 'ReturnTag QR recovery', 'tagcore' ),
+			__( 'QR recovery works independently and lets anyone with a phone contact you privately.', 'tagcore' ),
+			__( 'ReturnTag does not verify pairing or read Apple, Google, device, battery, or location data.', 'tagcore' )
 		);
 	}
 

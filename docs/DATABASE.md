@@ -1,6 +1,6 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 2 complete at Schema version 8 with RT-210 million-row capacity evidence
+**Status:** Milestone 3 complete at plugin version 0.4.0; Schema remains version 8 with RT-210 million-row capacity evidence
 
 **Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
 

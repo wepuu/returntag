@@ -433,3 +433,17 @@ values and paths while adding explicit `HttpOnly` and `SameSite=Lax`
 attributes. RT-306 keeps Schema version `8` and plugin version `0.3.0`; it does
 not assign ownership, activate a Tag, send additional email, or call
 WooCommerce.
+
+## RT-310 Smart Tag static activation guide
+
+RT-310 closes Milestone 3 at project and plugin version `0.4.0` while keeping
+Schema version `8`. Eligible Smart Tag activation pages now explain that the
+external smart finding network and ReturnTag QR recovery are independent
+systems. The static guide states that ReturnTag does not verify pairing or
+access Apple, Google, device, battery, or location data.
+
+The guide reuses the existing theme-independent, mobile-first public page and
+appears only for the server-resolved Smart Tag activation entry. It adds no
+external setup link, account connection, acknowledgement write, route, query,
+Migration, Option, Event, queue, email, dependency, theme, WooCommerce
+behavior, or smart-network integration.
