@@ -614,3 +614,23 @@ Provisioning, Event, cookie, or redirect failure never resurrects an OTP,
 deletes a user, assigns ownership, or changes a Tag. Disable
 `returntag_global_activation_enabled` to stop new passwordless activation
 authentication.
+
+## 21. RT-307 atomic activation controls
+
+The activation use case accepts no browser-supplied Owner identifier. The
+adapter must provide the current authenticated WordPress User ID, and
+Application rejects non-positive identifiers. The canonical Tag ID is the only
+public business input.
+
+The database conditional write is the ownership authority. It repeats Tag
+eligibility and Batch release/activation controls in the mutation predicate;
+the global activation feature flag is checked before and inside the
+transaction. A zero-row write never discloses an Owner or permits replacement.
+RT-308 re-resolves the committed public state using the existing privacy-safe
+Owner/Finder/invalid routing.
+
+Only a successful first write appends `tag_activated`. The Event contains the
+numeric User actor, canonical Tag target, success result, and no metadata,
+email, IP, OTP, lookup digest, cookie, or Session identifier. Event failure
+rolls back the Tag mutation. Disable `returntag_global_activation_enabled` to
+contain new activation; committed ownership and audit evidence remain intact.

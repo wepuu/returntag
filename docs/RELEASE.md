@@ -427,3 +427,17 @@ change a Tag. Contain an incident with
 `returntag_global_activation_enabled=0`. Code rollback preserves WordPress
 users, User Meta, account audit Events, consumed OTP state, and existing
 sessions; never delete an account or reset a challenge to simulate rollback.
+
+RT-307 leaves project/plugin version `0.3.0` and Schema version `8` unchanged.
+Acceptance must verify one-row first ownership, same-Owner idempotency,
+different-Owner non-overwrite, released and enabled Batch enforcement, global
+activation containment, and transaction rollback when the activation Event
+cannot be persisted.
+
+RT-307 adds no public activation POST, Migration, index, key, dependency,
+queue, email, theme, or WooCommerce change. RT-309 must add durable attempt
+limits before exposing the mutation through PublicSite. Code rollback removes
+the unused activation service but preserves every committed Owner assignment,
+activation timestamp, active status, and audit Event. Disable
+`returntag_global_activation_enabled` before rollback; never clear ownership
+or delete audit evidence.

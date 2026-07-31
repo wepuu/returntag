@@ -262,3 +262,17 @@ passwordless account creation path. The WordPress `user_email` and
 `user_login` indexes are not treated as unique database constraints. More than
 one exact email match fails closed. No Tag, Batch, order, shipment, ownership,
 or activation query is added.
+
+## 17. RT-307 atomic activation
+
+| Read or write shape | Predicate and bound | Candidate indexes |
+|---|---|---|
+| First-owner conditional update | exact `t.tag_id`, null Owner, `unregistered`, null activation time, joined released and activation-enabled Batch | Tags `PRIMARY`, Batches `PRIMARY` |
+| Zero-row committed-state lock | exact `t.tag_id`, left-joined Batch, `LIMIT 1 FOR UPDATE` | Tags `PRIMARY`, Batches `PRIMARY` |
+| Activation audit append | fixed `tag_activated`, numeric User actor, canonical Tag target, no metadata | Events insert |
+
+The update is bounded to one Tag because `tag_id` is unique. The follow-up
+lock reads only Owner ID, Tag status, activation timestamp, Batch status, and
+Batch activation control. It runs only after a zero-row update and does not
+select email, item, label, Lost Mode content, order, shipment, message, token,
+device, or location data. Schema 8 requires no new index.

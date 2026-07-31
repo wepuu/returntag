@@ -618,3 +618,24 @@ RT-306 keeps Schema version 8 and project/plugin version `0.3.0`. It adds no
 Migration, Tag ownership mutation, Tag status change, activation Event, Finder
 workflow, email, WooCommerce order behavior, dependency, or theme. ADR 0014
 records the concurrency, failure, audit, cookie, and rollback decisions.
+
+## 22. RT-307 atomic Tag activation
+
+Application owns the first-owner use case. It receives only a canonical
+`TagId` and the server-derived positive WordPress User ID, checks the global
+activation incident control, and coordinates one Repository write plus one
+metadata-free `tag_activated` Event inside the existing transaction boundary.
+
+Infrastructure performs one joined conditional update across Tags and Batches.
+The write is eligible only while the Tag has no Owner, remains `unregistered`,
+has no activation timestamp, and belongs to a `released`,
+activation-enabled Batch. One affected row is authoritative success. A
+zero-row result is classified under a row lock as same-Owner idempotency or
+changed state; it never overwrites the committed Owner.
+
+RT-307 introduces no public POST composition. RT-309 will connect activation
+to the existing PublicSite form only after durable activation-attempt limits
+are present. RT-308 will map changed state by reusing the existing public state
+resolver. Schema, plugin version, theme, email, queue, WooCommerce behavior,
+and feature flags remain unchanged. ADR 0015 records the shared routing and
+convergence decision.

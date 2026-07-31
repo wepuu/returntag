@@ -567,6 +567,19 @@ RT-306 adds:
   workflow, WooCommerce order behavior, Migration, dependency, or
   plugin-version change.
 
+RT-307 adds:
+
+- a server-identity-only Application use case for first-owner activation;
+- one atomic Tag/Batch conditional update that requires an unowned,
+  unregistered Tag in a released, activation-enabled Batch;
+- same-Owner retry idempotency and privacy-safe changed-state outcomes without
+  replacing a committed Owner;
+- one metadata-free `tag_activated` audit Event in the same transaction as the
+  ownership write;
+- no public POST until RT-309 supplies activation-attempt limits;
+- no Migration, index, Schema, dependency, plugin-version, theme, email,
+  queue, Finder, or WooCommerce change.
+
 
 
 Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.
