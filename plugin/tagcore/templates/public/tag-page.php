@@ -20,6 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="referrer" content="no-referrer">
 	<meta name="robots" content="noindex,nofollow,noarchive">
+	<?php /* translators: %s: Current ReturnTag page title. */ ?>
 	<title><?php echo esc_html( sprintf( __( '%s - ReturnTag', 'tagcore' ), $view->title ) ); ?></title>
 	<?php wp_print_styles( ReturnTag\TagCore\PublicSite\PublicTagRouteController::STYLE_HANDLE ); ?>
 </head>
@@ -41,11 +42,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php if ( null !== $view->activation_form ) : ?>
 				<div class="returntag-public__activation">
-					<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED === $view->activation_form->state ) : ?>
+					<?php if ( in_array( $view->activation_form->state, array( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED, ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR ), true ) ) : ?>
 						<div class="returntag-public__notice returntag-public__notice--success" role="status">
 							<h2><?php esc_html_e( 'You are signed in', 'tagcore' ); ?></h2>
-							<p><?php esc_html_e( 'Your identity is confirmed. Activating this ReturnTag is the next step.', 'tagcore' ); ?></p>
+							<p><?php esc_html_e( 'Your identity is confirmed. You can now activate this ReturnTag.', 'tagcore' ); ?></p>
 						</div>
+						<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR === $view->activation_form->state ) : ?>
+							<div class="returntag-public__notice returntag-public__notice--error" role="alert">
+								<p><?php esc_html_e( 'We could not activate this Tag right now. Please wait and try again.', 'tagcore' ); ?></p>
+							</div>
+						<?php endif; ?>
+						<form class="returntag-public__form" method="post" action="<?php echo esc_url( $view->activation_form->action_url ); ?>">
+							<input
+								type="hidden"
+								name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler::ACTION_FIELD ); ?>"
+								value="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler::ACTIVATE_ACTION ); ?>"
+							>
+							<input
+								type="hidden"
+								name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler::NONCE_FIELD ); ?>"
+								value="<?php echo esc_attr( $view->activation_form->nonce ); ?>"
+							>
+							<button class="returntag-public__submit" type="submit">
+								<?php esc_html_e( 'Activate my tag', 'tagcore' ); ?>
+							</button>
+						</form>
 					<?php else : ?>
 						<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::REQUEST_ACCEPTED === $view->activation_form->state ) : ?>
 							<div class="returntag-public__notice returntag-public__notice--success" role="status">

@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Tests\Integration;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
@@ -21,6 +22,8 @@ use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\ActivateTag;
 use ReturnTag\TagCore\Application\Tag\ActivateTagAndResolvePage;
+use ReturnTag\TagCore\Application\Tag\RateLimitedTagActivation;
+use ReturnTag\TagCore\Application\Tag\TagActivationAttemptStatus;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagActivationEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagActivationResult;
@@ -30,13 +33,19 @@ use ReturnTag\TagCore\Infrastructure\Migration\MigrationRunner;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
+use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedSession;
+use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedUserEmailReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagActivationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionTagActivationRateLimiter;
+use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
+use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
+use ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler;
 use ReturnTag\TagCore\Tests\Unit\Application\Batch\Fixture\FixedClock;
 use WP_UnitTestCase;
 use wpdb;
@@ -90,6 +99,8 @@ final class TagActivationTest extends WP_UnitTestCase {
 
 		delete_option( FeatureFlag::GLOBAL_ACTIVATION->value );
 		delete_option( FeatureFlag::FINDER_CONTACT->value );
+		$this->clear_activation_rate_limits( $wpdb );
+		wp_set_current_user( 0 );
 		$this->clear_schema( $wpdb );
 		parent::tearDown();
 	}
@@ -226,6 +237,79 @@ final class TagActivationTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * The authenticated form rejects CSRF evidence then activates with server identity.
+	 */
+	public function test_authenticated_form_uses_nonce_session_email_and_direct_ip(): void {
+		global $wpdb;
+
+		$user_id = self::factory()->user->create(
+			array( 'user_email' => 'owner-rt309@example.test' )
+		);
+		$tag_id  = TagId::from_canonical( 'A7R2W9' );
+		$pages   = $this->public_pages();
+		$clock   = new FixedClock( $this->now );
+		$crypto  = new SodiumActivationOtpProtector(
+			ActivationOtpSecrets::from_keys(
+				str_repeat( 'e', 32 ),
+				str_repeat( 'l', 32 ),
+				str_repeat( 'p', 32 )
+			)
+		);
+		$handler = new ActivationOtpFormHandler(
+			null,
+			null,
+			new WordPressAuthenticatedSession(),
+			new WordPressAccountEmailPolicy(),
+			new RateLimitedTagActivation(
+				new WordPressOptionTagActivationRateLimiter( $wpdb, get_current_blog_id() ),
+				new ActivateTagAndResolvePage(
+					$this->service( new TagActivationEventIdentityPolicy() ),
+					$pages
+				),
+				$pages,
+				$clock
+			),
+			new WordPressAuthenticatedUserEmailReader(),
+			$crypto
+		);
+
+		$this->insert_tag( $tag_id->value, 'released', true );
+		wp_set_current_user( $user_id );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test restores the complete synthetic request after exercising handler-owned nonce validation.
+		$previous_post   = $_POST;
+		$previous_server = $_SERVER;
+
+		try {
+			$_SERVER['REMOTE_ADDR']         = '192.0.2.40';
+			$_SERVER['HTTP_ORIGIN']         = home_url( '/' );
+			$_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-origin';
+			$_POST                          = array(
+				ActivationOtpFormHandler::ACTION_FIELD => ActivationOtpFormHandler::ACTIVATE_ACTION,
+				ActivationOtpFormHandler::NONCE_FIELD  => 'invalid-nonce',
+			);
+
+			self::assertNull( $handler->activate( $tag_id ) );
+			self::assertSame( 'unregistered', $wpdb->get_var( $wpdb->prepare( 'SELECT tag_status FROM %i WHERE tag_id = %s', $this->tables->tags(), $tag_id->value ) ) );
+
+			$_POST[ ActivationOtpFormHandler::NONCE_FIELD ] = wp_create_nonce( ActivationOtpFormHandler::NONCE_ACTION );
+			$_SERVER['HTTP_SEC_FETCH_SITE']                 = 'cross-site';
+			self::assertNull( $handler->activate( $tag_id ) );
+
+			$_SERVER['HTTP_SEC_FETCH_SITE'] = 'same-origin';
+			$result                         = $handler->activate( $tag_id );
+
+			self::assertNotNull( $result );
+			self::assertSame( TagActivationAttemptStatus::RESOLVED, $result->status );
+			self::assertSame( PublicTagPageState::OWNER_ENTRY, $result->page->state );
+			self::assertSame( (string) $user_id, (string) $wpdb->get_var( $wpdb->prepare( 'SELECT owner_id FROM %i WHERE tag_id = %s', $this->tables->tags(), $tag_id->value ) ) );
+		} finally {
+			$_POST   = $previous_post;
+			$_SERVER = $previous_server;
+		}
+	}
+
+	/**
 	 * Build the production use-case graph with a selectable Event policy.
 	 *
 	 * @param EventIdentityPolicy $identity_policy Event identity policy.
@@ -255,19 +339,22 @@ final class TagActivationTest extends WP_UnitTestCase {
 	 * Build production activation plus committed public-state resolution.
 	 */
 	private function convergence_service(): ActivateTagAndResolvePage {
-		global $wpdb;
-
-		$gateway = new WpdbGateway( $wpdb );
-		$dates   = new DatabaseDateTimeCodec();
-		$flags   = new WordPressOptionFeatureFlagReader();
-
 		return new ActivateTagAndResolvePage(
 			$this->service( new TagActivationEventIdentityPolicy() ),
-			new ResolvePublicTagPage(
-				new WpdbPublicTagStateReader( $gateway, $this->tables, $dates ),
-				$flags,
-				new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
-			)
+			$this->public_pages()
+		);
+	}
+
+	/**
+	 * Build the production committed public-state resolver.
+	 */
+	private function public_pages(): ResolvePublicTagPage {
+		global $wpdb;
+
+		return new ResolvePublicTagPage(
+			new WpdbPublicTagStateReader( new WpdbGateway( $wpdb ), $this->tables, new DatabaseDateTimeCodec() ),
+			new WordPressOptionFeatureFlagReader(),
+			new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
 		);
 	}
 
@@ -347,5 +434,26 @@ final class TagActivationTest extends WP_UnitTestCase {
 		}
 
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
+	}
+
+	/**
+	 * Remove isolated RT-309 limiter options.
+	 *
+	 * @param wpdb $database Active isolated WordPress database.
+	 */
+	private function clear_activation_rate_limits( wpdb $database ): void {
+		$like  = $database->esc_like( WordPressOptionTagActivationRateLimiter::OPTION_PREFIX ) . '%';
+		$query = $database->prepare( 'SELECT option_name FROM %i WHERE option_name LIKE %s', $database->options, $like );
+
+		if ( ! is_string( $query ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Prepared above; isolated cleanup of plugin-owned Options.
+		foreach ( $database->get_col( $query ) as $option_name ) {
+			if ( is_string( $option_name ) ) {
+				delete_option( $option_name );
+			}
+		}
 	}
 }
