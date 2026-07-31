@@ -898,3 +898,29 @@ Code rollback preserves WordPress users, User Meta, account audit Events,
 consumed authentication challenges, and existing WordPress sessions. The
 previous code ignores the RT-306 User Meta and remains compatible with Schema
 version 8.
+
+## 17. RT-307 atomic activation operations
+
+RT-307 keeps Schema version `8`. Activation uses one conditional joined update
+with the Tag `PRIMARY` key and the referenced Batch `PRIMARY` key:
+
+```text
+Tag ID = canonical request ID
+owner_id IS NULL
+tag_status = unregistered
+activated_at IS NULL
+Batch status = released
+Batch activation_enabled = 1
+```
+
+Success writes the server-derived Owner ID, `active` status, and one UTC value
+to both `activated_at` and `updated_at`. The same transaction appends one
+metadata-free `tag_activated` Event. A zero-row outcome reads the narrow
+Tag/Batch state with `FOR UPDATE`; a committed active row for the same Owner is
+an idempotent retry, while every other shape is changed state for later route
+resolution.
+
+No table, column, index, Migration, or long-running data operation is added.
+Fresh install and upgrade remain the contiguous Schema-8 chain. Code rollback
+preserves Owner assignments, activation timestamps, Tag status, and audit
+Events; these records must not be reversed or deleted.
