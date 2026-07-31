@@ -16,7 +16,12 @@ use ReturnTag\TagCore\Application\Persistence\DenyAllEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceConstraintViolationException;
 use ReturnTag\TagCore\Application\Persistence\EventIdentityPolicy;
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
+use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\ActivateTag;
+use ReturnTag\TagCore\Application\Tag\ActivateTagAndResolvePage;
+use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagActivationEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagActivationResult;
 use ReturnTag\TagCore\Domain\Tag\TagId;
@@ -28,6 +33,7 @@ use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagActivationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
@@ -71,6 +77,7 @@ final class TagActivationTest extends WP_UnitTestCase {
 		);
 		self::assertSame( 8, $runner->migrate()->ending_version );
 		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '1', false );
+		update_option( FeatureFlag::FINDER_CONTACT->value, '1', false );
 		$this->tables = new TableNames( $wpdb->prefix );
 		$this->now    = new DateTimeImmutable( '2026-07-31 12:00:00', new DateTimeZone( 'UTC' ) );
 	}
@@ -82,6 +89,7 @@ final class TagActivationTest extends WP_UnitTestCase {
 		global $wpdb;
 
 		delete_option( FeatureFlag::GLOBAL_ACTIVATION->value );
+		delete_option( FeatureFlag::FINDER_CONTACT->value );
 		$this->clear_schema( $wpdb );
 		parent::tearDown();
 	}
@@ -187,6 +195,37 @@ final class TagActivationTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A committed first Owner and a later different actor use existing routes.
+	 */
+	public function test_activation_outcomes_converge_to_owner_then_finder(): void {
+		$tag_id  = TagId::from_canonical( 'A7R2W9' );
+		$service = $this->convergence_service();
+
+		$this->insert_tag( $tag_id->value, 'released', true );
+
+		self::assertSame(
+			PublicTagPageState::OWNER_ENTRY,
+			$service->execute( $tag_id, 42 )->state
+		);
+		self::assertSame(
+			PublicTagPageState::FINDER_ENTRY,
+			$service->execute( $tag_id, 24 )->state
+		);
+	}
+
+	/**
+	 * A missing Tag uses the existing generic invalid state after zero-row write.
+	 */
+	public function test_missing_activation_converges_to_invalid_page(): void {
+		self::assertSame(
+			PublicTagPageState::INVALID,
+			$this->convergence_service()
+				->execute( TagId::from_canonical( 'A7R2W9' ), 42 )
+				->state
+		);
+	}
+
+	/**
 	 * Build the production use-case graph with a selectable Event policy.
 	 *
 	 * @param EventIdentityPolicy $identity_policy Event identity policy.
@@ -209,6 +248,26 @@ final class TagActivationTest extends WP_UnitTestCase {
 			new WpdbTransactionManager( $wpdb ),
 			new WordPressOptionFeatureFlagReader(),
 			new FixedClock( $this->now )
+		);
+	}
+
+	/**
+	 * Build production activation plus committed public-state resolution.
+	 */
+	private function convergence_service(): ActivateTagAndResolvePage {
+		global $wpdb;
+
+		$gateway = new WpdbGateway( $wpdb );
+		$dates   = new DatabaseDateTimeCodec();
+		$flags   = new WordPressOptionFeatureFlagReader();
+
+		return new ActivateTagAndResolvePage(
+			$this->service( new TagActivationEventIdentityPolicy() ),
+			new ResolvePublicTagPage(
+				new WpdbPublicTagStateReader( $gateway, $this->tables, $dates ),
+				$flags,
+				new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
+			)
 		);
 	}
 

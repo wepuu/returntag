@@ -924,3 +924,14 @@ No table, column, index, Migration, or long-running data operation is added.
 Fresh install and upgrade remain the contiguous Schema-8 chain. Code rollback
 preserves Owner assignments, activation timestamps, Tag status, and audit
 Events; these records must not be reversed or deleted.
+
+## 18. RT-308 activation state-convergence operations
+
+RT-308 adds no new storage operation. It executes the RT-307 bounded atomic
+activation transaction, then performs the existing RT-303 exact Tag/Batch
+public-state query against committed data. A zero-row activation outcome is
+not persisted as a conflict and creates no conflict Event.
+
+Schema remains version `8`; there is no Migration, column, index, lock, data
+conversion, or cleanup task. Rollback removes only the composition service and
+preserves every Owner assignment, activation Event, and existing Tag state.
