@@ -13,6 +13,7 @@
 /plugin/tagcore/build/
 /test-results/
 /playwright-report/
+/.playwright/.auth/
 tagcore-v*.zip
 
 # PHP quality-tool caches

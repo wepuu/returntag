@@ -22,8 +22,14 @@ test.describe( 'RT-303 public Tag state pages', () => {
 		const response = await page.goto( '/t/A7R2W9', {
 			waitUntil: 'domcontentloaded',
 		} );
+		const cookies = await page.context().cookies();
 
 		expect( response ).not.toBeNull();
+		expect(
+			cookies.some( ( cookie ) =>
+				cookie.name.startsWith( 'wordpress_logged_in_' )
+			)
+		).toBe( false );
 		expect( response?.status() ).toBe( 404 );
 		expect( response?.headers()[ 'cache-control' ] ).toBe(
 			'no-store, private'
