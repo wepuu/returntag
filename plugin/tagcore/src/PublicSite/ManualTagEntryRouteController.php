@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\PublicSite;
 
 use RuntimeException;
+use WP;
 use WP_Rewrite;
 
 /**
@@ -144,6 +145,12 @@ final class ManualTagEntryRouteController {
 	 * Return the closed intent for the current route.
 	 */
 	public function intent(): ?TagEntryIntent {
+		global $wp;
+
+		if ( ! $wp instanceof WP || self::REWRITE_PATTERN !== $wp->matched_rule ) {
+			return null;
+		}
+
 		$value = get_query_var( self::QUERY_VAR, null );
 
 		return is_string( $value ) ? TagEntryIntent::tryFrom( $value ) : null;

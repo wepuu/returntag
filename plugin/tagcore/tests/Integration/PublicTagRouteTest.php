@@ -212,6 +212,16 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A public query-var value cannot impersonate the matched scan route.
+	 */
+	public function test_query_var_without_matching_rewrite_is_not_a_public_tag_request(): void {
+		$this->go_to( home_url( '/' ) );
+		set_query_var( PublicTagRouteController::QUERY_VAR, 'A7R2W9' );
+
+		self::assertFalse( $this->route->is_public_tag_request() );
+	}
+
+	/**
 	 * Invalid input returns the generic invalid page without a database query.
 	 */
 	public function test_invalid_input_does_not_query_or_disclose_validation_detail(): void {
