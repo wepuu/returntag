@@ -43,6 +43,10 @@ final class PublicFormRequestGuard {
 			return true;
 		}
 
+		if ( 'null' === strtolower( $origin ) ) {
+			return in_array( strtolower( $fetch_site ), array( 'same-origin', 'same-site' ), true );
+		}
+
 		$expected = wp_parse_url( home_url( '/' ) );
 		$actual   = wp_parse_url( $origin );
 

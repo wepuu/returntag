@@ -141,6 +141,20 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Browser opaque origins are accepted only with same-site Fetch Metadata.
+	 */
+	public function test_opaque_origin_requires_same_site_fetch_evidence(): void {
+		$handler = $this->handler();
+		$this->valid_request( 'A7R2W9' );
+		$_SERVER['HTTP_ORIGIN'] = 'null';
+
+		self::assertSame( ManualTagEntryFormState::READY, $handler->submit()->state );
+
+		unset( $_SERVER['HTTP_SEC_FETCH_SITE'] );
+		self::assertSame( ManualTagEntryFormState::FORBIDDEN, $handler->submit()->state );
+	}
+
+	/**
 	 * Rewrites accept only the two frozen intents.
 	 */
 	public function test_rewrite_is_exactly_limited_to_the_two_entry_intents(): void {
