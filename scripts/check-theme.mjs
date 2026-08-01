@@ -1,0 +1,529 @@
+import { createHash } from 'node:crypto';
+import { readFile, readdir } from 'node:fs/promises';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { iconWhitelist, lucideVersion } from './sync-theme-icons.mjs';
+
+const defaultRepositoryRoot = dirname(
+	dirname( fileURLToPath( import.meta.url ) )
+);
+const expectedThemeVersion = '0.1.0';
+const expectedPalette = new Map( [
+	[ 'forge-red', '#DC1117' ],
+	[ 'forge-red-hover', '#B90D13' ],
+	[ 'ink', '#15171A' ],
+	[ 'graphite', '#4F555E' ],
+	[ 'cloud', '#F4F5F7' ],
+	[ 'surface', '#FFFFFF' ],
+	[ 'line', '#D9DDE3' ],
+	[ 'focus-inner', '#FFFFFF' ],
+	[ 'focus-outer', '#15171A' ],
+] );
+const expectedSpacing = new Map( [
+	[ '2xs', '4px' ],
+	[ 'xs', '8px' ],
+	[ 'sm', '12px' ],
+	[ 'md', '16px' ],
+	[ 'lg', '24px' ],
+	[ 'xl', '32px' ],
+	[ '2xl', '48px' ],
+	[ '3xl', '64px' ],
+	[ '4xl', '96px' ],
+	[ '5xl', '128px' ],
+] );
+const requiredThemeFiles = [
+	'asset-manifest.json',
+	'assets/css/foundation.css',
+	'assets/fonts/inter/Inter-Variable-Roman.woff2',
+	'assets/fonts/manrope/Manrope-Variable-Roman.woff2',
+	'assets/images/forge-logo.png',
+	'assets/licenses/Inter-OFL-1.1.txt',
+	'assets/licenses/Lucide-ISC-and-Feather-MIT.txt',
+	'assets/licenses/Manrope-OFL-1.1.txt',
+	'functions.php',
+	'parts/footer.html',
+	'parts/header.html',
+	'style.css',
+	'templates/index.html',
+	'theme.json',
+];
+const forbiddenAssetNames = [
+	'homepage.png',
+	'tanchuang.png',
+	'forge-logo-light.png',
+	'tag1.jpg',
+	'tag2.png',
+	'tag3.jpg',
+	'tag4.jpg',
+	'forge-smarttag.png',
+	'a1.jpg',
+	'ForgeTag文案设计.docx',
+];
+
+const readJson = async ( path ) => JSON.parse( await readFile( path, 'utf8' ) );
+
+const sha256 = ( bytes ) =>
+	createHash( 'sha256' ).update( bytes ).digest( 'hex' );
+
+const collectFiles = async ( root ) => {
+	const files = [];
+
+	for ( const entry of await readdir( root, { withFileTypes: true } ) ) {
+		const path = join( root, entry.name );
+
+		if ( entry.isDirectory() ) {
+			files.push( ...( await collectFiles( path ) ) );
+		} else if ( entry.isFile() ) {
+			files.push( path );
+		}
+	}
+
+	return files;
+};
+
+const mapBySlug = ( values = [] ) =>
+	new Map( values.map( ( value ) => [ value.slug, value ] ) );
+
+const checkExactMap = ( actualValues, expected, label, failures ) => {
+	const actual = mapBySlug( actualValues );
+
+	if (
+		actual.size !== expected.size ||
+		[ ...actual.keys() ].some( ( slug ) => ! expected.has( slug ) )
+	) {
+		failures.push( `${ label } must expose only the approved slugs` );
+	}
+
+	for ( const [ slug, expectedValue ] of expected ) {
+		if ( actual.get( slug )?.color !== undefined ) {
+			if ( actual.get( slug )?.color !== expectedValue ) {
+				failures.push( `${ label } ${ slug } has the wrong color` );
+			}
+		} else if ( actual.get( slug )?.size !== expectedValue ) {
+			failures.push( `${ label } ${ slug } has the wrong size` );
+		}
+	}
+};
+
+const checkThemeJson = ( themeJson, failures ) => {
+	if ( themeJson.version !== 3 ) {
+		failures.push( 'theme.json must use schema version 3' );
+	}
+
+	checkExactMap(
+		themeJson.settings?.color?.palette,
+		expectedPalette,
+		'theme.json palette',
+		failures
+	);
+	checkExactMap(
+		themeJson.settings?.spacing?.spacingSizes,
+		expectedSpacing,
+		'theme.json spacing scale',
+		failures
+	);
+
+	if (
+		themeJson.settings?.layout?.contentSize !== '48rem' ||
+		themeJson.settings?.layout?.wideSize !== '90rem'
+	) {
+		failures.push( 'theme.json must keep the approved 48rem/90rem layout' );
+	}
+
+	const fontFamilies = mapBySlug(
+		themeJson.settings?.typography?.fontFamilies
+	);
+	const fontContracts = [
+		[
+			'display',
+			'Manrope',
+			'200 800',
+			'file:./assets/fonts/manrope/Manrope-Variable-Roman.woff2',
+		],
+		[
+			'body',
+			'Inter',
+			'100 900',
+			'file:./assets/fonts/inter/Inter-Variable-Roman.woff2',
+		],
+	];
+
+	if ( fontFamilies.size !== fontContracts.length ) {
+		failures.push(
+			'theme.json must expose only the approved font families'
+		);
+	}
+
+	for ( const [ slug, family, weight, source ] of fontContracts ) {
+		const face = fontFamilies.get( slug )?.fontFace?.[ 0 ];
+
+		if (
+			face?.fontFamily !== family ||
+			face?.fontWeight !== weight ||
+			face?.fontDisplay !== 'swap' ||
+			face?.src?.[ 0 ] !== source
+		) {
+			failures.push( `theme.json ${ slug } font contract is incorrect` );
+		}
+	}
+
+	const disabledSettings = [
+		themeJson.settings?.color?.custom,
+		themeJson.settings?.color?.customDuotone,
+		themeJson.settings?.color?.customGradient,
+		themeJson.settings?.color?.defaultDuotone,
+		themeJson.settings?.color?.defaultGradients,
+		themeJson.settings?.color?.defaultPalette,
+		themeJson.settings?.spacing?.customSpacingSize,
+		themeJson.settings?.spacing?.defaultSpacingSizes,
+		themeJson.settings?.typography?.customFontSize,
+		themeJson.settings?.typography?.defaultFontSizes,
+	];
+
+	if ( disabledSettings.some( ( value ) => value !== false ) ) {
+		failures.push(
+			'theme.json must keep unapproved custom/default tokens off'
+		);
+	}
+};
+
+const checkManifestFile = async (
+	themeRoot,
+	path,
+	expectedHash,
+	label,
+	failures
+) => {
+	try {
+		const bytes = await readFile( join( themeRoot, path ) );
+		if ( sha256( bytes ) !== expectedHash ) {
+			failures.push(
+				`${ label } SHA-256 does not match asset-manifest.json`
+			);
+		}
+		return bytes;
+	} catch {
+		failures.push( `${ label } is missing` );
+		return undefined;
+	}
+};
+
+const checkAssets = async (
+	themeRoot,
+	sourcePackageRoot,
+	manifest,
+	failures
+) => {
+	if (
+		manifest.schemaVersion !== 1 ||
+		manifest.themeVersion !== expectedThemeVersion
+	) {
+		failures.push( 'asset-manifest.json version contract is incorrect' );
+	}
+
+	const logo = await checkManifestFile(
+		themeRoot,
+		manifest.brand?.runtimePath,
+		manifest.brand?.sha256,
+		'approved logo',
+		failures
+	);
+
+	if ( logo ) {
+		if (
+			logo.subarray( 1, 4 ).toString( 'ascii' ) !== 'PNG' ||
+			logo.readUInt32BE( 16 ) !== 300 ||
+			logo.readUInt32BE( 20 ) !== 57 ||
+			logo[ 25 ] !== 6
+		) {
+			failures.push( 'approved logo must remain a 300x57 RGBA PNG' );
+		}
+	}
+
+	for ( const font of manifest.fonts ?? [] ) {
+		const runtime = await checkManifestFile(
+			themeRoot,
+			font.runtimePath,
+			font.runtimeSha256,
+			`${ font.family } font`,
+			failures
+		);
+		await checkManifestFile(
+			themeRoot,
+			font.licensePath,
+			font.licenseSha256,
+			`${ font.family } license`,
+			failures
+		);
+
+		if ( runtime?.subarray( 0, 4 ).toString( 'ascii' ) !== 'wOF2' ) {
+			failures.push( `${ font.family } runtime font must be WOFF2` );
+		}
+	}
+
+	if ( manifest.fonts?.length !== 2 ) {
+		failures.push( 'asset-manifest.json must declare exactly two fonts' );
+	}
+
+	if (
+		manifest.icons?.package !== 'lucide-static' ||
+		manifest.icons?.version !== lucideVersion
+	) {
+		failures.push(
+			`icon source must remain lucide-static ${ lucideVersion }`
+		);
+	}
+
+	await checkManifestFile(
+		themeRoot,
+		manifest.icons?.licensePath,
+		manifest.icons?.licenseSha256,
+		'Lucide license',
+		failures
+	);
+
+	const manifestIcons = new Map(
+		( manifest.icons?.files ?? [] ).map( ( icon ) => [ icon.name, icon ] )
+	);
+	const runtimeIcons = ( await readdir( join( themeRoot, 'assets/icons' ) ) )
+		.filter( ( name ) => extname( name ) === '.svg' )
+		.map( ( name ) => name.slice( 0, -4 ) );
+
+	if (
+		manifestIcons.size !== iconWhitelist.length ||
+		runtimeIcons.length !== iconWhitelist.length ||
+		[ ...manifestIcons.keys(), ...runtimeIcons ].some(
+			( name ) => ! iconWhitelist.includes( name )
+		)
+	) {
+		failures.push( 'Theme icons must match the exact approved whitelist' );
+	}
+
+	for ( const name of iconWhitelist ) {
+		const icon = manifestIcons.get( name );
+		const runtime = await checkManifestFile(
+			themeRoot,
+			`assets/icons/${ name }.svg`,
+			icon?.runtimeSha256,
+			`${ name } icon`,
+			failures
+		);
+
+		try {
+			const source = await readFile(
+				join( sourcePackageRoot, 'icons', `${ name }.svg` )
+			);
+			if ( sha256( source ) !== icon?.sourceSha256 ) {
+				failures.push(
+					`${ name } source icon does not match the manifest`
+				);
+			}
+		} catch {
+			failures.push( `${ name } source icon is unavailable` );
+		}
+
+		if ( runtime ) {
+			const source = runtime.toString( 'utf8' );
+			if (
+				! source.includes( 'stroke-width="1.5"' ) ||
+				source.includes( 'stroke-width="2"' )
+			) {
+				failures.push(
+					`${ name } icon must use the approved 1.5 stroke`
+				);
+			}
+		}
+	}
+};
+
+const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
+	for ( const path of files ) {
+		const relativePath = relative( themeRoot, path )
+			.split( sep )
+			.join( '/' );
+		const lowerPath = relativePath.toLowerCase();
+
+		if (
+			forbiddenAssetNames.some(
+				( name ) =>
+					lowerPath === name.toLowerCase() ||
+					lowerPath.endsWith( `/${ name.toLowerCase() }` )
+			)
+		) {
+			failures.push( `${ relativePath } is a forbidden Theme asset` );
+		}
+
+		if ( ! /\.(?:css|html|json|md|mjs|php|svg|txt)$/i.test( path ) ) {
+			continue;
+		}
+
+		const contents = await readFile( path, 'utf8' );
+		if ( contents.includes( 'docs/design/' ) ) {
+			failures.push( `${ relativePath } leaks a source-design path` );
+		}
+		if (
+			forbiddenAssetNames.some( ( name ) =>
+				contents.toLowerCase().includes( name.toLowerCase() )
+			)
+		) {
+			failures.push( `${ relativePath } references a forbidden asset` );
+		}
+	}
+
+	const runtimeTextPaths = files.filter(
+		( path ) =>
+			/\.(?:css|html|php)$/i.test( path ) &&
+			relative( themeRoot, path ).split( sep ).join( '/' ) !== 'style.css'
+	);
+	for ( const path of runtimeTextPaths ) {
+		const relativePath = relative( themeRoot, path )
+			.split( sep )
+			.join( '/' );
+		const contents = await readFile( path, 'utf8' );
+
+		if ( /https?:\/\//i.test( contents ) ) {
+			failures.push( `${ relativePath } contains a remote runtime URL` );
+		}
+		if (
+			/end[- ]to[- ]end encrypt|verified pair|pairing verified/i.test(
+				contents
+			)
+		) {
+			failures.push(
+				`${ relativePath } contains an unapproved product claim`
+			);
+		}
+	}
+
+	const functions = await readFile(
+		join( themeRoot, 'functions.php' ),
+		'utf8'
+	);
+	const businessPatterns = [
+		/\$wpdb\b/,
+		/\b(?:get|update|add|delete)_option\s*\(/,
+		/\bWC_[A-Za-z_]+/,
+		/\bwp_mail\s*\(/,
+		/["']\/(?:t|tag\/activate|finder)\//,
+		/\bregister_rest_route\s*\(/,
+	];
+	if ( businessPatterns.some( ( pattern ) => pattern.test( functions ) ) ) {
+		failures.push(
+			'functions.php crosses the Theme presentation boundary'
+		);
+	}
+};
+
+export const validateTheme = async ( {
+	repositoryRoot = defaultRepositoryRoot,
+	themeRoot = join( repositoryRoot, 'theme/forge-tag' ),
+	sourcePackageRoot = join( repositoryRoot, 'node_modules/lucide-static' ),
+} = {} ) => {
+	const failures = [];
+	let files = [];
+
+	try {
+		files = await collectFiles( themeRoot );
+	} catch {
+		return { failures: [ 'theme/forge-tag is missing' ], fileCount: 0 };
+	}
+
+	const availableFiles = new Set(
+		files.map( ( path ) =>
+			relative( themeRoot, path ).split( sep ).join( '/' )
+		)
+	);
+	for ( const required of requiredThemeFiles ) {
+		if ( ! availableFiles.has( required ) ) {
+			failures.push( `${ required } is missing` );
+		}
+	}
+
+	for ( const name of iconWhitelist ) {
+		if ( ! availableFiles.has( `assets/icons/${ name }.svg` ) ) {
+			failures.push( `assets/icons/${ name }.svg is missing` );
+		}
+	}
+
+	try {
+		const stylesheet = await readFile(
+			join( themeRoot, 'style.css' ),
+			'utf8'
+		);
+		const headers = new Map(
+			[ ...stylesheet.matchAll( /^([A-Za-z ]+):\s*(.+)$/gm ) ].map(
+				( match ) => [ match[ 1 ], match[ 2 ].trim() ]
+			)
+		);
+		if (
+			headers.get( 'Theme Name' ) !== 'ForgeTag' ||
+			headers.get( 'Version' ) !== expectedThemeVersion ||
+			headers.get( 'Text Domain' ) !== 'forge-tag' ||
+			headers.get( 'Requires at least' ) !== '6.9' ||
+			headers.get( 'Requires PHP' ) !== '8.3'
+		) {
+			failures.push( 'style.css Theme identity contract is incorrect' );
+		}
+	} catch {
+		// The missing-file failure above is sufficient.
+	}
+
+	try {
+		checkThemeJson(
+			await readJson( join( themeRoot, 'theme.json' ) ),
+			failures
+		);
+	} catch ( error ) {
+		failures.push(
+			`theme.json is invalid: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
+	try {
+		await checkAssets(
+			themeRoot,
+			sourcePackageRoot,
+			await readJson( join( themeRoot, 'asset-manifest.json' ) ),
+			failures
+		);
+	} catch ( error ) {
+		failures.push(
+			`asset validation failed: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
+	try {
+		await checkRuntimeBoundaries( themeRoot, files, failures );
+	} catch ( error ) {
+		failures.push(
+			`Theme boundary validation failed: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
+	return { failures: [ ...new Set( failures ) ], fileCount: files.length };
+};
+
+if (
+	process.argv[ 1 ] &&
+	fileURLToPath( import.meta.url ) === resolve( process.argv[ 1 ] )
+) {
+	const result = await validateTheme();
+
+	if ( result.failures.length > 0 ) {
+		for ( const failure of result.failures ) {
+			process.stderr.write( `Theme check: ${ failure }.\n` );
+		}
+		process.exitCode = 1;
+	} else {
+		process.stdout.write(
+			`Theme check passed: ${ result.fileCount } files, ${ iconWhitelist.length } pinned icons, two local fonts, and one approved logo.\n`
+		);
+	}
+}

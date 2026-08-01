@@ -157,11 +157,21 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start ${{ matrix.config }}
 
+      - name: Activate and verify ForgeTag Theme
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$theme = wp_get_theme(); if (get_stylesheet() !== "forge-tag" || $theme->get("Version") !== "0.1.0" || $theme->get("TextDomain") !== "forge-tag") { WP_CLI::error("ForgeTag Theme identity contract failed."); }'
+
       - name: Enable WooCommerce HPOS
         run: npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_custom_orders_table_enabled yes
 
       - name: Run WordPress integration tests
         run: npx wp-env run ${{ matrix.config }} tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration
+
+      - name: Verify the brand shell without WooCommerce
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin deactivate woocommerce
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$response = wp_remote_get(home_url("/")); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) { WP_CLI::error("ForgeTag home response failed without WooCommerce."); }'
 
       - name: Stop WordPress
         if: always()
@@ -272,6 +282,9 @@ jobs:
 
       - name: Start WordPress
         run: npx wp-env start
+
+      - name: Activate ForgeTag Theme
+        run: npx wp-env run tests-cli wp theme activate forge-tag
 
       - name: Run PR browser profile
         if: needs.classify.outputs.full_e2e != 'true'

@@ -2,15 +2,20 @@
 
 **Status:** Engineering quality and artifact automation available
 
-**Artifact:** `tagcore-v{version}.zip`
+**Plugin artifact:** `tagcore-v{version}.zip`
+
+**Theme artifact:** `forge-tag-v{version}.zip`
 
 ## 1. Purpose
 
 This document defines versioning, quality gates, artifact, deployment, and
-rollback procedures for TagCore. Composer, Node build scripts, continuous
-integration, dependency monitoring, and tagged artifact assembly are present.
-Production publication and deployment remain manual, explicitly authorized
-operations.
+rollback procedures for TagCore and the independently versioned ForgeTag
+Theme. Composer, Node build scripts, continuous integration, dependency
+monitoring, and TagCore tagged artifact assembly are present. The ForgeTag
+Theme engineering skeleton, design tokens, and pinned runtime-asset baseline
+are present; Theme artifact automation remains an RT-314 follow-up after the
+Stage 2 foundation. Production publication and deployment remain manual,
+explicitly authorized operations.
 
 ## 2. Versioning
 
@@ -25,6 +30,12 @@ the same version. Milestone 0 uses version `0.1.0`; Milestone 1 closes at
 version `0.2.0` with Schema version `8`; Milestone 2 closes at version `0.3.0`
 with Schema version `8`; Milestone 3 closes at version `0.4.0` with Schema
 version `8`.
+
+The ForgeTag Theme uses independent semantic versioning. Its version is
+declared in `theme/forge-tag/style.css` and must not be inferred from the
+TagCore plugin version or Schema version. RT-314 Stages 1 and 2 establish Theme
+version `0.1.0` and its design-system foundation; this does not represent final
+page visual or production release approval.
 
 ## 3. Git workflow
 
@@ -69,18 +80,44 @@ installs production-only Composer dependencies, builds assets, packages the
 plugin with `tagcore/` at the ZIP root, and uploads the ZIP and checksum as
 workflow artifacts. It does not publish or deploy them automatically.
 
-### 5.1 Future ForgeTag theme and Site Editor governance
+### 5.1 ForgeTag Theme artifact and Site Editor governance
 
-The approved future theme identity is `theme/forge-tag/` with the `forge-tag`
-Text Domain. RT-311 creates no Theme files, Theme version, build workflow,
-artifact, tag, or deployment. Before the first production Theme release, a
-separate implementation ticket must define and test its semantic version,
-immutable ZIP name, Git tag, checksum, runtime-only contents, supported
-WordPress and WooCommerce matrix, installation procedure, rollback, and
-post-deployment verification.
+The Theme identity is `theme/forge-tag/` with the `forge-tag` Text Domain.
+TagCore and ForgeTag Theme versions are independent. The Theme release contract
+is:
+
+```text
+Theme version source: theme/forge-tag/style.css
+Git tag:              forge-tag-v{version}
+Artifact:             forge-tag-v{version}.zip
+Archive root:         forge-tag/
+Checksum:             forge-tag-v{version}.zip.sha256
+```
+
+The Theme ZIP contains only runtime files required by WordPress. It excludes
+tests, source design references, repository documentation outside the Theme,
+Node dependencies, caches, logs, reports, local configuration, credentials,
+and repository metadata. It must not contain any RT-313 `reference-only` or
+`excluded-local` asset. Every included font, icon, and third-party runtime
+asset must retain its approved license and recorded source checksum.
+
+Before a Theme artifact is accepted, automation must verify that the Git tag,
+`style.css` header, artifact name, and release record declare the same version;
+that the ZIP expands with `forge-tag/` at its root; that runtime contents match
+the approved allowlist; and that the SHA-256 checksum matches the uploaded ZIP.
+Rebuilding a published tag must not replace an existing artifact. Any content
+change requires a new Theme version and tag.
+
+The supported RT-314 acceptance matrix is WordPress `6.9.5` and `7.0.2`, PHP
+`8.3` through `8.5`, and WooCommerce `9.9.7` and `10.9.4` with HPOS enabled.
+WooCommerce-disabled acceptance is also required for the brand shell and
+TagCore entry links. Stage 2 adds source-pinned Theme assets and automated
+identity, integrity, responsive, accessibility, and disabled-commerce checks,
+but does not create a Theme tag, ZIP, checksum, GitHub Release, deployment, or
+artifact workflow.
 
 The source-controlled Theme is the production design source of truth. A Site
-Editor template, Template Part, Pattern, or Global Styles change intended for
+Editor Template, Template Part, Pattern, or Global Styles change intended for
 production must be exported to the Theme, reviewed in Git, validated, and
 released through the approved immutable artifact. A database-only editor
 customization is not a production release and must not become the sole copy of
@@ -91,6 +128,26 @@ The Theme's brand content must remain renderable when WooCommerce is
 unavailable, and disabling commerce must not alter TagCore ownership, manual
 entry, Finder routing, QR routing, or account authorization.
 
+Theme installation and verification occur first in an isolated acceptance or
+staging environment:
+
+1. Verify the ZIP checksum and `forge-tag/` archive root.
+2. Install the Theme without activating it and confirm WordPress recognizes
+   its declared version and Text Domain.
+3. Activate it only in the acceptance environment.
+4. Verify the brand shell, Site Editor templates, keyboard navigation,
+   responsive layout, and approved Theme assets.
+5. Verify TagCore canonical and manual-entry routes with and without
+   JavaScript, then verify WooCommerce-enabled and disabled behavior.
+6. Record the commit, tag, artifact checksum, environment matrix, approver,
+   activation time, and verification result.
+
+Rollback restores the previously approved immutable Theme artifact or the
+previous active Theme. It must not modify TagCore code, routes, Options,
+Schema, ownership, Tag IDs, conversations, audit Events, WooCommerce data, or
+other persisted product state. Any production activation or rollback requires
+separate authorization.
+
 ## 6. Release record
 
 Record at minimum:
@@ -98,8 +155,9 @@ Record at minimum:
 ```text
 Git commit
 Git tag
-plugin version
-schema version
+component (`tagcore` or `forge-tag`)
+component version
+schema version when the component is `tagcore`
 artifact filename
 artifact SHA-256
 build timestamp in UTC

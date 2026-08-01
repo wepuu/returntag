@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-010 project-status Markdown and README alignment; Schema remains `8`
+* Current workstream: RT-314 ForgeTag Theme Stage 2 design-system foundation; Schema remains `8`
 
 
 
@@ -756,8 +756,52 @@ Smart Tag production photography without an old domain, old ID, or real
 routable QR code. Manrope, Inter, Lucide, and their licenses remain RT-314
 deliverables.
 
-Do not infer or begin RT-314 automatically. Wait for explicit user authorization
-and acceptance criteria.
+RT-314 was subsequently authorized through Issue #52 with explicit staged
+acceptance criteria. Do not infer authorization for later stages, release, or
+deployment from the Stage 2 implementation.
+
+## RT-314 Stage 1 implementation
+
+RT-314 is explicitly authorized through Issue #52. Stage 1 establishes:
+
+- the independently versioned `theme/forge-tag/` Block Theme skeleton with
+  Text Domain `forge-tag` and Theme version `0.1.0`;
+- the required `style.css` and `templates/index.html`, a WordPress
+  `6.9`-schema `theme.json` version 3 baseline, minimal translation bootstrap,
+  and source-controlled Header and Footer Template Parts;
+- an independent Theme release contract using Git tag
+  `forge-tag-v{version}`, artifact `forge-tag-v{version}.zip`, archive root
+  `forge-tag/`, and a matching SHA-256 checksum;
+- automated release-metadata validation that keeps Theme `0.1.0` independent
+  from TagCore `0.4.0` and Schema `8`.
+
+Stage 1 adds no design Tokens, fonts, icons, runtime design image, homepage
+Pattern, TagCore entry block placement, WooCommerce template, packaging
+workflow, release tag, ZIP, deployment, route, API, Option, Migration, Schema,
+database behavior, product-state change, email, queue, or personal-data
+processing. Those Theme implementation items remain later RT-314 stages.
+
+## RT-314 Stage 2 implementation
+
+Stage 2 establishes the source-controlled visual foundation:
+
+- approved Global Styles tokens for color, local typography, spacing, radius,
+  shadow, motion, and layout width;
+- scoped frontend and editor foundation CSS for minimum control sizes, visible
+  focus, reduced motion, and forced-colors support;
+- the production-approved ForgeTag logo, self-hosted Manrope and Inter variable
+  fonts, and the exact 17-icon Lucide allowlist;
+- a machine-readable asset manifest containing pinned sources, licenses,
+  transformations, and SHA-256 evidence;
+- automated Theme boundary, asset-integrity, identity, WordPress activation,
+  WooCommerce-disabled shell, responsive, local-asset, and accessibility
+  regression checks.
+
+Stage 2 does not add a homepage Pattern, TagCore entry placement, WooCommerce
+Shop/Product/Cart/Checkout Templates, business logic, product copy approval,
+Schema, database write, Option, route, API, email, queue, Theme artifact,
+release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
+TagCore remains `0.4.0`, and Schema remains `8`.
 
 ## RT-009 risk-based CI and E2E optimization
 

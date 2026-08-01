@@ -235,6 +235,7 @@ export record, or Event is deleted or reused.
 |   |-- composer.json            Plugin runtime and PHP development dependencies
 |   |-- tagcore.php              Minimal plugin bootstrap
 |   `-- uninstall.php            Guarded, non-destructive uninstaller
+|-- theme/forge-tag/             Source-controlled ForgeTag Block Theme
 |-- tests/                       JavaScript unit and Playwright tests
 |-- package.json                 Node build, environment, and browser-test commands
 |-- .wp-env.json                 WordPress 7.0.2/PHP 8.4/WooCommerce 10 environment
@@ -510,9 +511,45 @@ currently approved for direct production use, subject to its documented
 light-surface and display-size limits. The remaining supplied images are
 reference-only and must not be copied into Theme runtime assets or templates.
 
-This baseline does not create the Theme. RT-314 remains a separately
-authorized work item and requires licensed typography and icon assets plus
-approved product photography before final visual acceptance.
+This baseline did not create the Theme. RT-314 was subsequently authorized as
+a separate work item. Stage 2 below now locks the licensed typography and icon
+baseline; approved product photography remains required before final visual
+acceptance.
+
+## RT-314 ForgeTag Theme Stage 1
+
+RT-314 Stage 1 creates the independently versioned `theme/forge-tag/` Block
+Theme engineering skeleton with Text Domain `forge-tag` and Theme version
+`0.1.0`. The minimum source-controlled baseline contains `style.css`,
+`theme.json` version 3, a narrow translation bootstrap, Header and Footer
+Template Parts, and the required `templates/index.html` fallback.
+
+The ForgeTag Theme release contract is independent from TagCore: approved
+Theme tags use `forge-tag-v{version}`, immutable artifacts use
+`forge-tag-v{version}.zip` with `forge-tag/` at the archive root, and every ZIP
+requires a SHA-256 checksum. Stage 1 defines and version-checks this contract;
+it does not create packaging automation, a tag, an artifact, a release, or a
+deployment. Design tokens, approved runtime assets, fonts, icons, homepage
+Patterns, TagCore entry integration, WooCommerce templates, and final visual
+acceptance remain later RT-314 stages.
+
+## RT-314 ForgeTag Theme Stage 2
+
+RT-314 Stage 2 implements the approved design-system foundation without adding
+page-specific product behavior. `theme.json` now exposes the controlled color,
+typography, spacing, radius, shadow, motion, and layout tokens; frontend and
+editor surfaces share the scoped `assets/css/foundation.css` interaction and
+accessibility rules.
+
+The Theme vendors the approved ForgeTag logo, local Manrope and Inter variable
+fonts, and the exact 17-icon Lucide allowlist. Versions, licenses,
+transformations, and SHA-256 values are recorded in
+`theme/forge-tag/asset-manifest.json` and enforced by `npm run check:theme`.
+WordPress matrix checks activate the Theme, verify its identity, and confirm
+the brand shell still responds when WooCommerce is disabled. Stage 2 adds no
+homepage Pattern, commerce Template, TagCore entry placement, product logic,
+Schema, database write, Option, route, email, queue, release artifact, tag, or
+deployment.
 
 ## RT-009 risk-based CI and E2E profiles
 

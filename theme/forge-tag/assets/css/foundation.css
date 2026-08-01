@@ -1,0 +1,147 @@
+/*
+ * ForgeTag behavior that cannot be expressed reliably through Global Styles.
+ * Keep selectors on Theme-owned WordPress block surfaces.
+ */
+
+.wp-site-blocks {
+	--returntag-color-accent: var(--wp--preset--color--forge-red);
+	--returntag-color-accent-hover: var(--wp--preset--color--forge-red-hover);
+	--returntag-color-background: var(--wp--preset--color--cloud);
+	--returntag-color-focus-inner: var(--wp--preset--color--focus-inner);
+	--returntag-color-focus-outer: var(--wp--preset--color--focus-outer);
+	--returntag-color-line: var(--wp--preset--color--line);
+	--returntag-color-muted: var(--wp--preset--color--graphite);
+	--returntag-color-surface: var(--wp--preset--color--surface);
+	--returntag-color-text: var(--wp--preset--color--ink);
+}
+
+.wp-site-blocks :where(.wp-element-button) {
+	align-items: center;
+	box-sizing: border-box;
+	display: inline-flex;
+	justify-content: center;
+	min-block-size: 48px;
+	transition:
+		background-color var(--wp--custom--forge--motion--duration--control)
+		var(--wp--custom--forge--motion--easing),
+		border-color var(--wp--custom--forge--motion--duration--control)
+		var(--wp--custom--forge--motion--easing),
+		color var(--wp--custom--forge--motion--duration--control)
+		var(--wp--custom--forge--motion--easing);
+}
+
+.wp-site-blocks :where(.wp-element-button:hover) {
+	background: var(--wp--preset--color--forge-red-hover);
+	border-color: var(--wp--preset--color--forge-red-hover);
+}
+
+.wp-site-blocks :where(.wp-element-button:active) {
+	background: var(--wp--preset--color--forge-red-hover);
+	border-color: var(--wp--preset--color--forge-red-hover);
+}
+
+.wp-site-blocks
+:where(
+	.wp-element-button[aria-disabled="true"],
+	.wp-element-button:disabled
+) {
+	background: var(--wp--preset--color--line);
+	border-color: var(--wp--preset--color--line);
+	color: var(--wp--preset--color--graphite);
+	cursor: not-allowed;
+}
+
+.wp-site-blocks :where(.wp-block-navigation-item__content) {
+	align-items: center;
+	display: inline-flex;
+	min-block-size: 44px;
+	text-decoration: none;
+	text-underline-offset: 0.2em;
+}
+
+.wp-site-blocks :where(.wp-block-navigation-item__content:hover) {
+	text-decoration: underline;
+}
+
+.wp-site-blocks
+:where(
+	.wp-block-navigation__responsive-container-open,
+	.wp-block-navigation__responsive-container-close
+) {
+	align-items: center;
+	display: inline-flex;
+	justify-content: center;
+	min-block-size: 44px;
+	min-inline-size: 44px;
+}
+
+.wp-site-blocks :where(.wp-block-search__input) {
+	background: var(--wp--preset--color--surface);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--control);
+	box-sizing: border-box;
+	color: var(--wp--preset--color--ink);
+	font: inherit;
+	min-block-size: 52px;
+}
+
+.wp-site-blocks :where(.wp-block-search__input:hover) {
+	border-color: var(--wp--preset--color--graphite);
+}
+
+.wp-site-blocks :where(.wp-block-search__button) {
+	min-block-size: 48px;
+	min-inline-size: 44px;
+}
+
+.wp-site-blocks
+:where(
+	.wp-element-button,
+	.wp-block-navigation-item__content,
+	.wp-block-navigation__responsive-container-open,
+	.wp-block-navigation__responsive-container-close,
+	.wp-block-search__button,
+	.wp-block-search__input
+):focus-visible {
+	box-shadow: 0 0 0 5px var(--wp--preset--color--focus-outer);
+	outline: 2px solid var(--wp--preset--color--focus-inner);
+	outline-offset: 2px;
+}
+
+.forge-tag-brand-mark {
+	display: block;
+	height: auto;
+	max-inline-size: 150px;
+	width: 100%;
+}
+
+.forge-tag-card {
+	background: var(--wp--preset--color--surface);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--card);
+	box-shadow: var(--wp--preset--shadow--card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.wp-site-blocks :where(.wp-element-button) {
+		transition-duration: 0.01ms;
+	}
+}
+
+@media (forced-colors: active) {
+
+	.wp-site-blocks
+	:where(
+		.wp-element-button,
+		.wp-block-navigation-item__content,
+		.wp-block-navigation__responsive-container-open,
+		.wp-block-navigation__responsive-container-close,
+		.wp-block-search__button,
+		.wp-block-search__input
+	):focus-visible {
+		box-shadow: none;
+		outline: 3px solid CanvasText;
+		outline-offset: 3px;
+	}
+}
