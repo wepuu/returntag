@@ -299,6 +299,35 @@ The minimum environment uses its corresponding integration-test command:
 npm run test:php:integration:minimum
 ```
 
+## Continuous integration profiles
+
+Pull requests use risk-based routing with a stable `Quality Gate` result:
+
+- documentation-only changes run Markdown relative-link checks, the RT-313
+  design-asset manifest validation, a tracked-text secret scan, and the final
+  gate without installing Composer, npm, wp-env, or Playwright dependencies;
+- TagCore, JavaScript, or future Theme runtime changes run PHP 8.3/8.4/8.5,
+  JavaScript, four WordPress/WooCommerce integration environments, and the
+  21-test PR browser profile;
+- Migration, Persistence, Repository, and integration-test changes add the
+  MariaDB 10.11 and MySQL 8.0 compatibility matrix;
+- workflow, Playwright, wp-env, lock-file, classifier, or unknown-path changes
+  fail closed to the complete quality matrix and 70-test browser profile.
+
+The PR browser profile runs all 14 tests in desktop Chromium and the seven
+public Tag route/manual-entry tests in Mobile Safari. The complete five-project
+browser suite remains available with `npm run test:e2e` and runs daily at
+03:00 Asia/Shanghai (19:00 UTC), as well as through the manual **Full E2E**
+workflow. Run the PR profile locally with:
+
+```text
+npm run test:e2e:pr
+```
+
+Failed browser runs retain screenshots and, on the first retry, trace and video
+artifacts for seven days. A newer push to the same pull request cancels its
+older Quality run; `main` runs are never cancelled by this concurrency rule.
+
 ## Release
 
 Pushing an approved tag named `tagcore-v{version}` runs the release-artifact
