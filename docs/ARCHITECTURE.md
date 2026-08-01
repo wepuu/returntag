@@ -317,8 +317,8 @@ PRD update before implementation.
 
 ## 11. Frontend delivery and theme boundary
 
-ReturnTag uses one WordPress site with a replaceable presentation theme and a
-theme-independent TagCore product application. The ReturnTag block theme owns
+ForgeTag uses one WordPress site with a replaceable presentation theme and a
+theme-independent TagCore product application. The ForgeTag block theme owns
 the brand shell, navigation, footer, editorial and support content, and
 WooCommerce presentation. It may place TagCore blocks and expose approved
 brand design tokens, but it does not query TagCore tables, derive Tag state,
@@ -360,6 +360,15 @@ visual specifications. User-supplied page-effect designs require a later
 design review before implementation, and they cannot change the architectural,
 security, privacy, state, or accessibility boundaries recorded here and in
 ADR 0017.
+
+ADR 0018 establishes the stable theme integration contract. The theme lives at
+`theme/forge-tag/`, uses the `forge-tag` Text Domain, and places the
+server-rendered `tagcore/tag-entry-link` dynamic block with a closed
+`activate` or `report` intent. TagCore generates the same-site manual-entry URL
+through WordPress APIs and owns the endpoint, server-rendered fallback, and any
+desktop-modal or mobile-full-screen progressive enhancement. The theme must not
+hard-code the route, depend on adapter DOM internals, or infer a Tag state from
+the selected entry intent.
 
 RT-008 supplies the structured operational logging interface and initial
 WordPress adapter, but leaves it disabled pending explicit composition and

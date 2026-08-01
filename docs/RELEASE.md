@@ -69,6 +69,28 @@ installs production-only Composer dependencies, builds assets, packages the
 plugin with `tagcore/` at the ZIP root, and uploads the ZIP and checksum as
 workflow artifacts. It does not publish or deploy them automatically.
 
+### 5.1 Future ForgeTag theme and Site Editor governance
+
+The approved future theme identity is `theme/forge-tag/` with the `forge-tag`
+Text Domain. RT-311 creates no Theme files, Theme version, build workflow,
+artifact, tag, or deployment. Before the first production Theme release, a
+separate implementation ticket must define and test its semantic version,
+immutable ZIP name, Git tag, checksum, runtime-only contents, supported
+WordPress and WooCommerce matrix, installation procedure, rollback, and
+post-deployment verification.
+
+The source-controlled Theme is the production design source of truth. A Site
+Editor template, Template Part, Pattern, or Global Styles change intended for
+production must be exported to the Theme, reviewed in Git, validated, and
+released through the approved immutable artifact. A database-only editor
+customization is not a production release and must not become the sole copy of
+an approved design change.
+
+WooCommerce compatibility does not make WooCommerce an activation dependency.
+The Theme's brand content must remain renderable when WooCommerce is
+unavailable, and disabling commerce must not alter TagCore ownership, manual
+entry, Finder routing, QR routing, or account authorization.
+
 ## 6. Release record
 
 Record at minimum:
