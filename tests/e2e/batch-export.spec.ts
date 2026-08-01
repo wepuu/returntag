@@ -1,17 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
-
-async function logIn( page: import('@playwright/test').Page ) {
-	await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.getByLabel( 'Username or Email Address' ).fill( 'admin' );
-	await page.getByLabel( 'Password', { exact: true } ).fill( 'password' );
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			waitUntil: 'domcontentloaded',
-		} ),
-		page.getByRole( 'button', { name: 'Log In' } ).click(),
-	] );
-}
+import { adminTest as test, expect } from './fixtures';
 
 async function installApiMock(
 	page: import('@playwright/test').Page,
@@ -173,7 +161,6 @@ test( 'an operator confirms an audited CSV export and sees its history', async (
 	page,
 } ) => {
 	test.slow();
-	await logIn( page );
 	const batchCode = `RT-207-E2E-${ Date.now() }`;
 	const checksum = 'a'.repeat( 64 );
 	const csv = [

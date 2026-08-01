@@ -1,0 +1,64 @@
+name: Full E2E
+
+on:
+  schedule:
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  full-e2e:
+    name: Full browser regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies and browser engines
+        run: |
+          npm ci
+          composer install --working-dir=plugin/tagcore --no-interaction --prefer-dist
+          npx playwright install --with-deps chromium firefox webkit
+
+      - name: Build browser assets
+        run: npm run build
+
+      - name: Start WordPress
+        run: npx wp-env start
+
+      - name: Run full browser profile
+        run: npm run test:e2e
+
+      - name: Stop WordPress
+        if: always()
+        run: npx wp-env stop
+
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

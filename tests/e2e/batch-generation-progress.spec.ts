@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { adminTest as test, expect } from './fixtures';
 
 const tagAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
@@ -10,18 +10,6 @@ const inventoryItems = Array.from( { length: 51 }, ( _, index ) => ( {
 	tag_status: 'unregistered',
 	created_at: '2026-07-27T09:00:00+00:00',
 } ) );
-
-async function logIn( page: import('@playwright/test').Page ) {
-	await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.getByLabel( 'Username or Email Address' ).fill( 'admin' );
-	await page.getByLabel( 'Password', { exact: true } ).fill( 'password' );
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			waitUntil: 'domcontentloaded',
-		} ),
-		page.getByRole( 'button', { name: 'Log In' } ).click(),
-	] );
-}
 
 async function createSmallBatch(
 	page: import('@playwright/test').Page,
@@ -56,14 +44,15 @@ async function createSmallBatch(
 	] );
 	await expect(
 		page.getByRole( 'heading', { name: batchCode } )
-	).toBeVisible( { timeout: 30_000 } );
+	).toBeVisible( {
+		timeout: 30_000,
+	} );
 }
 
 test( 'an operator confirms generation and sees committed progress', async ( {
 	page,
 } ) => {
 	test.slow();
-	await logIn( page );
 	const batchCode = `RT-205-E2E-${ Date.now() }`;
 	await createSmallBatch( page, batchCode );
 

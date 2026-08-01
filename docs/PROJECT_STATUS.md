@@ -20,7 +20,7 @@
 
 \* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: RT-313 ForgeTag V1 design-asset convergence; Schema remains `8`
+\* Current workstream: RT-009 risk-based GitHub CI and E2E optimization; Schema remains `8`
 
 
 
@@ -47,6 +47,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-007 — Feature flag infrastructure
 
 \* RT-008 — Base logging interface
+
+\* RT-009 — Risk-based GitHub CI routing and two-level Playwright regression
 
 \* RT-101 — Numbered Migration Runner and WordPress lifecycle integration
 
@@ -756,3 +758,37 @@ deliverables.
 
 Do not infer or begin RT-314 automatically. Wait for explicit user authorization
 and acceptance criteria.
+
+## RT-009 risk-based CI and E2E optimization
+
+RT-009 reduces pull-request feedback time without removing accepted coverage:
+
+- a repository-owned, fail-closed path classifier routes documentation,
+  runtime, database-sensitive, and full-check changes without a third-party
+  path-filter Action;
+- the stable `Quality Gate` result verifies that every applicable matrix job
+  ran successfully and rejects failed or ambiguous classification;
+- documentation-only changes avoid npm, Composer, wp-env, and Playwright setup
+  while retaining relative-link, RT-313 asset-manifest, exclusion, and tracked
+  text secret checks;
+- runtime pull requests use a 21-test profile: all 14 logical tests in desktop
+  Chromium plus seven public-route and manual-entry tests in Mobile Safari;
+- the existing 70-test, five-project browser suite remains intact for daily
+  03:00 Asia/Shanghai regression, manual dispatch, and CI/E2E infrastructure
+  changes;
+- administrator browser state is created once per Playwright run and reused
+  only by an explicit admin fixture; public route pages remain anonymous;
+- superseded runs on the same pull request are cancelled, while `main` pushes
+  remain independently auditable;
+- failed browser runs retain screenshots and first-retry trace/video artifacts
+  for seven days.
+
+RT-009 changes CI, tests, and documentation only. It adds no TagCore runtime
+behavior, dependency, public route, Hook, Option, Schema, Migration, product
+state, WooCommerce mapping, email, queue, or personal-data processing.
+
+After the RT-009 pull request is approved and merged, wait for the first
+successful `Quality Gate` on `main` before enabling branch protection with
+that exact required-check name. Branch-protection changes remain a separately
+authorized remote repository action. RT-314 must still wait for explicit user
+authorization.

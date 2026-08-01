@@ -1,22 +1,11 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-async function login( page: Page ): Promise< void > {
-	await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.getByLabel( 'Username or Email Address' ).fill( 'admin' );
-	await page.getByLabel( 'Password', { exact: true } ).fill( 'password' );
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			waitUntil: 'domcontentloaded',
-		} ),
-		page.getByRole( 'button', { name: 'Log In' } ).click(),
-	] );
-}
+import { expect, test } from './fixtures';
 
 async function createEntryPage(
 	page: Page,
 	projectName: string
 ): Promise< string > {
-	await login( page );
 	await page.goto( '/wp-admin/', { waitUntil: 'domcontentloaded' } );
 
 	const slug = `rt-312-entry-${ projectName.replace(
@@ -96,10 +85,14 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 	} );
 
 	test( 'desktop link opens an accessible dialog and restores focus', async ( {
+		adminPage,
 		page,
 	}, testInfo ) => {
 		test.skip( testInfo.project.name.startsWith( 'mobile-' ) );
-		const fixtureUrl = await createEntryPage( page, testInfo.project.name );
+		const fixtureUrl = await createEntryPage(
+			adminPage,
+			testInfo.project.name
+		);
 		await page.goto( fixtureUrl, { waitUntil: 'domcontentloaded' } );
 
 		const trigger = page.getByRole( 'link', { name: 'Activate my tag' } );
@@ -121,10 +114,14 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 	} );
 
 	test( 'mobile link and JavaScript-free link use the standalone fallback', async ( {
+		adminPage,
 		browser,
 		page,
 	}, testInfo ) => {
-		const fixtureUrl = await createEntryPage( page, testInfo.project.name );
+		const fixtureUrl = await createEntryPage(
+			adminPage,
+			testInfo.project.name
+		);
 
 		if ( testInfo.project.name.startsWith( 'mobile-' ) ) {
 			await page.goto( fixtureUrl, { waitUntil: 'domcontentloaded' } );

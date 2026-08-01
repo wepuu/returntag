@@ -1,16 +1,4 @@
-import { expect, test } from '@playwright/test';
-
-async function logIn( page: import('@playwright/test').Page ) {
-	await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.getByLabel( 'Username or Email Address' ).fill( 'admin' );
-	await page.getByLabel( 'Password', { exact: true } ).fill( 'password' );
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			waitUntil: 'domcontentloaded',
-		} ),
-		page.getByRole( 'button', { name: 'Log In' } ).click(),
-	] );
-}
+import { adminTest as test, expect } from './fixtures';
 
 async function fillRequiredBatchFields(
 	page: import('@playwright/test').Page,
@@ -42,7 +30,6 @@ function waitForBatchCreationResponse( page: import('@playwright/test').Page ) {
 test( 'an authorized operator creates a disabled draft Batch', async ( {
 	page,
 } ) => {
-	await logIn( page );
 	await page.goto( '/wp-admin/admin.php?page=tagcore-batches&view=create', {
 		waitUntil: 'domcontentloaded',
 	} );

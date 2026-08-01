@@ -1,17 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
-
-async function logIn( page: import('@playwright/test').Page ) {
-	await page.goto( '/wp-login.php', { waitUntil: 'domcontentloaded' } );
-	await page.getByLabel( 'Username or Email Address' ).fill( 'admin' );
-	await page.getByLabel( 'Password', { exact: true } ).fill( 'password' );
-	await Promise.all( [
-		page.waitForURL( /\/wp-admin(?:\/|$)/, {
-			waitUntil: 'domcontentloaded',
-		} ),
-		page.getByRole( 'button', { name: 'Log In' } ).click(),
-	] );
-}
+import { adminTest as test, expect } from './fixtures';
 
 async function installLifecycleMock(
 	page: import('@playwright/test').Page,
@@ -168,7 +156,6 @@ test( 'an operator releases, suspends, and permanently voids a Batch', async ( {
 	page,
 } ) => {
 	test.slow();
-	await logIn( page );
 	const batchCode = `RT-208-E2E-${ Date.now() }`;
 	await installLifecycleMock( page, batchCode );
 	await page.goto(
