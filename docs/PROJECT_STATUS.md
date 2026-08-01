@@ -20,7 +20,7 @@
 
 \* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: RT-312 TagCore manual-entry adapter; Schema remains `8`
+\* Current workstream: RT-313 ForgeTag V1 design-asset convergence; Schema remains `8`
 
 
 
@@ -115,6 +115,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract
 
 \* RT-312 - TagCore manual-entry routes, dynamic link block, and modal/full-screen adapter
+
+\* RT-313 - ForgeTag V1 design-asset baseline and production/reference asset governance
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -724,5 +726,33 @@ approved ForgeTag Theme contract:
 RT-312 unblocks future ForgeTag Theme integration. It does not create the Theme
 and does not implement Finder messaging or Owner Account presentation.
 
-Do not infer or begin another RT ticket automatically. Wait for explicit user
-authorization and acceptance criteria.
+## RT-313 design-asset baseline
+
+RT-313 converts the supplied ForgeTag V1 design material into an auditable,
+version-controlled source baseline before Theme implementation:
+
+- `docs/design/UI-STYLE-GUIDE-V1.md` remains the normative visual guide and now
+  distinguishes production-approved assets from reference-only source images;
+- `docs/design/ASSET-MANIFEST-V1.md` records source-image dimensions, formats,
+  Alpha state, byte counts, SHA-256 values, allowed uses, prohibited uses, Alt
+  principles, and confirmed commercial-use status;
+- `forge-logo.png` is the only image currently approved for direct production
+  use, subject to the documented light-surface and display-size limits;
+- `homepage.png`, `tanchuang.png`, `forge-logo-light.png`, `tag1.jpg` through
+  `tag4.jpg`, and `forge-smarttag.png` are reference-only and cannot enter
+  Theme runtime assets, templates, Patterns, CSS, or WooCommerce pages;
+- the local `a1.jpg` and `ForgeTag文案设计.docx` files are excluded through
+  exact ignore rules because they contain unapproved claims, but remain on the
+  user's machine;
+- no Theme, font, Lucide package, TagCore runtime, public contract, Schema,
+  Option, Hook, route, database, dependency, or product-state change is made.
+
+RT-313 establishes the design-asset prerequisite for RT-314 ForgeTag FSE Theme
+V1. Theme development may start only after explicit authorization. Final brand
+homepage visual acceptance still requires new Classic Tag, Sticker Tag, and
+Smart Tag production photography without an old domain, old ID, or real
+routable QR code. Manrope, Inter, Lucide, and their licenses remain RT-314
+deliverables.
+
+Do not infer or begin RT-314 automatically. Wait for explicit user authorization
+and acceptance criteria.
