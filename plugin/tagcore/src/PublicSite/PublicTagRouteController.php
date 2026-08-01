@@ -18,6 +18,7 @@ use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
 use ReturnTag\TagCore\Domain\Tag\TagId;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use RuntimeException;
+use WP;
 use WP_Rewrite;
 
 /**
@@ -273,7 +274,11 @@ final class PublicTagRouteController {
 	 * Determine whether WordPress resolved the public Tag route.
 	 */
 	public function is_public_tag_request(): bool {
-		return null !== $this->raw_tag_id();
+		global $wp;
+
+		return $wp instanceof WP
+			&& self::REWRITE_PATTERN === $wp->matched_rule
+			&& null !== $this->raw_tag_id();
 	}
 
 	/**

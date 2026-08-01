@@ -20,7 +20,7 @@
 
 \* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: Awaiting explicit authorization for the next RT ticket; Schema remains `8`
+\* Current workstream: RT-312 TagCore manual-entry adapter; Schema remains `8`
 
 
 
@@ -113,6 +113,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-310 - Static Smart Tag parallel-system activation guide and Milestone 3 version `0.4.0`
 
 \* RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract
+
+\* RT-312 - TagCore manual-entry routes, dynamic link block, and modal/full-screen adapter
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -698,6 +700,29 @@ RT-311 is accepted. Theme integration remains blocked until the TagCore-owned
 entry adapter receives a separate implementation ticket. Finder Report and
 Owner Account presentation must not be represented as implemented before their
 product components exist.
+
+## RT-312 implementation
+
+RT-312 implements the TagCore-owned manual-entry adapter required by the
+approved ForgeTag Theme contract:
+
+- plugin-owned `/tag/activate/` and `/tag/report/` GET, HEAD, and POST routes;
+- one server-rendered, no-JavaScript form with canonical six-character Tag ID
+  normalization and a same-site `303` redirect to `/t/{tag_id}`;
+- the dynamic `tagcore/tag-entry-link` block with only a closed `activate` or
+  `report` presentation intent and TagCore-generated same-site URLs;
+- desktop native-dialog progressive enhancement and mobile full-screen link
+  navigation using the same form contract;
+- nonce, Fetch Metadata, Origin, response-header, enumeration-resistance, and
+  direct-peer/global fixed-window rate-limit controls;
+- ForgeTag V1 modal and entry styling with 44-pixel targets, dual focus rings,
+  reduced-motion and forced-colors support;
+- no Tag/Batch state read before the canonical route, Theme, WooCommerce hard
+  dependency, Migration, Schema, Event, email, queue, lock-file, dependency,
+  or plugin-version change.
+
+RT-312 unblocks future ForgeTag Theme integration. It does not create the Theme
+and does not implement Finder messaging or Owner Account presentation.
 
 Do not infer or begin another RT ticket automatically. Wait for explicit user
 authorization and acceptance criteria.

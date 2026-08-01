@@ -31,7 +31,7 @@
   "scripts": {
     "lint": "phpcs --standard=phpcs.xml.dist",
     "lint:fix": "phpcbf --standard=phpcs.xml.dist",
-    "analyse": "phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=512M",
+    "analyse": "phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=1G",
     "test": "phpunit --configuration=phpunit.xml.dist",
     "test:integration": "phpunit --configuration=phpunit.integration.xml.dist",
     "test:performance": "phpunit --configuration=phpunit.performance.xml.dist",

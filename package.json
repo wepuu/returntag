@@ -7,9 +7,10 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
-    "build": "npm run build:admin && npm run build:public",
+    "build": "npm run build:admin && npm run build:public && npm run build:entry-block",
     "build:admin": "wp-scripts build plugin/tagcore/assets/src/admin.tsx --output-path=plugin/tagcore/build/admin",
     "build:public": "wp-scripts build plugin/tagcore/assets/src/public.ts --output-path=plugin/tagcore/build/public --experimental-modules",
+    "build:entry-block": "wp-scripts build plugin/tagcore/assets/src/blocks/tag-entry-link/index.js --output-path=plugin/tagcore/build/blocks/tag-entry-link",
     "start:admin": "wp-scripts start plugin/tagcore/assets/src/admin.tsx --output-path=plugin/tagcore/build/admin",
     "start:public": "wp-scripts start plugin/tagcore/assets/src/public.ts --output-path=plugin/tagcore/build/public --experimental-modules",
     "lint:js": "wp-scripts lint-js plugin/tagcore/assets/src scripts tests/js tests/e2e playwright.config.ts",

@@ -726,3 +726,32 @@ controls. No Tag ID, intent, identity, email, token, or state result may be
 sent to advertising pixels, session replay, or unnecessary analytics. The
 future implementation requires public-input, enumeration-resistance,
 keyboard, focus-restoration, mobile-full-screen, and no-JavaScript tests.
+
+## 26. RT-312 manual-entry controls
+
+The manual-entry routes accept only `GET`, `HEAD`, and `POST`; unsupported
+methods receive `405` with the approved method list. POST requires a WordPress
+nonce plus same-site Fetch Metadata and Origin evidence before application
+work. Only one bounded Tag ID field is accepted. Input longer than 64 bytes,
+malformed input, or a value outside the canonical six-character alphabet is
+rejected without querying whether a Tag, Batch, email, User, or Owner exists.
+
+Before normalization, every POST reserves atomic direct-peer IP budgets of
+30/minute and 300/hour plus global budgets of 300/minute and 5,000/hour.
+Proxy-forwarding headers are ignored. The direct peer is packed and converted
+to a domain-separated HMAC-SHA-256 digest with WordPress authentication salt
+before it enters a non-autoloaded Option name. Values contain only count and
+expiry. A site-scoped advisory lock serializes budget checks and increments;
+lock or storage failure fails closed. The existing bounded daily maintenance
+job inspects and removes at most 500 expired entry buckets.
+
+Valid input receives only a `303` redirect to the canonical `/t/{tag_id}`
+route. Invalid, forbidden, throttled, and unavailable outcomes use generic,
+translatable form feedback and expose no Tag-existence or state distinction;
+429 responses use a fixed retry interval rather than a scope-specific value.
+Entry responses are no-store, no-referrer, no-index, framing-denied, and
+restricted to local scripts and styles. The block accepts no identity, Tag ID,
+state, token, permission, arbitrary copy, or redirect target. Desktop dialog
+enhancement uses the native dialog focus model, supports Escape, restores the
+exact trigger, and falls back to the same-site link. Mobile uses the standalone
+full-screen route and never loads the surrounding Theme page.

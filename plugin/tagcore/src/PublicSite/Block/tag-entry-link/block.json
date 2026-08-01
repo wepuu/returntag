@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "tagcore/tag-entry-link",
+  "version": "0.4.0",
+  "title": "ForgeTag entry",
+  "category": "widgets",
+  "icon": "admin-links",
+  "description": "Adds a safe ForgeTag activation or found-tag entry link.",
+  "textdomain": "tagcore",
+  "attributes": {
+    "intent": {
+      "type": "string",
+      "enum": ["activate", "report"],
+      "default": "activate"
+    }
+  },
+  "supports": {
+    "align": ["wide", "full"],
+    "color": {
+      "background": true,
+      "text": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true
+    },
+    "typography": {
+      "fontSize": true,
+      "fontWeight": true
+    }
+  },
+  "editorScript": "returntag-tagcore-entry-editor",
+  "style": "returntag-tagcore-public",
+  "viewScriptModule": "returntag-tagcore-entry-module"
+}
