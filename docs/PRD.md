@@ -1,4 +1,4 @@
-# ReturnTag 一期产品需求文档（PRD）
+# ForgeTag 一期产品需求文档（ReturnTag 项目 PRD）
 
 **文档版本：** V1.0  
 **文档状态：** 开发基线  
@@ -13,7 +13,7 @@
 
 ## 1. 文档目的
 
-本文档定义 ReturnTag 一期产品的业务范围、核心流程、数据边界、后台能力、安全要求和验收标准，作为产品、设计、开发、测试、运营和发布的统一基线。
+本文档定义 ForgeTag 一期消费者产品的业务范围、核心流程、数据边界、后台能力、安全要求和验收标准，作为产品、设计、开发、测试、运营和发布的统一基线。ReturnTag 是仓库、内部项目、代码命名空间、持久化前缀和既有技术合同使用的开发名称，不是消费者品牌。
 
 本文档中的冻结需求未经正式 PRD 更新和架构决策记录（ADR）批准，不得由开发人员或 Codex 自行调整。
 
@@ -25,6 +25,8 @@
 
 | 对象 | 最终名称 |
 |---|---|
+| 消费者品牌 | `ForgeTag` |
+| 内部项目名称 | `ReturnTag` |
 | Git 仓库 | `returntag` |
 | WordPress 插件显示名称 | `TagCore` |
 | 插件目录 | `tagcore` |
@@ -39,6 +41,13 @@
 | PHP 全局函数前缀 | `returntag_` |
 | 构建 ZIP | `tagcore-v{version}.zip` |
 | Git Issue 编号前缀 | `RT-` |
+| WordPress 主题显示名称 | `ForgeTag` |
+| WordPress 主题目录与 Slug | `forge-tag` |
+| WordPress 主题 Text Domain | `forge-tag` |
+
+消费者可见的网站导航、页面标题、CTA、帮助内容、产品名称、Logo
+替代文本和交易文案必须使用 `ForgeTag`。既有的 `ReturnTag` 技术标识不做
+迁移或别名化；主题不得引入废弃的 `forgetag` 名称。
 
 ### 2.2 数据库命名
 
@@ -67,7 +76,7 @@ wp_returntag_events
 
 ## 3. 产品概述
 
-ReturnTag 是一套面向美国消费者的物品防丢和找回平台，覆盖以下三种实体产品：
+ForgeTag 是一套面向美国消费者的物品防丢和找回平台，覆盖以下三种实体产品：
 
 ```text
 sticker
@@ -78,15 +87,15 @@ smart_tag
 每个实体标签均印刷或镭雕：
 
 - 一个唯一的 6 位 Tag ID；
-- 一个指向 ReturnTag 官方 HTTPS 域名的 QR 码。
+- 一个指向 ForgeTag 官方 HTTPS 域名的 QR 码。
 
-用户通过扫描二维码或手动输入 6 位 Tag ID 激活标签。物品丢失后，发现者可以使用普通手机扫码，通过 ReturnTag 的双向隐私邮件中转联系失主。
+用户通过扫描二维码或手动输入 6 位 Tag ID 激活标签。物品丢失后，发现者可以使用普通手机扫码，通过 ForgeTag 的双向隐私邮件中转联系失主。
 
-Smart Tag 另行支持 Apple Find My 或其他兼容智能寻找网络，但智能定位网络与 ReturnTag QR 找回系统是两个相互独立、平行运行的系统。
+Smart Tag 另行支持 Apple Find My 或其他兼容智能寻找网络，但智能定位网络与 ForgeTag QR 找回系统是两个相互独立、平行运行的系统。
 
 ### 3.1 网站与 Tag 入口
 
-ReturnTag 使用同一个 WordPress 网站承载：
+ForgeTag 使用同一个 WordPress 网站承载：
 
 - 品牌官网与帮助内容；
 - Tag 激活；
@@ -121,7 +130,7 @@ ReturnTag 使用同一个 WordPress 网站承载：
 
 ### 4.2 对发现者
 
-- 无需下载 ReturnTag App；
+- 无需下载 ForgeTag App；
 - 无需注册完整账户；
 - 使用普通手机相机即可扫码；
 - 不会看到失主的真实邮箱；
@@ -145,7 +154,7 @@ Two-Way Private Email Relay
 
 - Owner 看不到 Finder 的真实邮箱；
 - Finder 看不到 Owner 的真实邮箱；
-- ReturnTag 为完成转发，需要受控处理双方邮箱；
+- ForgeTag 为完成转发，需要受控处理双方邮箱；
 - 不宣称平台完全不知道双方身份；
 - 不宣称端到端加密，除非未来确实完成相应技术实现。
 
@@ -176,7 +185,7 @@ Two-Way Private Email Relay
 7. 物流单、快递单、包裹和追踪号不绑定具体 Tag ID。
 8. Tag ID 由后台按照批次、产品类型和指定数量批量生成。
 9. 已生成、已导出、已作废或已退役的 Tag ID 永远不得重新使用。
-10. Smart Tag 的智能定位网络与 ReturnTag QR 系统相互独立。
+10. Smart Tag 的智能定位网络与 ForgeTag QR 系统相互独立。
 11. 一期不读取或保存 Apple、Google 的账户、设备、配对、位置和电量数据。
 12. Smart Tag 已完成 MFi 等相关硬件认证，一期软件不承担认证流程。
 13. 用户通过邮箱 OTP 完成注册或登录。
@@ -197,7 +206,7 @@ Two-Way Private Email Relay
 4. 激活前通过邮箱 OTP 验证身份；
 5. 用户在账户中心管理标签、公开信息和 Lost Mode；
 6. Finder 扫码并验证邮箱后，私密联系 Owner；
-7. Owner 与 Finder 通过 ReturnTag 安全页面完成双向中转沟通；
+7. Owner 与 Finder 通过 ForgeTag 安全页面完成双向中转沟通；
 8. Smart Tag 页面提供静态智能网络配置说明；
 9. WooCommerce 订单与具体 Tag ID 保持完全解耦；
 10. 后台支持批次冻结、标签暂停、所有权转移、争议处理和审计查询。
@@ -231,11 +240,11 @@ Two-Way Private Email Relay
 
 ## 7. 产品家族与能力矩阵
 
-| 产品类型 | 对外名称 | QR + 6 位 ID | ReturnTag 隐私中转 | 智能寻找网络 |
+| 产品类型 | 对外名称 | QR + 6 位 ID | ForgeTag 隐私中转 | 智能寻找网络 |
 |---|---|---:|---:|---:|
-| `sticker` | ReturnTag Sticker | 是 | 是 | 否 |
-| `classic_tag` | ReturnTag Classic Tag | 是 | 是 | 否 |
-| `smart_tag` | ReturnTag Smart Tag | 是 | 是 | 是，独立运行 |
+| `sticker` | ForgeTag Sticker | 是 | 是 | 否 |
+| `classic_tag` | ForgeTag Classic Tag | 是 | 是 | 否 |
+| `smart_tag` | ForgeTag Smart Tag | 是 | 是 | 是，独立运行 |
 
 ### 7.1 Sticker
 
@@ -287,7 +296,7 @@ Smart Tag 同时具备两套独立能力。
 - 播放声音；
 - 智能网络账户管理。
 
-#### ReturnTag QR 找回系统
+#### ForgeTag QR 找回系统
 
 由 TagCore 负责：
 
@@ -300,7 +309,7 @@ Smart Tag 同时具备两套独立能力。
 两个系统互不依赖：
 
 ```text
-未激活 ReturnTag QR
+未激活 ForgeTag QR
 ≠
 智能定位不可用
 ```
@@ -308,7 +317,7 @@ Smart Tag 同时具备两套独立能力。
 ```text
 未完成智能网络配对
 ≠
-ReturnTag QR 不可用
+ForgeTag QR 不可用
 ```
 
 ---
@@ -334,14 +343,14 @@ TagCore 不得保存：
 
 推荐英文说明：
 
-> Your Smart Tag uses two separate recovery systems. Location tracking is managed in Apple Find My or the compatible finding app. ReturnTag does not access your Apple, Google, or location data. Activate QR recovery below so anyone with a phone can privately contact you.
+> Your Smart Tag uses two separate recovery systems. Location tracking is managed in Apple Find My or the compatible finding app. ForgeTag does not access your Apple, Google, or location data. Activate QR recovery below so anyone with a phone can privately contact you.
 
 页面可以提供：
 
 - View Apple Find My setup guide；
 - View compatible app setup guide；
 - I’ve completed smart setup；
-- Activate ReturnTag QR recovery。
+- Activate ForgeTag QR recovery。
 
 系统最多可以保存：
 
@@ -349,7 +358,7 @@ TagCore 不得保存：
 owner_pairing_ack_at
 ```
 
-该字段仅表示用户主动确认已阅读或完成配置，不代表 ReturnTag 验证了真实配对状态。
+该字段仅表示用户主动确认已阅读或完成配置，不代表 ForgeTag 验证了真实配对状态。
 
 页面不得显示：
 
@@ -439,7 +448,7 @@ ID 一旦写入数据库：
 
 ### 9.4 QR URL
 
-二维码内容仅允许包含 ReturnTag 官方 HTTPS URL：
+二维码内容仅允许包含 ForgeTag 官方 HTTPS URL：
 
 ```text
 https://returntag.com/t/A7R2W9
@@ -817,6 +826,20 @@ GET /t/{tag_id}
 隐私响应头、限流和业务处理全部属于 TagCore。主题不得复制这些逻辑。
 该路由必须在主题更换、主题集成不可用或 JavaScript 不可用时独立工作。
 
+主题通过 TagCore 服务端渲染的动态区块 `tagcore/tag-entry-link` 放置入口。
+该区块只接受闭集 `activate` 或 `report` 展示意图，由 TagCore 使用 WordPress
+API 生成同站点 URL。主题不得硬编码域名、子目录或入口路径。TagCore 未来
+提供的规范手动入口为：
+
+```text
+GET /tag/activate/
+GET /tag/report/
+```
+
+两个 GET 入口只显示手动输入界面，不执行变更。提交 Tag ID 的方法、验证、
+限流、CSRF 决策、安全错误和规范 `303` 跳转必须在实现工单中单独定义并
+测试；本文档不表示这些入口或区块已经实现。
+
 ### 14.4 原子激活
 
 认领必须使用数据库条件更新或事务，确保并发时只有一人成功。
@@ -885,7 +908,7 @@ WHERE tag_id = %s
 
 除普通激活字段外，额外显示：
 
-> Your Smart Tag’s location tracking is managed separately in Apple Find My or the compatible finding app. ReturnTag does not access your location data. Complete the QR recovery activation below as an additional way for anyone to contact you.
+> Your Smart Tag’s location tracking is managed separately in Apple Find My or the compatible finding app. ForgeTag does not access your location data. Complete the QR recovery activation below as an additional way for anyone to contact you.
 
 Smart Tag 激活不得依赖 Apple 或 Google 配对，也不得调用 Apple 或 Google API。
 
@@ -968,7 +991,7 @@ Finder 的核心任务应在约 30 秒内完成：
 → 输入邮箱和留言
 → 接收验证邮件
 → 点击确认
-→ ReturnTag 通知 Owner
+→ ForgeTag 通知 Owner
 → Owner 安全回复
 → Finder 接收中转邮件
 ```
@@ -1029,7 +1052,7 @@ Finder 提交邮箱和消息
 - Finder 看不到 Owner 的真实邮箱；
 - 邮件正文不包含对方邮箱；
 - 邮件头不使用对方邮箱作为 Reply-To；
-- 双方通过 ReturnTag 安全页面回复；
+- 双方通过 ForgeTag 安全页面回复；
 - 普通客服后台默认只显示掩码邮箱。
 
 掩码示例：
@@ -1042,10 +1065,10 @@ j***@example.com
 
 ```text
 Finder 验证邮箱
-→ ReturnTag 通知 Owner
+→ ForgeTag 通知 Owner
 → Owner 点击 Secure Reply
 → Owner 输入回复
-→ ReturnTag 转发给 Finder
+→ ForgeTag 转发给 Finder
 → Finder 点击 Continue Conversation
 → 双方继续有限次数的中转会话
 ```
@@ -1055,13 +1078,13 @@ Finder 验证邮箱
 推荐 Subject：
 
 ```text
-A finder sent a message about your ReturnTag
+A finder sent a message about your ForgeTag
 ```
 
 推荐正文：
 
 ```text
-A finder has contacted you through ReturnTag.
+A finder has contacted you through ForgeTag.
 
 Message:
 “I found this item near Terminal 4.”
@@ -1679,9 +1702,9 @@ Trusted Contact
 ### 27.3 Smart Tag
 
 24. 页面明确说明智能网络和 QR 找回是两个平行系统。
-25. ReturnTag 不请求 Apple 或 Google 登录。
-26. ReturnTag 不保存或显示位置数据。
-27. ReturnTag 不声称已验证配对状态。
+25. ForgeTag 不请求 Apple 或 Google 登录。
+26. ForgeTag 不保存或显示位置数据。
+27. ForgeTag 不声称已验证配对状态。
 28. 即使智能网络不可用，QR Finder 流程仍正常工作。
 29. QR 尚未激活时，不得声称智能网络功能失效。
 
@@ -1730,6 +1753,13 @@ Trusted Contact
 61. 敏感 TagCore 页面不得通过 iframe 嵌入，也不得加载不必要的第三方追踪。
 62. 低保真线框图仅作为设计参考，不构成最终视觉、布局或文案验收基准。
 63. 后续页面效果图必须经过产品、响应式、隐私、安全和可访问性复核后才能成为实施目标。
+64. ForgeTag 主题目录必须为 `theme/forge-tag/`，Text Domain 必须为 `forge-tag`。
+65. 主题必须通过 `tagcore/tag-entry-link` 动态区块放置 Activate 和 Report 入口，不得硬编码入口域名或路径。
+66. `tagcore/tag-entry-link` 只能接受 `activate` 或 `report` 展示意图，不得接受 Tag、Owner、邮箱、Token、权限或状态值。
+67. `/tag/activate/` 和 `/tag/report/` 必须由 TagCore 注册并提供无 JavaScript 的服务端回退。
+68. WooCommerce 不可用时，品牌内容和 TagCore 入口仍必须可用；WooCommerce 不是激活依赖。
+69. 生产 Site Editor 变更必须导出、评审、测试并通过 Git 和不可变 Theme 产物发布。
+70. Theme V1 必须提供 Shop Archive、Single Product、Cart 和 Checkout 的基础 Block Theme 模板，但仅作为设计系统和响应式基线，不得承载电商业务规则或被视为缺少效果图页面的最终视觉定稿。
 
 ---
 
@@ -1751,12 +1781,17 @@ plugin/tagcore/
 - WooCommerce 邮件模板；
 - 单个超大 PHP 文件。
 
-ReturnTag WordPress 主题可以负责：
+ForgeTag WordPress 主题可以负责：
 
 - 品牌官网、导航、页脚、帮助和编辑内容；
 - WooCommerce 商品、购物车和结账的表现层；
 - 放置 TagCore 提供的 Activate、Report、Account 等集成组件；
 - 提供经批准的品牌设计 Token。
+
+Theme V1 包含 Shop Archive、Single Product、Cart 和 Checkout 的基础 Block
+Theme 模板，只建立设计系统与响应式表现基线。WooCommerce 未启用时品牌
+内容仍须可用，且 WooCommerce 不得成为 Tag 激活、Finder、QR 路由或账户
+授权的依赖。
 
 主题不得：
 
@@ -1982,7 +2017,7 @@ WooCommerce 升级测试
 Finder 扫描实体 QR
 → 输入邮箱和消息
 → 验证 Finder 邮箱
-→ ReturnTag 通知 Owner
+→ ForgeTag 通知 Owner
 → 双方通过安全页面中转回复
 → Owner 确认找回并关闭会话
 ```
@@ -1992,14 +2027,14 @@ Finder 扫描实体 QR
 ```text
 Apple / Google 智能寻找系统独立运行
 +
-ReturnTag QR 找回系统独立运行
+ForgeTag QR 找回系统独立运行
 ```
 
 ---
 
 ## 31. 结论
 
-ReturnTag 一期采用以下最终产品模型：
+ForgeTag 一期采用以下最终产品模型：
 
 - 以 Batch 作为制造和 ID 生产单元；
 - 以实体表面的 6 位 Tag ID 作为公开识别码和首次激活凭证；

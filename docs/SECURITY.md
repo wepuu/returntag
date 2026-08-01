@@ -696,3 +696,33 @@ a later authenticated Owner acknowledgement use case. The guide reuses the
 existing no-store, no-referrer, no-index, local-only CSP, output-escaping, and
 theme-independent page controls. There is no new endpoint, nonce decision,
 rate-limit scope, Event, log field, external request, or personal data.
+
+## 25. RT-311 future theme-entry security contract
+
+RT-311 is documentation-only and registers no block, rewrite, route, Script
+Module, request handler, or runtime asset. The future implementation must keep
+manual entry inside TagCore and expose it to the ForgeTag theme through the
+server-rendered `tagcore/tag-entry-link` block. The block accepts only a closed
+`activate` or `report` presentation intent and must not accept a Tag ID, User
+ID, email, Owner identity, access token, permission, state, or arbitrary
+redirect target.
+
+TagCore must generate same-site entry URLs through WordPress APIs rather than
+trusting a Theme-supplied origin or path. `GET /tag/activate/` and
+`GET /tag/report/` are non-mutating display locations. The implementation
+ticket must explicitly define the Tag ID submission method, normalization,
+length bound, rate limits, CSRF decision, canonical `303` behavior, generic
+error responses, and audit decision before either location is registered.
+
+The selected intent is untrusted display context only. It cannot select an
+Owner, authorize activation, bypass a feature flag, or override the existing
+server-derived Tag state. The standalone surface must remain usable without
+JavaScript; modal enhancement must fail back to the original same-site link
+and must not iframe `/t/{tag_id}`.
+
+Entry and sensitive responses must retain the approved no-store, no-referrer,
+no-index, framing, local-only asset, output-escaping, and unnecessary-tracking
+controls. No Tag ID, intent, identity, email, token, or state result may be
+sent to advertising pixels, session replay, or unnecessary analytics. The
+future implementation requires public-input, enumeration-resistance,
+keyboard, focus-restoration, mobile-full-screen, and no-JavaScript tests.

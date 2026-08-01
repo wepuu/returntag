@@ -10,9 +10,14 @@
 
 **Plugin before/after:** `0.3.0 -> 0.3.0`
 
+**Terminology amendment:** ADR 0018 establishes `ForgeTag` as the consumer
+brand and retains `ReturnTag` for the internal project and technical
+identifiers. That terminology amendment does not change this ADR's ownership
+or security decisions.
+
 ## Context
 
-ReturnTag must present one coherent website containing the brand site,
+ForgeTag must present one coherent website containing the brand site,
 WooCommerce shop, Tag activation, Finder reporting, and authenticated Owner
 account. Visitors may begin activation or reporting from the website, while a
 QR scan already supplies the public Tag ID through `/t/{tag_id}`.
@@ -30,9 +35,9 @@ Interactivity API progressive enhancement and plugin-scoped CSS.
 
 ## Decision
 
-ReturnTag uses one WordPress site with two explicit frontend responsibilities:
+ForgeTag uses one WordPress site with two explicit frontend responsibilities:
 
-- a ReturnTag WordPress block theme owns the brand shell, navigation, footer,
+- the ForgeTag WordPress block theme owns the brand shell, navigation, footer,
   editorial content, support content, and WooCommerce presentation;
 - TagCore owns the product application, including public Tag entry, activation,
   Finder reporting, secure links, authenticated Owner views, and every related

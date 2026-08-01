@@ -8,7 +8,9 @@
 
 \* Repository: `wepuu/returntag`
 
-\* Product: ReturnTag
+\* Consumer brand: ForgeTag
+
+\* Internal project: ReturnTag
 
 \* WordPress plugin: TagCore
 
@@ -18,7 +20,7 @@
 
 \* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: Awaiting explicit authorization for the next RT ticket; Schema remains `8`
+\* Current workstream: RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract; Schema remains `8`
 
 
 
@@ -641,7 +643,8 @@ ADR 0017 records the approved boundary for future frontend work:
 
 - one WordPress site will contain the brand site, WooCommerce shop, TagCore
   public flows, and authenticated Owner account;
-- a future ReturnTag block theme may own brand, content, navigation, support,
+- a future ForgeTag block theme at `theme/forge-tag/` with Text Domain
+  `forge-tag` may own brand, content, navigation, support,
   and WooCommerce presentation, but no TagCore business behavior;
 - desktop website visitors select Activate or Report before a TagCore-owned
   modal requests the Tag ID;
@@ -664,4 +667,35 @@ plugin version, or stored data.
 
 
 
-Do not infer or begin the next milestone automatically. Wait for the user to provide or approve the next RT ticket and acceptance criteria.
+## Authorized documentation work
+
+RT-311 is authorized as a documentation-only prerequisite for the first
+ForgeTag block theme. It establishes:
+
+- `ForgeTag` as the consumer brand while retaining `ReturnTag` as the internal
+  project and technical identifier family;
+- `theme/forge-tag/` and the `forge-tag` Text Domain as the future theme
+  identity;
+- WooCommerce compatibility without making WooCommerce an activation
+  dependency;
+- Theme V1 baseline Block Theme templates for Shop Archive, Single Product,
+  Cart, and Checkout without adding commerce business logic or claiming final
+  visual approval;
+- source-controlled Site Editor governance: production editor changes must be
+  exported, reviewed, and committed rather than existing only in the database;
+- a TagCore-owned manual-entry contract with desktop-modal progressive
+  enhancement, mobile full-screen presentation, and a server-rendered no-JS
+  fallback;
+- the future `tagcore/tag-entry-link` dynamic block with only `activate` or
+  `report` presentation intent, with TagCore-generated same-site URLs for
+  `/tag/activate/` and `/tag/report/`;
+- no Theme file, public route, plugin runtime, Schema, Option, dependency,
+  stored data, Finder workflow, Account UI, or WooCommerce behavior change.
+
+Theme implementation remains blocked until RT-311 is accepted and the
+TagCore-owned entry adapter receives a separate implementation ticket. Finder
+Report and Owner Account presentation must not be represented as implemented
+before their product components exist.
+
+Do not infer or begin another RT ticket automatically. Wait for explicit user
+authorization and acceptance criteria.
