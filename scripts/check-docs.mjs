@@ -10,6 +10,7 @@ const designDirectory = join( repositoryRoot, 'docs', 'design' );
 const manifestPath = join( designDirectory, 'ASSET-MANIFEST-V1.md' );
 const guidePath = join( designDirectory, 'UI-STYLE-GUIDE-V1.md' );
 const excludedAssets = [ 'a1.jpg', 'ForgeTag文案设计.docx' ];
+const statusMarkdownPaths = [ 'README.md', 'docs/PROJECT_STATUS.md' ];
 
 const runGit = ( arguments_ ) => {
 	const result = spawnSync( 'git', arguments_, {
@@ -62,6 +63,50 @@ const stripFencedCode = ( contents ) => {
 			return fenced ? '' : line;
 		} )
 		.join( '\n' );
+};
+
+export const findUnintendedStructuralEscapes = ( contents ) => {
+	const lineNumbers = [];
+	let fenced = false;
+
+	for ( const [ index, line ] of contents.split( /\r?\n/ ).entries() ) {
+		if ( /^\s*```/.test( line ) ) {
+			fenced = ! fenced;
+			continue;
+		}
+
+		if (
+			! fenced &&
+			/^\s*(?:\\#{1,6}(?:\s|$)|\\[*+-](?:\s|$)|\d+\\\.(?:\s|$))/.test(
+				line
+			)
+		) {
+			lineNumbers.push( index + 1 );
+		}
+	}
+
+	return lineNumbers;
+};
+
+const checkStatusMarkdownStructure = async () => {
+	const failures = [];
+
+	for ( const relativePath of statusMarkdownPaths ) {
+		const contents = await readFile(
+			join( repositoryRoot, relativePath ),
+			'utf8'
+		);
+
+		for ( const lineNumber of findUnintendedStructuralEscapes(
+			contents
+		) ) {
+			failures.push(
+				`${ relativePath }:${ lineNumber }: unintended escaped Markdown heading or list marker`
+			);
+		}
+	}
+
+	return failures;
 };
 
 const checkRelativeLinks = async ( files ) => {
@@ -279,24 +324,41 @@ const checkSecrets = async ( files ) => {
 	return failures;
 };
 
-const markdownFiles = trackedMarkdownFiles();
-const textFiles = trackedTextFiles();
-const links = await checkRelativeLinks( markdownFiles );
-const failures = [
-	...links.failures,
-	...( await checkAssetManifest() ),
-	...( await checkExclusions() ),
-	...( await checkSecrets( textFiles ) ),
-];
+export const runDocumentationChecks = async () => {
+	const markdownFiles = trackedMarkdownFiles();
+	const textFiles = trackedTextFiles();
+	const links = await checkRelativeLinks( markdownFiles );
+	const failures = [
+		...links.failures,
+		...( await checkStatusMarkdownStructure() ),
+		...( await checkAssetManifest() ),
+		...( await checkExclusions() ),
+		...( await checkSecrets( textFiles ) ),
+	];
 
-if ( failures.length > 0 ) {
-	for ( const failure of failures ) {
-		process.stderr.write( `Documentation check: ${ failure }.\n` );
+	return {
+		failures,
+		markdownFileCount: markdownFiles.length,
+		relativeLinkCount: links.checked,
+		textFileCount: textFiles.length,
+	};
+};
+
+if (
+	process.argv[ 1 ] &&
+	fileURLToPath( import.meta.url ) === resolve( process.argv[ 1 ] )
+) {
+	const result = await runDocumentationChecks();
+
+	if ( result.failures.length > 0 ) {
+		for ( const failure of result.failures ) {
+			process.stderr.write( `Documentation check: ${ failure }.\n` );
+		}
+
+		process.exitCode = 1;
+	} else {
+		process.stdout.write(
+			`Documentation check passed: ${ result.markdownFileCount } Markdown files, ${ result.relativeLinkCount } relative links, ${ result.textFileCount } text files scanned for secrets, and 9 design assets.\n`
+		);
 	}
-
-	process.exitCode = 1;
-} else {
-	process.stdout.write(
-		`Documentation check passed: ${ markdownFiles.length } Markdown files, ${ links.checked } relative links, ${ textFiles.length } text files scanned for secrets, and 9 design assets.\n`
-	);
 }

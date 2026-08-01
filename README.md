@@ -476,3 +476,56 @@ appears only for the server-resolved Smart Tag activation entry. It adds no
 external setup link, account connection, acknowledgement write, route, query,
 Migration, Option, Event, queue, email, dependency, theme, WooCommerce
 behavior, or smart-network integration.
+
+## RT-311 ForgeTag brand and theme-entry contract
+
+RT-311 establishes ForgeTag as the consumer brand while retaining ReturnTag
+for the repository, PHP namespaces, database prefixes, options, hooks, and
+other technical contracts. It records `theme/forge-tag/` and the `forge-tag`
+Text Domain as the identity of the future block theme.
+
+The accepted contract keeps TagCore responsible for Tag entry, normalization,
+state resolution, authentication, authorization, privacy controls, and product
+workflows. A theme may provide brand and WooCommerce presentation, but it must
+not query TagCore data, reproduce TagCore forms, or hard-code Tag entry URLs.
+
+## RT-312 TagCore theme-entry adapter
+
+RT-312 implements the TagCore-owned manual-entry adapter required by RT-311:
+the `/tag/activate/` and `/tag/report/` routes, a server-rendered no-JavaScript
+form, and the dynamic `tagcore/tag-entry-link` block with the closed
+`activate` and `report` presentation intents.
+
+Desktop users receive a native-dialog progressive enhancement while mobile
+users navigate to the full-screen TagCore surface. Both paths reuse the same
+normalization, nonce, same-site, privacy-header, enumeration-resistance, and
+rate-limit controls. RT-312 adds no Theme, Schema, dependency, email, queue,
+Event, Tag allocation, or WooCommerce dependency.
+
+## RT-313 ForgeTag V1 design-asset baseline
+
+RT-313 records the supplied ForgeTag V1 design material in the versioned UI
+guide and asset manifest. `docs/design/forge-logo.png` is the only image
+currently approved for direct production use, subject to its documented
+light-surface and display-size limits. The remaining supplied images are
+reference-only and must not be copied into Theme runtime assets or templates.
+
+This baseline does not create the Theme. RT-314 remains a separately
+authorized work item and requires licensed typography and icon assets plus
+approved product photography before final visual acceptance.
+
+## RT-009 risk-based CI and E2E profiles
+
+RT-009 adds fail-closed path classification and the stable `Quality Gate`
+result. Documentation-only changes run documentation, design-manifest, and
+tracked-text secret checks; runtime and database-sensitive changes add the
+applicable PHP, JavaScript, WordPress, database, and browser matrices.
+
+Pull requests use the bounded 21-test browser profile unless the changed paths
+require the full 70-test, five-project regression. The complete suite also
+runs daily and by manual dispatch. RT-009 changes CI, tests, and documentation
+only; project and plugin version remain `0.4.0` and Schema remains `8`.
+
+The protected `main` branch requires pull requests and the exact
+`Quality Gate` check, applies protection to administrators, and disallows
+force pushes and deletion.
