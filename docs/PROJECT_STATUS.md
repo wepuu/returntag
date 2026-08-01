@@ -1,30 +1,30 @@
-\# ReturnTag Project Status
+# ReturnTag Project Status
 
 
 
-\## Project identity
+## Project identity
 
 
 
-\* Repository: `wepuu/returntag`
+* Repository: `wepuu/returntag`
 
-\* Consumer brand: ForgeTag
+* Consumer brand: ForgeTag
 
-\* Internal project: ReturnTag
+* Internal project: ReturnTag
 
-\* WordPress plugin: TagCore
+* WordPress plugin: TagCore
 
-\* Plugin directory: `plugin/tagcore`
+* Plugin directory: `plugin/tagcore`
 
-\* Current baseline version: `0.4.0`
+* Current baseline version: `0.4.0`
 
-\* Current completed milestone: Milestone 3 - Scan, OTP, and activation
+* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: RT-009 risk-based GitHub CI and E2E optimization; Schema remains `8`
+* Current workstream: RT-010 project-status Markdown and README alignment; Schema remains `8`
 
 
 
-\## Completed work
+## Completed work
 
 
 
@@ -32,99 +32,99 @@ The following tickets are considered implemented in the current baseline:
 
 
 
-\* RT-001 — Repository and documentation structure
+* RT-001 — Repository and documentation structure
 
-\* RT-002 — TagCore plugin skeleton
+* RT-002 — TagCore plugin skeleton
 
-\* RT-003 — Composer autoloading
+* RT-003 — Composer autoloading
 
-\* RT-004 — PHPCS, PHPStan, and PHPUnit
+* RT-004 — PHPCS, PHPStan, and PHPUnit
 
-\* RT-005 — GitHub Actions CI
+* RT-005 — GitHub Actions CI
 
-\* RT-006 — ZIP build script
+* RT-006 — ZIP build script
 
-\* RT-007 — Feature flag infrastructure
+* RT-007 — Feature flag infrastructure
 
-\* RT-008 — Base logging interface
+* RT-008 — Base logging interface
 
-\* RT-009 — Risk-based GitHub CI routing and two-level Playwright regression
+* RT-009 — Risk-based GitHub CI routing and two-level Playwright regression
 
-\* RT-101 — Numbered Migration Runner and WordPress lifecycle integration
+* RT-101 — Numbered Migration Runner and WordPress lifecycle integration
 
-\* RT-102 — Batches table Migration (`0001`)
+* RT-102 — Batches table Migration (`0001`)
 
-\* RT-103 — Tags table Migration (`0002`)
+* RT-103 — Tags table Migration (`0002`)
 
-\* RT-104 — Batch Exports table Migration (`0003`)
+* RT-104 — Batch Exports table Migration (`0003`)
 
-\* RT-105 — Authentication Challenges table Migration (`0004`)
+* RT-105 — Authentication Challenges table Migration (`0004`)
 
-\* RT-106 — Conversations and Messages table Migrations (`0005`, `0006`)
+* RT-106 — Conversations and Messages table Migrations (`0005`, `0006`)
 
-\* RT-107 — Access Tokens table Migration (`0007`)
+* RT-107 — Access Tokens table Migration (`0007`)
 
-\* RT-108 — Events table Migration (`0008`)
+* RT-108 — Events table Migration (`0008`)
 
-\* RT-109 — Typed Repository interfaces, sensitive-value and Event policy hardening, `$wpdb` adapters, and transaction boundary
+* RT-109 — Typed Repository interfaces, sensitive-value and Event policy hardening, `$wpdb` adapters, and transaction boundary
 
-\* RT-110 — Fresh installation, partial upgrade, uninstall, query-plan, and database-engine acceptance
+* RT-110 — Fresh installation, partial upgrade, uninstall, query-plan, and database-engine acceptance
 
-\* RT-201 — Batch administration create/list experience, capability boundary, and audited draft creation
+* RT-201 — Batch administration create/list experience, capability boundary, and audited draft creation
 
-\* RT-202 — Canonical six-character Tag ID value and cryptographically secure candidate generator
+* RT-202 — Canonical six-character Tag ID value and cryptographically secure candidate generator
 
-\* RT-203 — Insert-first Tag ID collision handling with duplicate-only bounded retry
-
-
-
-\* RT-204 — Resumable 100-Tag Action Scheduler generation with atomic Batch progress
-
-\* RT-205 — Administrative confirmation, committed generation progress, queue health, and safe retry
-
-\* RT-206 — Complete Batch Tag ID inventory projection and paginated admin list
-
-\* RT-207 — Audited deterministic CSV export and export history
-
-\* RT-208 — Batch release, suspension, and permanent void controls
-
-\* RT-209 — Exact Tag ID and Batch Code search with read-only Tag administration
-
-\* RT-210 — Million-row capacity acceptance and Milestone 2 version `0.3.0`
-
-\* RT-301 — Theme-independent public Tag route and fail-closed scan response
-
-\* RT-302 — Bounded public Tag ID normalization and canonical URL handling
+* RT-203 — Insert-first Tag ID collision handling with duplicate-only bounded retry
 
 
 
-\* RT-303 - Privacy-minimized Tag and Batch state pages
+* RT-204 — Resumable 100-Tag Action Scheduler generation with atomic Batch progress
 
-\* RT-304 - Worker-issued activation OTP request
+* RT-205 — Administrative confirmation, committed generation progress, queue health, and safe retry
 
-\* RT-305 - Atomic activation OTP verification
+* RT-206 — Complete Batch Tag ID inventory projection and paginated admin list
 
-\* RT-306 - Passwordless WordPress login and account provisioning
+* RT-207 — Audited deterministic CSV export and export history
 
-\* RT-307 - Atomic first-owner activation
+* RT-208 — Batch release, suspension, and permanent void controls
 
-\* RT-308 - Committed activation-state convergence
+* RT-209 — Exact Tag ID and Batch Code search with read-only Tag administration
 
-\* RT-309 - Authenticated activation-attempt limits
+* RT-210 — Million-row capacity acceptance and Milestone 2 version `0.3.0`
 
-\* RT-310 - Static Smart Tag parallel-system activation guide and Milestone 3 version `0.4.0`
+* RT-301 — Theme-independent public Tag route and fail-closed scan response
 
-\* RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract
+* RT-302 — Bounded public Tag ID normalization and canonical URL handling
 
-\* RT-312 - TagCore manual-entry routes, dynamic link block, and modal/full-screen adapter
 
-\* RT-313 - ForgeTag V1 design-asset baseline and production/reference asset governance
+
+* RT-303 - Privacy-minimized Tag and Batch state pages
+
+* RT-304 - Worker-issued activation OTP request
+
+* RT-305 - Atomic activation OTP verification
+
+* RT-306 - Passwordless WordPress login and account provisioning
+
+* RT-307 - Atomic first-owner activation
+
+* RT-308 - Committed activation-state convergence
+
+* RT-309 - Authenticated activation-attempt limits
+
+* RT-310 - Static Smart Tag parallel-system activation guide and Milestone 3 version `0.4.0`
+
+* RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract
+
+* RT-312 - TagCore manual-entry routes, dynamic link block, and modal/full-screen adapter
+
+* RT-313 - ForgeTag V1 design-asset baseline and production/reference asset governance
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
 
 
-\## Current development environment
+## Current development environment
 
 
 
@@ -136,25 +136,25 @@ Known environment for Milestone 3 acceptance:
 
 
 
-\* Required Node.js major version: 24
+* Required Node.js major version: 24
 
-\* Node.js constraint: `>=24.0.0 <25`
+* Node.js constraint: `>=24.0.0 <25`
 
-\* `@wordpress/env`: `11.11.0`
+* `@wordpress/env`: `11.11.0`
 
-\* PHP in the primary wp-env CLI container: `8.4.23`
+* PHP in the primary wp-env CLI container: `8.4.23`
 
-\* WordPress: `7.0.2`
+* WordPress: `7.0.2`
 
-\* WooCommerce: `10.9.4`
+* WooCommerce: `10.9.4`
 
-\* TagCore: `0.4.0`
+* TagCore: `0.4.0`
 
-\* TagCore status: active
+* TagCore status: active
 
-\* Development site port: `8888`
+* Development site port: `8888`
 
-\* Test site port: `8889`
+* Test site port: `8889`
 
 
 
@@ -162,7 +162,7 @@ The required Node.js version is also recorded in `.nvmrc`.
 
 
 
-\## Important environment warning
+## Important environment warning
 
 
 
@@ -242,7 +242,7 @@ manager availability.
 
 
 
-\## Package management warning
+## Package management warning
 
 
 
@@ -250,11 +250,11 @@ The repository currently contains both npm- and pnpm-related files, including:
 
 
 
-\* `package-lock.json`
+* `package-lock.json`
 
-\* `pnpm-lock.yaml`
+* `pnpm-lock.yaml`
 
-\* `pnpm-workspace.yaml`
+* `pnpm-workspace.yaml`
 
 
 
@@ -266,7 +266,7 @@ Do not update dependencies, regenerate lock files, switch package managers, or d
 
 
 
-\## Existing project commands
+## Existing project commands
 
 
 
@@ -330,7 +330,7 @@ The `check` script runs JavaScript linting, CSS linting, TypeScript checking, Ja
 
 
 
-\## Destructive commands
+## Destructive commands
 
 
 
@@ -362,21 +362,21 @@ The local wp-env database and Docker volumes may contain useful test state.
 
 
 
-\## Git workflow
+## Git workflow
 
 
 
-\* `main` is the stable baseline branch.
+* `main` is the stable baseline branch.
 
-\* New work must use a dedicated feature branch.
+* New work must use a dedicated feature branch.
 
-\* Handle one RT ticket at a time.
+* Handle one RT ticket at a time.
 
-\* Run applicable validation before declaring a ticket complete.
+* Run applicable validation before declaring a ticket complete.
 
-\* Do not commit secrets, local credentials, databases, caches, dependency directories, or Codex authentication files.
+* Do not commit secrets, local credentials, databases, caches, dependency directories, or Codex authentication files.
 
-\* Do not continue to another ticket without explicit approval.
+* Do not continue to another ticket without explicit approval.
 
 
 
@@ -392,7 +392,7 @@ feature/rt-XXX-short-description
 
 
 
-\## Required takeover procedure
+## Required takeover procedure
 
 
 
@@ -400,23 +400,23 @@ Before modifying files, a new Codex session or account must:
 
 
 
-1\. Read `AGENTS.md`.
+1. Read `AGENTS.md`.
 
-2\. Read this file.
+2. Read this file.
 
-3\. Read `README.md` and the relevant product requirements.
+3. Read `README.md` and the relevant product requirements.
 
-4\. Run `git status`.
+4. Run `git status`.
 
-5\. Inspect the current branch and recent commits.
+5. Inspect the current branch and recent commits.
 
-6\. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-110.
+6. Inspect the implementation of RT-001 through RT-008 and RT-101 through RT-110.
 
-7\. Inspect `package.json`, `.wp-env.json`, and GitHub Actions workflows.
+7. Inspect `package.json`, `.wp-env.json`, and GitHub Actions workflows.
 
-8\. Check the running Docker containers.
+8. Check the running Docker containers.
 
-9\. Report the verified project state before making changes.
+9. Report the verified project state before making changes.
 
 
 
@@ -424,7 +424,7 @@ The new session must not assume that account-level chat history is available.
 
 
 
-\## Next work
+## Next work
 
 
 
@@ -787,8 +787,8 @@ RT-009 changes CI, tests, and documentation only. It adds no TagCore runtime
 behavior, dependency, public route, Hook, Option, Schema, Migration, product
 state, WooCommerce mapping, email, queue, or personal-data processing.
 
-After the RT-009 pull request is approved and merged, wait for the first
-successful `Quality Gate` on `main` before enabling branch protection with
-that exact required-check name. Branch-protection changes remain a separately
-authorized remote repository action. RT-314 must still wait for explicit user
-authorization.
+The first `Quality Gate` on `main` completed successfully for commit
+`a56ea74046634cabcc387e533ffa3150a158e25a`. The protected `main` branch now
+requires pull requests and the exact `Quality Gate` check, applies protection
+to administrators, and disallows force pushes and deletion. RT-314 must still
+wait for explicit user authorization.
