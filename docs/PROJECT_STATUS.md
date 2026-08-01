@@ -20,7 +20,7 @@
 
 \* Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-\* Current workstream: RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract; Schema remains `8`
+\* Current workstream: Awaiting explicit authorization for the next RT ticket; Schema remains `8`
 
 
 
@@ -111,6 +111,8 @@ The following tickets are considered implemented in the current baseline:
 \* RT-309 - Authenticated activation-attempt limits
 
 \* RT-310 - Static Smart Tag parallel-system activation guide and Milestone 3 version `0.4.0`
+
+\* RT-311 - ForgeTag consumer-brand convergence and TagCore theme-entry contract
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -667,10 +669,10 @@ plugin version, or stored data.
 
 
 
-## Authorized documentation work
+## RT-311 documentation baseline
 
-RT-311 is authorized as a documentation-only prerequisite for the first
-ForgeTag block theme. It establishes:
+RT-311 establishes the documentation-only prerequisite for the first ForgeTag
+block theme:
 
 - `ForgeTag` as the consumer brand while retaining `ReturnTag` as the internal
   project and technical identifier family;
@@ -692,10 +694,10 @@ ForgeTag block theme. It establishes:
 - no Theme file, public route, plugin runtime, Schema, Option, dependency,
   stored data, Finder workflow, Account UI, or WooCommerce behavior change.
 
-Theme implementation remains blocked until RT-311 is accepted and the
-TagCore-owned entry adapter receives a separate implementation ticket. Finder
-Report and Owner Account presentation must not be represented as implemented
-before their product components exist.
+RT-311 is accepted. Theme integration remains blocked until the TagCore-owned
+entry adapter receives a separate implementation ticket. Finder Report and
+Owner Account presentation must not be represented as implemented before their
+product components exist.
 
 Do not infer or begin another RT ticket automatically. Wait for explicit user
 authorization and acceptance criteria.
