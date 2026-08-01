@@ -47,3 +47,7 @@ auth.json
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local, unapproved ForgeTag design drafts (RT-313)
+/docs/design/a1.jpg
+/docs/design/ForgeTag文案设计.docx
