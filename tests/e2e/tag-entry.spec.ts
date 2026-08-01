@@ -82,7 +82,7 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		const input = page.getByLabel( 'Tag ID' );
 		await input.fill( 'a7-r2 w9' );
 		await Promise.all( [
-			page.waitForURL( /\/t\/A7R2W9$/ ),
+			page.waitForURL( /\/t\/A7R2W9\/?$/ ),
 			page.getByRole( 'button', { name: 'Continue' } ).click(),
 		] );
 

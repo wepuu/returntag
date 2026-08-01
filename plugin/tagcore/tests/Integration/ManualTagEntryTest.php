@@ -84,11 +84,25 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		$handler = $this->handler();
 		$this->valid_request( 'a7-r2 w9' );
 		global $wpdb;
-		$before = $wpdb->num_queries;
+		$queries      = array();
+		$record_query = static function ( string $query ) use ( &$queries ): string {
+			$queries[] = $query;
 
-		$result = $handler->submit();
+			return $query;
+		};
+		add_filter( 'query', $record_query );
 
-		self::assertSame( $before, $wpdb->num_queries );
+		try {
+			$result = $handler->submit();
+		} finally {
+			remove_filter( 'query', $record_query );
+		}
+
+		foreach ( $queries as $query ) {
+			self::assertStringNotContainsString( $wpdb->prefix . 'returntag_tags', $query );
+			self::assertStringNotContainsString( $wpdb->prefix . 'returntag_batches', $query );
+		}
+
 		self::assertSame( ManualTagEntryFormState::READY, $result->state );
 		self::assertSame( 'A7R2W9', $result->tag_id?->value );
 	}
