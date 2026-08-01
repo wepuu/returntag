@@ -46,6 +46,13 @@ final readonly class ActivationOtpFormHandler {
 	public const ACTIVATE_ACTION = 'activate_tag';
 
 	/**
+	 * Shared browser request guard.
+	 *
+	 * @var PublicFormRequestGuard
+	 */
+	private PublicFormRequestGuard $request_guard;
+
+	/**
 	 * Create the form handler.
 	 *
 	 * @param RequestActivationOtp|null               $requests Configured request use case.
@@ -55,6 +62,7 @@ final readonly class ActivationOtpFormHandler {
 	 * @param RateLimitedTagActivation|null           $activation Configured authenticated activation.
 	 * @param AuthenticatedUserEmailReader|null       $user_emails Server-side User email reader.
 	 * @param ActivationOtpProtector|null             $protector Keyed lookup protection.
+	 * @param PublicFormRequestGuard|null             $request_guard Optional shared browser request guard.
 	 */
 	public function __construct(
 		private ?RequestActivationOtp $requests,
@@ -63,8 +71,10 @@ final readonly class ActivationOtpFormHandler {
 		private WordPressAccountEmailPolicy $email_policy,
 		private ?RateLimitedTagActivation $activation,
 		private ?AuthenticatedUserEmailReader $user_emails,
-		private ?ActivationOtpProtector $protector
+		private ?ActivationOtpProtector $protector,
+		?PublicFormRequestGuard $request_guard = null
 	) {
+		$this->request_guard = $request_guard ?? new PublicFormRequestGuard();
 	}
 
 	/**
@@ -89,8 +99,8 @@ final readonly class ActivationOtpFormHandler {
 	public function activate( TagId $tag_id ): ?TagActivationAttemptResult {
 		if (
 			! $this->is_activation_action()
-			|| ! $this->same_site_request()
-			|| ! $this->valid_nonce()
+			|| ! $this->request_guard->is_same_site()
+			|| ! $this->request_guard->valid_nonce( self::NONCE_FIELD, self::NONCE_ACTION )
 			|| null === $this->activation
 			|| null === $this->user_emails
 			|| null === $this->protector
@@ -111,7 +121,7 @@ final readonly class ActivationOtpFormHandler {
 		}
 
 		try {
-			$ip = $this->client_ip();
+			$ip = $this->request_guard->direct_peer_ip();
 
 			return $this->activation->execute(
 				$tag_id,
@@ -132,7 +142,7 @@ final readonly class ActivationOtpFormHandler {
 	public function submit( TagId $tag_id ): ActivationOtpFormState {
 		$action = $this->post_string( self::ACTION_FIELD, 32 );
 
-		if ( ! $this->same_site_request() || ! $this->valid_nonce() ) {
+		if ( ! $this->request_guard->is_same_site() || ! $this->request_guard->valid_nonce( self::NONCE_FIELD, self::NONCE_ACTION ) ) {
 			return self::VERIFY_ACTION === $action
 				? ActivationOtpFormState::VERIFICATION_INVALID
 				: ActivationOtpFormState::REQUEST_ERROR;
@@ -155,11 +165,11 @@ final readonly class ActivationOtpFormHandler {
 			return ActivationOtpFormState::REQUEST_ERROR;
 		}
 
-		$email_input = $this->post_string( self::EMAIL_FIELD, 254 );
+		$email_input = $this->request_guard->post_string( self::EMAIL_FIELD, 254 );
 
 		try {
 			$email = new EmailAddress( $email_input );
-			$ip    = $this->client_ip();
+			$ip    = $this->request_guard->direct_peer_ip();
 		} catch ( InvalidArgumentException ) {
 			return ActivationOtpFormState::REQUEST_INVALID_EMAIL;
 		}
@@ -194,9 +204,9 @@ final readonly class ActivationOtpFormHandler {
 		}
 
 		try {
-			$email = new EmailAddress( $this->post_string( self::EMAIL_FIELD, 254 ) );
-			$code  = new ActivationOtpCode( $this->post_string( self::CODE_FIELD, 6 ) );
-			$ip    = $this->client_ip();
+			$email = new EmailAddress( $this->request_guard->post_string( self::EMAIL_FIELD, 254 ) );
+			$code  = new ActivationOtpCode( $this->request_guard->post_string( self::CODE_FIELD, 6 ) );
+			$ip    = $this->request_guard->direct_peer_ip();
 		} catch ( InvalidArgumentException ) {
 			return ActivationOtpFormState::VERIFICATION_INVALID;
 		}
@@ -222,84 +232,13 @@ final readonly class ActivationOtpFormHandler {
 	/**
 	 * Validate the anonymous WordPress nonce.
 	 */
-	private function valid_nonce(): bool {
-		$nonce = $this->post_string( self::NONCE_FIELD, 64 );
-
-		return '' !== $nonce && false !== wp_verify_nonce( $nonce, self::NONCE_ACTION );
-	}
-
 	/**
-	 * Reject browser requests carrying cross-site evidence.
-	 */
-	private function same_site_request(): bool {
-		$fetch_site = $this->server_string( 'HTTP_SEC_FETCH_SITE', 32 );
-
-		if ( '' !== $fetch_site && ! in_array( strtolower( $fetch_site ), array( 'same-origin', 'same-site', 'none' ), true ) ) {
-			return false;
-		}
-
-		$origin = $this->server_string( 'HTTP_ORIGIN', 512 );
-
-		if ( '' === $origin ) {
-			return true;
-		}
-
-		$expected = wp_parse_url( home_url( '/' ) );
-		$actual   = wp_parse_url( $origin );
-
-		if ( ! is_array( $expected ) || ! is_array( $actual ) ) {
-			return false;
-		}
-
-		return strtolower( (string) ( $expected['scheme'] ?? '' ) ) === strtolower( (string) ( $actual['scheme'] ?? '' ) )
-			&& strtolower( (string) ( $expected['host'] ?? '' ) ) === strtolower( (string) ( $actual['host'] ?? '' ) )
-			&& (int) ( $expected['port'] ?? 0 ) === (int) ( $actual['port'] ?? 0 );
-	}
-
-	/**
-	 * Return only the direct peer address.
-	 *
-	 * @throws InvalidArgumentException When the address is missing or invalid.
-	 */
-	private function client_ip(): string {
-		$ip = $this->server_string( 'REMOTE_ADDR', 64 );
-
-		if ( '' === $ip || false === inet_pton( $ip ) ) {
-			throw new InvalidArgumentException( 'Client address is unavailable.' );
-		}
-
-		return $ip;
-	}
-
-	/**
-	 * Read one bounded POST string.
+	 * Read one bounded POST string through the shared guard.
 	 *
 	 * @param string $key Input key.
 	 * @param int    $maximum_bytes Hard byte limit.
 	 */
 	private function post_string( string $key, int $maximum_bytes ): string {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- The nonce is validated by submit() before business work.
-		$value = $_POST[ $key ] ?? '';
-
-		if ( ! is_string( $value ) ) {
-			return '';
-		}
-
-		$value = wp_unslash( $value );
-
-		return strlen( $value ) <= $maximum_bytes ? $value : '';
-	}
-
-	/**
-	 * Read one bounded server string.
-	 *
-	 * @param string $key Server key.
-	 * @param int    $maximum_bytes Hard byte limit.
-	 */
-	private function server_string( string $key, int $maximum_bytes ): string {
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Values are length-bounded and parsed against closed policies.
-		$value = $_SERVER[ $key ] ?? '';
-
-		return is_string( $value ) && strlen( $value ) <= $maximum_bytes ? $value : '';
+		return $this->request_guard->post_string( $key, $maximum_bytes );
 	}
 }

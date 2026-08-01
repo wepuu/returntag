@@ -17,6 +17,7 @@ use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
+use ReturnTag\TagCore\Application\PublicTag\SubmitManualTagEntry;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagActivationEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Tag\TagIdInputNormalizer;
@@ -42,8 +43,10 @@ use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionTagActivationRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionManualTagEntryRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumActivationOtpProtector;
+use ReturnTag\TagCore\Infrastructure\Security\WordPressPublicRequestHasher;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
 use RuntimeException;
@@ -65,23 +68,23 @@ final class PublicSiteBootstrap {
 			return;
 		}
 
-		$plugin_dir    = dirname( $plugin_file );
-		$gateway       = new WpdbGateway( $wpdb );
-		$tables        = new TableNames( $wpdb->prefix );
-		$dates         = new DatabaseDateTimeCodec();
-		$feature_flags = new WordPressOptionFeatureFlagReader();
-		$schema_state  = new SchemaState(
+		$plugin_dir     = dirname( $plugin_file );
+		$gateway        = new WpdbGateway( $wpdb );
+		$tables         = new TableNames( $wpdb->prefix );
+		$dates          = new DatabaseDateTimeCodec();
+		$feature_flags  = new WordPressOptionFeatureFlagReader();
+		$schema_state   = new SchemaState(
 			new WordPressSchemaVersionStore(),
 			( new MigrationRegistryFactory( $wpdb ) )->create()
 		);
-		$pages         = new ResolvePublicTagPage(
+		$pages          = new ResolvePublicTagPage(
 			new WpdbPublicTagStateReader( $gateway, $tables, $dates ),
 			$feature_flags,
 			new PublicTagPagePolicy( new TagActivationAvailabilityPolicy() )
 		);
-		$session       = new WordPressAuthenticatedSession();
-		$email_policy  = new WordPressAccountEmailPolicy();
-		$otp_services  = self::otp_services(
+		$session        = new WordPressAuthenticatedSession();
+		$email_policy   = new WordPressAccountEmailPolicy();
+		$otp_services   = self::otp_services(
 			$wpdb,
 			$gateway,
 			$tables,
@@ -91,7 +94,8 @@ final class PublicSiteBootstrap {
 			$session,
 			$email_policy
 		);
-		$route         = new PublicTagRouteController(
+		$request_guard  = new PublicFormRequestGuard();
+		$route          = new PublicTagRouteController(
 			$plugin_dir,
 			new PublicTagResponsePolicy(),
 			new TagIdInputNormalizer(),
@@ -105,12 +109,33 @@ final class PublicSiteBootstrap {
 				$email_policy,
 				$otp_services['activate'],
 				new WordPressAuthenticatedUserEmailReader(),
-				$otp_services['protector']
+				$otp_services['protector'],
+				$request_guard
 			)
 		);
+		$entry_urls     = new TagEntryUrlProvider();
+		$entry_renderer = new ManualTagEntryTemplateRenderer( $plugin_dir );
+		$entry_route    = new ManualTagEntryRouteController(
+			$plugin_dir,
+			new ManualTagEntryResponsePolicy(),
+			new ManualTagEntryFormHandler(
+				new SubmitManualTagEntry(
+					new TagIdInputNormalizer(),
+					new WordPressOptionManualTagEntryRateLimiter( $wpdb, get_current_blog_id() ),
+					new SystemClock()
+				),
+				$request_guard,
+				new WordPressPublicRequestHasher()
+			),
+			$entry_renderer,
+			$entry_urls
+		);
+		$entry_block    = new TagEntryLinkBlock( $plugin_dir, $entry_urls, $entry_renderer );
 
 		$route->register_hooks();
-		( new PublicRewriteLifecycle( $plugin_file, $route ) )->register_hooks();
+		$entry_route->register_hooks();
+		$entry_block->register_hooks();
+		( new PublicRewriteLifecycle( $plugin_file, $route, $entry_route ) )->register_hooks();
 	}
 
 	/**

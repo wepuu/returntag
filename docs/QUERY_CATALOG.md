@@ -310,3 +310,19 @@ projection and Application view model. It does not read or write
 `owner_pairing_ack_at`, account, device, pairing, battery, location, or
 smart-network data. Schema version 8 and all existing indexes remain
 unchanged.
+
+## 21. RT-312 manual-entry adapter
+
+| Read or write shape | Predicate and bound | Authority |
+|---|---|---|
+| Four fixed-window budget reads/writes | exact hashed Option name | WordPress Options primary key |
+| Limiter lock | site-derived fixed lock name, two-second wait | MySQL named lock |
+| Expired bucket cleanup | manual-entry Option prefix, ordered, limit `500` | WordPress Options name index |
+
+The adapter performs no Tag or Batch lookup. It validates and normalizes the
+bounded input, then redirects valid requests to the existing canonical
+`/t/{tag_id}` route, where RT-303 remains the sole state-resolution query.
+Budget Option names contain only expiry and scope hashes; values contain only
+count and expiry. Raw IP, Tag ID, email, User, Owner, cookie, Session, token,
+item, order, message, device, and location data are not selected or stored.
+Schema version 8 requires no new index.

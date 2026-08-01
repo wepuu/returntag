@@ -759,3 +759,32 @@ RT-310 closes Milestone 3 at project/plugin version `0.4.0` while Schema
 version `8` remains unchanged. It adds no route, query, write, Migration,
 Option, Event, queue, email, dependency, theme, WooCommerce behavior, or
 smart-network integration.
+
+## 26. RT-312 TagCore manual-entry adapter
+
+`PublicSite` registers plugin-owned `GET`, `HEAD`, and `POST` surfaces at
+`/tag/activate/` and `/tag/report/`. Both routes use one shared server-rendered
+form and differ only in translatable presentation copy. A valid POST is
+normalized through the existing canonical Tag ID boundary and receives a
+same-site `303` redirect to `/t/{tag_id}`. The canonical route remains the only
+component allowed to load Tag and Batch state, enforce feature controls,
+authorize Owner behavior, or choose Activation, Owner, Finder, suspended,
+retired, invalid, or unavailable output.
+
+The server-rendered `tagcore/tag-entry-link` dynamic block is the public Theme
+contract. Its only attribute is the closed `activate|report` intent; TagCore
+owns fixed labels and generates same-site URLs through WordPress APIs. The
+ordinary link is the no-JavaScript and mobile baseline. On viewports at least
+768 pixels wide, a local Script Module may enhance an unmodified primary click
+into a native dialog containing the same server-rendered form. The standalone
+route remains authoritative when JavaScript, dialog support, or enhancement
+fails. No iframe, client-side Tag lookup, state hint, arbitrary redirect, or
+Theme business callback is introduced.
+
+Application owns bounded normalization and rate-limit orchestration.
+Infrastructure owns direct-peer hashing and atomic fixed-window Option
+counters under a site-scoped advisory lock. PublicSite owns method, same-site,
+nonce, response, security-header, accessibility, and rendering decisions.
+Templates receive only immutable view data and never query, authorize, or
+mutate. RT-312 adds no Theme, WooCommerce dependency, Tag or Batch query,
+business Event, Migration, Schema, or plugin-version change.

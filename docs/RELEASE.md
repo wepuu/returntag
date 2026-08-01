@@ -506,3 +506,21 @@ Schema version `8`. Existing Tags, Owners, activation timestamps, challenges,
 rate-limit Options, and audit Events remain untouched. Disabling global
 activation remains the immediate containment action for the surrounding
 activation flow.
+
+RT-312 leaves project/plugin version `0.4.0` and Schema version `8` unchanged.
+The release artifact must build and include the registered dynamic-block
+editor script, public Script Module, shared plugin stylesheet, block metadata,
+and server-rendered entry templates. Acceptance must verify desktop dialog
+enhancement, mobile full-screen navigation, no-JavaScript link fallback,
+nonce and same-site enforcement, canonical `303` routing, fixed response
+headers, exact manual-entry budgets, and the absence of Tag/Batch state reads
+before the canonical route.
+
+No Theme, WooCommerce dependency, Migration, product-table write, Event,
+queue, email, key-management change, lock-file change, or plugin-version bump
+is introduced. Code rollback unregisters the block and manual-entry routes and
+removes their runtime assets. Opaque non-autoloaded limiter Options may remain
+until bounded cleanup; they contain only count, expiry, and hashed scope and
+are compatible with the previous stable code. Canonical `/t/{tag_id}` QR
+routing, existing ownership, challenges, messages, and audit records remain
+untouched.

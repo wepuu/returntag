@@ -16,12 +16,14 @@ final class PublicRewriteLifecycle {
 	/**
 	 * Create the lifecycle adapter.
 	 *
-	 * @param string                   $plugin_file Absolute TagCore bootstrap file.
-	 * @param PublicTagRouteController $route Public route adapter.
+	 * @param string                             $plugin_file Absolute TagCore bootstrap file.
+	 * @param PublicTagRouteController           $route Public route adapter.
+	 * @param ManualTagEntryRouteController|null $entry_route Optional manual-entry route adapter.
 	 */
 	public function __construct(
 		private readonly string $plugin_file,
-		private readonly PublicTagRouteController $route
+		private readonly PublicTagRouteController $route,
+		private readonly ?ManualTagEntryRouteController $entry_route = null
 	) {
 	}
 
@@ -46,6 +48,7 @@ final class PublicRewriteLifecycle {
 		}
 
 		$this->route->register_rewrite_rule();
+		$this->entry_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -60,6 +63,7 @@ final class PublicRewriteLifecycle {
 		}
 
 		$this->route->unregister_rewrite_rule();
+		$this->entry_route?->unregister_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -77,6 +81,7 @@ final class PublicRewriteLifecycle {
 		}
 
 		$this->route->register_rewrite_rule();
+		$this->entry_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -89,6 +94,7 @@ final class PublicRewriteLifecycle {
 		}
 
 		$this->route->register_rewrite_rule();
+		$this->entry_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -125,6 +131,10 @@ final class PublicRewriteLifecycle {
 	private function stored_rules_include_route(): bool {
 		$rules = get_option( 'rewrite_rules', array() );
 
-		return is_array( $rules ) && array_key_exists( PublicTagRouteController::REWRITE_PATTERN, $rules );
+		if ( ! is_array( $rules ) || ! array_key_exists( PublicTagRouteController::REWRITE_PATTERN, $rules ) ) {
+			return false;
+		}
+
+		return null === $this->entry_route || array_key_exists( ManualTagEntryRouteController::REWRITE_PATTERN, $rules );
 	}
 }

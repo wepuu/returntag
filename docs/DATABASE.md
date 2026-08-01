@@ -954,3 +954,23 @@ The existing daily maintenance action deletes at most 500 inspected expired
 activation Options per run. Code rollback ignores remaining opaque counters;
 they may expire and be cleaned without a data Migration. Owner assignments and
 activation Events are never rollback targets.
+
+## 20. RT-312 manual-entry rate-limit storage
+
+RT-312 keeps Schema version `8` and adds no product table, column, index, or
+Migration. Four fixed-window counters are stored as non-autoloaded WordPress
+Options with the `returntag_tag_entry_rate_` prefix: direct-peer IP minute and
+hour buckets plus global minute and hour buckets. Option names contain only a
+window expiry and a SHA-256 scope digest; values contain only a non-negative
+count and integer expiry.
+
+The direct-peer IP is never persisted directly. It is packed and transformed
+with a domain-separated HMAC before bucket construction, and proxy-forwarding
+headers are ignored. A site-scoped MySQL advisory lock makes the all-budget
+reservation atomic. Failure to acquire the lock or persist a counter fails
+closed before any redirect.
+
+The existing daily maintenance action inspects and removes at most 500 expired
+manual-entry buckets. Code rollback unregisters the routes and block while
+leaving opaque counters to expire and be cleaned; no Tag ID, Batch, Owner,
+conversation, challenge, message, access token, or audit Event is changed.
