@@ -12,9 +12,10 @@ This document defines versioning, quality gates, artifact, deployment, and
 rollback procedures for TagCore and the independently versioned ForgeTag
 Theme. Composer, Node build scripts, continuous integration, dependency
 monitoring, and TagCore tagged artifact assembly are present. The ForgeTag
-Theme engineering skeleton, design tokens, and pinned runtime-asset baseline
-are present; Theme artifact automation remains an RT-314 follow-up after the
-Stage 2 foundation. Production publication and deployment remain manual,
+Theme engineering skeleton, design tokens, pinned runtime-asset baseline, and
+Stage 3B product-media baseline are present; Theme artifact automation and
+final release approval remain RT-314 follow-ups. Production publication and
+deployment remain manual,
 explicitly authorized operations.
 
 ## 2. Versioning
@@ -33,9 +34,10 @@ version `8`.
 
 The ForgeTag Theme uses independent semantic versioning. Its version is
 declared in `theme/forge-tag/style.css` and must not be inferred from the
-TagCore plugin version or Schema version. RT-314 Stages 1 and 2 establish Theme
-version `0.1.0` and its design-system foundation; this does not represent final
-page visual or production release approval.
+TagCore plugin version or Schema version. RT-314 Stages 1 through 3B establish
+Theme version `0.1.0`, its design-system foundation, homepage engineering
+baseline, and product-media baseline; this does not represent production
+release approval.
 
 ## 3. Git workflow
 
@@ -111,9 +113,12 @@ change requires a new Theme version and tag.
 The supported RT-314 acceptance matrix is WordPress `6.9.5` and `7.0.2`, PHP
 `8.3` through `8.5`, and WooCommerce `9.9.7` and `10.9.4` with HPOS enabled.
 WooCommerce-disabled acceptance is also required for the brand shell and
-TagCore entry links. Stage 2 adds source-pinned Theme assets and automated
-identity, integrity, responsive, accessibility, and disabled-commerce checks,
-but does not create a Theme tag, ZIP, checksum, GitHub Release, deployment, or
+TagCore entry links. Stage 3A adds the source-controlled homepage Patterns,
+TagCore-owned entry placement, and responsive/accessibility regression
+coverage on top of the Stage 2 asset and identity checks. Stage 3B adds pinned
+official product sources through privacy-safe runtime copies and derivatives,
+plus image-integrity and browser regression coverage. No Stage 1 through 3B
+work creates a Theme tag, ZIP, checksum, GitHub Release, deployment, or
 artifact workflow.
 
 The source-controlled Theme is the production design source of truth. A Site

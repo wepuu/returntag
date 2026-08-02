@@ -54,6 +54,14 @@ final readonly class TagEntryLinkBlock {
 			$this->plugin_dir . '/src/PublicSite/Block/tag-entry-link',
 			array( 'render_callback' => array( $this, 'render' ) )
 		);
+
+		register_block_style(
+			self::BLOCK_NAME,
+			array(
+				'name'  => 'secondary',
+				'label' => __( 'Secondary', 'tagcore' ),
+			)
+		);
 	}
 
 	/**

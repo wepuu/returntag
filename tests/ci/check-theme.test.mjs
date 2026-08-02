@@ -33,7 +33,7 @@ const assertFailure = ( result, pattern ) => {
 };
 
 describe( 'ForgeTag Theme contract', () => {
-	it( 'accepts the source-controlled Stage 2 baseline', async () => {
+	it( 'accepts the source-controlled Stage 3B baseline', async () => {
 		const result = await validateTheme( { repositoryRoot } );
 
 		assert.deepEqual( result.failures, [] );
@@ -110,6 +110,22 @@ describe( 'ForgeTag Theme contract', () => {
 		assertFailure( result, /Inter font SHA-256/ );
 	} );
 
+	it( 'rejects a modified approved product image', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join(
+				themeRoot,
+				'assets/images/product-smart-tag.png'
+			);
+			const image = await readFile( path );
+			await writeFile(
+				path,
+				Buffer.concat( [ image, Buffer.from( 'x' ) ] )
+			);
+		} );
+
+		assertFailure( result, /smart_tag product image SHA-256/ );
+	} );
+
 	it( 'rejects icons outside the approved whitelist', async () => {
 		const result = await withThemeCopy( async ( themeRoot ) => {
 			await writeFile(
@@ -133,5 +149,51 @@ describe( 'ForgeTag Theme contract', () => {
 		} );
 
 		assertFailure( result, /palette must expose only the approved slugs/ );
+	} );
+
+	it( 'rejects hard-coded entry paths and copied forms', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'patterns/home-hero.php' );
+			const pattern = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				`${ pattern }\n<form action="/tag/activate/"><input name="tag_id"></form>`
+			);
+		} );
+
+		assertFailure( result, /must not hard-code TagCore entry paths/ );
+		assertFailure( result, /must not reproduce a Tag ID form/ );
+	} );
+
+	it( 'rejects missing entry intents and secondary treatment', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'patterns/home-hero.php' );
+			const pattern = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				pattern.replace(
+					'"intent":"report","className":"is-style-secondary"',
+					'"intent":"activate"'
+				)
+			);
+		} );
+
+		assertFailure( result, /two Activate and two Report/ );
+	} );
+
+	it( 'rejects Theme selectors that cross into TagCore markup', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'assets/css/home.css' );
+			const stylesheet = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				`${ stylesheet }\n.returntag-entry-link__trigger { color: red; }`
+			);
+		} );
+
+		assertFailure(
+			result,
+			/must not style TagCore through deep selectors/
+		);
 	} );
 } );

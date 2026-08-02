@@ -24,6 +24,7 @@ use ReturnTag\TagCore\PublicSite\PublicFormRequestGuard;
 use ReturnTag\TagCore\PublicSite\TagEntryIntent;
 use ReturnTag\TagCore\PublicSite\TagEntryLinkBlock;
 use ReturnTag\TagCore\Tests\Integration\Fixture\RecordingManualTagEntryRateLimiter;
+use WP_Block_Styles_Registry;
 use WP_Block_Type_Registry;
 use WP_UnitTestCase;
 use wpdb;
@@ -56,6 +57,12 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertSame( array( 'activate', 'report' ), $block->attributes['intent']['enum'] );
 		self::assertArrayNotHasKey( 'tag_id', $block->attributes );
 		self::assertArrayNotHasKey( 'redirect', $block->attributes );
+		self::assertTrue(
+			WP_Block_Styles_Registry::get_instance()->is_registered(
+				TagEntryLinkBlock::BLOCK_NAME,
+				'secondary'
+			)
+		);
 	}
 
 	/**
@@ -75,6 +82,25 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'aria-labelledby=', $html );
 		self::assertStringContainsString( 'data-returntag-tag-entry-form', $html );
 		self::assertStringNotContainsString( '<iframe', $html );
+	}
+
+	/**
+	 * The standard secondary Block Style remains presentation-only.
+	 */
+	public function test_secondary_block_style_preserves_the_closed_intent_contract(): void {
+		$html = render_block(
+			array(
+				'blockName' => TagEntryLinkBlock::BLOCK_NAME,
+				'attrs'     => array(
+					'className' => 'is-style-secondary',
+					'intent'    => 'report',
+				),
+			)
+		);
+
+		self::assertStringContainsString( 'is-style-secondary', $html );
+		self::assertStringContainsString( esc_url( home_url( '/tag/report/' ) ), $html );
+		self::assertStringNotContainsString( 'tag_id=', $html );
 	}
 
 	/**

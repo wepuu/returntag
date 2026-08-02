@@ -551,6 +551,41 @@ homepage Pattern, commerce Template, TagCore entry placement, product logic,
 Schema, database write, Option, route, email, queue, release artifact, tag, or
 deployment.
 
+## RT-314 ForgeTag Theme Stage 3A
+
+RT-314 Stage 3A adds the source-controlled homepage shell without moving
+product behavior into the Theme. The front-page Template composes reusable
+Header, Footer, Hero, Return Route, product-family, recovery-path, use-case,
+and privacy Patterns. Activate and Report actions are rendered only through
+the `tagcore/tag-entry-link` dynamic block; Report uses the plugin-owned
+`secondary` Block Style and the Theme does not reproduce Tag ID forms or
+hard-code TagCore paths.
+
+The engineering baseline is mobile-first, keyboard accessible, translatable,
+and remains useful when WooCommerce is unavailable. It uses the approved logo,
+local fonts, and Lucide allowlist only. Approved production product
+photography is still required before Stage 3B visual acceptance; the
+reference-only RT-313 images are not runtime assets. Stage 3A changes no
+Schema, database data, Option, product API, Tag state, email, queue, artifact,
+release tag, or deployment.
+
+## RT-314 ForgeTag Theme Stage 3B
+
+RT-314 Stage 3B adds user-confirmed official source photography for Sticker,
+Classic Tag, and Smart Tag to the homepage presentation. The original design
+files remain unchanged under `docs/design/`; the Theme loads only independent,
+SHA-256-pinned runtime copies or safety derivatives from
+`theme/forge-tag/assets/images/`.
+
+The Sticker derivative removes every supplied QR code, obsolete domain, and
+Tag ID. The Classic Tag derivative is a front-only family composition derived
+from the three supplied Classic Tag photographs, so no reverse-side QR code,
+obsolete domain, or Tag ID is exposed. The Smart Tag runtime file is an exact
+copy of the supplied official image; visible model artwork is not treated as
+an approved product name in public copy or Alt text. Stage 3B changes no
+Schema, database data, Option, product API, Tag state, email, queue, artifact,
+release tag, or deployment.
+
 ## RT-009 risk-based CI and E2E profiles
 
 RT-009 adds fail-closed path classification and the stable `Quality Gate`

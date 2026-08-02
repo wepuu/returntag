@@ -1,218 +1,135 @@
-# RT-301 / RT-302 Product Design QA
+# RT-314 Stage 3.1 and desktop-width follow-up Product Design QA
 
 ## Comparison target
 
-- Source visual truth:
-  `C:\Users\admin\.codex\generated_images\019fad15-ddd5-7941-b775-911bd9a46455\call_w1y4o35K5FFEEy4ekAbVOoVv.png`
-- Source pixel dimensions: `853 x 1844`
-- Implementation route: `http://localhost:8888/t/A7R2W9`
-- Final mobile implementation screenshot:
-  `artifacts/design-qa/rt-301-mobile-final-v2.png`
-- Final desktop implementation screenshot:
-  `artifacts/design-qa/rt-301-desktop-final-v2.png`
-- Mobile viewport and CSS size: `390 x 844`
-- Mobile implementation pixel dimensions: `390 x 844`
-- Density normalization: source downsampled from `853 x 1844` to
-  `390 x 844`; implementation captured at `deviceScaleFactor: 1`
-- State: generic fail-closed public Tag service response
+- Source visual truth: `docs/design/homepage.png`
+- Source pixels: `816 x 1927`; the original CSS viewport and pixel density are
+  unavailable, so exact CSS-density parity cannot be asserted.
+- Implementation route: `http://localhost:8888/`
+- Browser: the user's connected Chrome session; device scale factor `1`
+- CSS viewports: `1440 x 900`, `816 x 900`, `390 x 844`, and `320 x 720`
+- States: public homepage and the TagCore-owned Activate modal
 
-## Full-view comparison evidence
+The source is used for visual hierarchy and composition only. Its obsolete
+claims, domains, QR codes, identifiers, and unapproved product statements are
+not product facts and were not copied into the Theme.
 
-- Initial combined comparison:
-  `artifacts/design-qa/rt-301-comparison-initial.png`
-- Final combined comparison:
-  `artifacts/design-qa/rt-301-comparison-final-v2.png`
-- The final implementation preserves the selected option's warm paper-white
-  field, compact wordmark, large quiet interval, blue vertical accent,
-  uppercase recovery eyebrow, three-line heading, three-line explanation, and
-  understated text link.
-- The final section origin, heading width, line wrapping, action position, and
-  overall density align closely with the normalized source.
-- The `1440 x 900` desktop capture preserves the hierarchy without overflow
-  and gives the explanation an intentional wider measure.
+## Final visual evidence
 
-## Focused region comparison evidence
+- Desktop homepage (`1440 x 900` CSS viewport):
+  `artifacts/design-qa/rt-314-stage3-1/09-implementation-final-desktop-1440.png`
+  (`1425 x 4256` captured pixels; the scrollbar occupies the remaining width).
+- Tablet homepage (`816 x 900`):
+  `artifacts/design-qa/rt-314-stage3-1/06-implementation-final-816.png`
+  (`801 x 3786`).
+- Mobile homepage (`390 x 844`):
+  `artifacts/design-qa/rt-314-stage3-1/10-implementation-final-390.png`
+  (`375 x 5960`).
+- Narrow mobile homepage (`320 x 720`):
+  `artifacts/design-qa/rt-314-stage3-1/05-implementation-320.png`
+  (`305 x 6318`).
+- Activate modal (`1440 x 900`):
+  `artifacts/design-qa/rt-314-stage3-1/08-activate-modal-desktop.png`
+  (`1425 x 660`).
+- Full same-input comparison:
+  `artifacts/design-qa/rt-314-stage3-1/11-reference-vs-final-816.png`
+  (`1664 x 3842`).
+- Focused Hero and products comparison:
+  `artifacts/design-qa/rt-314-stage3-1/12-focused-hero-products-816.png`
+  (`1664 x 1256`).
+- Desktop-width follow-up (`1440 x 900`):
+  `artifacts/design-qa/rt-314-stage3-2/homepage-1440.jpg`.
+- Wide-desktop follow-up (`1920 x 1080`):
+  `artifacts/design-qa/rt-314-stage3-2/homepage-1920.jpg`.
 
-- Initial focused comparison:
-  `artifacts/design-qa/rt-301-focus-comparison-initial.png`
-- Final focused comparison:
-  `artifacts/design-qa/rt-301-focus-comparison-final-v2.png`
-- The focused evidence confirms that the accent, eyebrow, heading, explanation,
-  and homepage action share the source alignment and vertical rhythm.
-- Browser-system font rasterization differs slightly from the generated source,
-  but the final optical weight, width, hierarchy, and wrapping are equivalent.
+## Fidelity and interaction review
 
-## Required fidelity surfaces
+- Typography and tokens: existing local Manrope and Inter files, color tokens,
+  radii, and component language remain unchanged.
+- Hero and process: preserve the reference's two-column hierarchy at desktop
+  and tablet sizes, with denser vertical rhythm and bounded official product
+  imagery. Mobile retains a clear text-first reading order.
+- Products: use the user-approved temporary official imagery in consistent
+  `4:3` contain slots. Desktop cards now occupy the available content width;
+  tablet uses two cards plus a full-width Smart Tag card.
+- Use cases: compact four-column rail at tablet and desktop, changing to a
+  balanced `2 x 2` grid on mobile.
+- Header: one account control is rendered through the WooCommerce hook. At
+  `390px` the brand, account, and Activate action remain on one row; at `320px`
+  the Activate action moves to an orderly second row without overflow.
+- Accessibility: primary and footer navigations have explicit accessible
+  names; controls retain keyboard focus visibility and translatable strings.
+- Activate interaction: opens the TagCore-owned modal, focuses the Tag ID
+  input, closes with Escape, and restores focus. The Theme does not duplicate
+  activation validation or domain behavior.
+- Report interaction: remains a TagCore-owned full-screen entry below `768px`.
+- Runtime: the final browser regression recorded no console errors. All product
+  images are local Theme assets; no external runtime image request was added.
+- Desktop-width follow-up: the process grid now uses the panel's full content
+  width at `1440px` and a deliberate `76rem` readability cap at `1920px`. The
+  privacy principles use three equal columns across the full wide container,
+  and the privacy heading starts at the container edge instead of inheriting
+  the constrained-content centering rule.
+- Stylesheet delivery: the homepage stylesheet now uses its file modification
+  time as the WordPress asset version, with the Theme version as a safe
+  fallback. This prevents a previously cached Stage 3 stylesheet from masking
+  a source-controlled layout update during acceptance.
 
-- Fonts and typography: system sans-serif rendering, optical weight, heading
-  width, three-line wrap, eyebrow tracking, and link scale match the source.
-  The implementation uses available local system fonts and no remote font.
-- Spacing and layout rhythm: the mobile section origin is within a few pixels
-  of the normalized source; content alignment, gaps, accent height, and link
-  position preserve the selected composition. Desktop and short-height
-  fallbacks do not overflow.
-- Colors and tokens: warm `#fbfaf7` background, near-black `#182126` text, and
-  ReturnTag blue `#0b57d0` match the selected visual direction with accessible
-  contrast.
-- Image quality and asset fidelity: the selected target contains no
-  illustration, icon, or product image. The implementation introduces no
-  substitute asset, SVG, emoji, remote image, or third-party font.
-- Copy and content: the US-English heading, explanation, and homepage action
-  are coherent, translatable, privacy-safe, and visually match the reference.
+## Findings and resolution history
 
-## Functional, responsive, and accessibility evidence
+- P1 tablet collapse and excessive page length: the earlier `816px` capture was
+  `7079px` high. Resolved by retaining multi-column composition; the final
+  capture is `3786px` high.
+- P1 mobile header disorder: account and Activate controls previously separated
+  unpredictably. Resolved with one-row `390px` and intentional two-row `320px`
+  layouts.
+- P1 desktop product grid too narrow: increased from about `768px` to `1310px`.
+- P1 desktop process and privacy content too narrow: the process grid measured
+  about `768px` inside a `1310px` panel, and the privacy title/grid inherited
+  the `48rem` content constraint. Resolved with explicit wide block alignment,
+  bounded process width, a full-width privacy grid, and start-aligned heading.
+- P2 oversized product cards and media: resolved with bounded `4:3` slots;
+  desktop cards are approximately `421 x 445px`, and tablet uses a `2 + 1`
+  composition.
+- P2 sparse use-case section: resolved with compact four-column and `2 x 2`
+  responsive layouts.
+- P2 footer navigation exposed the generic accessible name `2`: resolved with
+  the explicit name `Footer navigation`.
+- P2 Activate modal spacing: tightened helper-text spacing and increased the
+  dialog surface padding.
+- Intentional source deviations: the implementation retains approved,
+  privacy-safe copy and official temporary product photography instead of the
+  reference's obsolete claims and unapproved lifestyle imagery.
 
-- Chromium, Firefox, WebKit, mobile Chromium, and mobile WebKit E2E verify
-  `503` for `GET`, `405` for `POST`, documented privacy headers, generic copy,
-  and no raw Tag ID reflection.
-- Keyboard Tab reaches the homepage link and exposes the intended 3-pixel
-  focus outline.
-- The homepage link navigates to the site root.
-- Mobile and desktop checks show no horizontal overflow.
-- All captured requests remain on the local WordPress origin; there is no
-  third-party tracking or asset request.
-- There are no page exceptions. Chromium reports only the expected main
-  resource `503` console message for this deliberate fail-closed state.
+No actionable P0, P1, or P2 visual findings remain.
 
-## Findings and resolution
+## Automated validation
 
-- Initial P2: the recovery section began about 44 pixels below the source,
-  changing the above-the-fold composition. The mobile vertical clamp was
-  reduced and recaptured.
-- Initial P2: wordmark, eyebrow, homepage link, body measure, and heading
-  density drifted from the selected option. Their size, tracking, line measure,
-  optical weight, and line height were corrected.
-- Initial P2: body copy wrapped to two lines instead of the source's three.
-  The mobile measure was bounded and recaptured.
-- Follow-up P3: the desktop body measure was too narrow. A desktop-only measure
-  restored balanced responsive rhythm.
-- Final comparison has no actionable P0, P1, or P2 finding.
+- `node scripts/check-theme.mjs`: passed; 45 files, 17 pinned icons, two local
+  fonts, and one approved logo.
+- JavaScript lint, CSS lint, and TypeScript typecheck: passed after the final
+  responsive and console-regression changes.
+- `playwright test tests/e2e/theme-homepage.spec.ts --project=chromium`: passed,
+  5 tests, including `1440px`/`1920px` width use, `816px`, `320px` at
+  200-percent text, modal keyboard behavior, mobile Report routing, overflow,
+  and console-error checks.
+- `node --test tests/ci/*.test.mjs`: passed, 29 tests.
+- Jest: passed, 8 suites and 37 tests.
+- Admin, public, and entry-block production builds: passed.
+- `node scripts/check-docs.mjs`: passed, 40 Markdown files, 12 links, 540 text
+  files, and 9 assets.
+- Container `composer check`: passed, including 257 PHPUnit tests and 2,325
+  assertions.
+- Container `composer test:integration`: passed, 196 tests and 2,146 assertions.
 
-## Comparison history
+## Deferred P3 refinements
 
-1. The initial same-input comparison identified the low section origin,
-   oversized supporting type, mismatched heading density, and two-line body.
-2. CSS tokens and responsive measures were corrected; the first final
-   comparison showed correct section position and copy rhythm but an
-   under-weight, slightly narrow heading.
-3. Heading optical weight, scale, and line height were tuned and recaptured.
-4. The final full-view and focused comparisons confirmed alignment with the
-   source. Desktop line measure received one P3 polish correction.
-
-## Follow-up polish
-
-- The generated source has slightly softer raster antialiasing than native
-  Chromium system-font rendering. Shipping a remote or bundled display font
-  solely to imitate that artifact is not justified for this privacy-sensitive
-  fallback.
-
-## RT-302 regression extension
-
-- RT-302 intentionally changes routing behavior without changing the selected
-  visual target, template, stylesheet, asset bundle, copy, focus behavior, or
-  responsive layout.
-- Normalizable input redirects to the canonical URL and then renders the same
-  approved fail-closed state. Invalid input renders the same state without a
-  redirect or validation-detail disclosure.
-- The final Chromium, Firefox, WebKit, mobile Chromium, and mobile WebKit run
-  passed all 20 route, privacy-header, canonicalization, mutation-method,
-  keyboard, overflow, navigation, and third-party-request checks.
-- Rebuilding both public and administrative assets produced no tracked visual
-  asset delta, so the existing same-viewport reference comparisons remain the
-  material visual evidence.
-
-## RT-303 state-page extension
-
-### Comparison target
-
-- Source visual truth:
-  `C:\Users\admin\.codex\generated_images\019fad15-ddd5-7941-b775-911bd9a46455\call_w1y4o35K5FFEEy4ekAbVOoVv.png`
-- Source state: generic fail-closed Tag recovery page.
-- Implementation state: activation unavailable with public product type.
-- Implementation route: `http://localhost:8888/t/5VSAND`
-- Mobile implementation screenshot:
-  `artifacts/design-qa/rt-303-activation-unavailable-mobile.png`
-- Desktop implementation screenshot:
-  `artifacts/design-qa/rt-303-activation-unavailable-default.png`
-- Mobile viewport, CSS size, and implementation pixels: `390 x 844`.
-- Desktop viewport, CSS size, and implementation pixels: `1440 x 900`.
-- Source pixels: `853 x 1844`, normalized to `390 x 844`.
-- Density normalization: source downsampled to the mobile CSS target;
-  implementation captured at one CSS pixel per output pixel.
-
-The source and implementation intentionally represent different product
-states. The comparison therefore judges the approved visual system, hierarchy,
-alignment, typography, spacing rhythm, color tokens, and responsive behavior,
-not literal copy or the additional state detail rows.
-
-### Full-view comparison evidence
-
-- Same-input mobile comparison:
-  `artifacts/design-qa/rt-303-comparison-mobile.png`
-- The implementation preserves the warm paper-white field, compact wordmark,
-  large quiet interval, blue vertical accent, uppercase eyebrow, three-line
-  heading, measured explanation, and understated homepage action.
-- The product detail row is an intentional RT-303 extension. It begins on the
-  same content axis, uses quiet dividers, and pushes the working action
-  downward without changing the original hierarchy.
-- The `1440 x 900` desktop capture retains the approved single-column measure,
-  balanced whitespace, and complete content without horizontal or vertical
-  overflow.
-
-### Focused region evidence
-
-No separate crop was required. The normalized `390 x 844` full-view comparison
-keeps the wordmark, accent, eyebrow, heading, body copy, detail row, and action
-large enough to judge. There are no icons, illustrations, product images,
-forms, or dense controls that require a second focused comparison.
-
-### Required fidelity surfaces
-
-- Fonts and typography: the existing system sans-serif stack, optical heading
-  weight, line height, eyebrow tracking, body measure, and link treatment are
-  unchanged. State-specific copy wraps cleanly at mobile and desktop widths.
-- Spacing and layout rhythm: the section origin and content axis remain aligned
-  to RT-301. The new details use the established 4-pixel spacing token and do
-  not collide, clip, or overflow.
-- Colors and tokens: `#fbfaf7`, `#182126`, and `#0b57d0` remain authoritative.
-  Quiet divider and callout colors are derived from those tokens with
-  sufficient foreground contrast.
-- Image quality and asset fidelity: neither source nor implementation requires
-  an image or icon. RT-303 introduces no SVG, emoji, CSS illustration, remote
-  font, or third-party asset.
-- Copy and content: every state is standalone US English and translatable.
-  Activation, Owner, and Finder pages avoid non-working workflow controls;
-  the only visible action is the existing working homepage link.
-
-### Functional, responsive, and accessibility evidence
-
-- Browser DOM confirms a semantic banner, main region, level-one heading,
-  definition terms, definition values, and homepage link.
-- Mobile and desktop DOM metrics report no horizontal overflow.
-- Browser inspection found no third-party request source and no console error
-  or warning.
-- Automated browser coverage verified keyboard focus, working homepage
-  navigation, canonical redirect, `404`, `405`, and privacy headers in
-  Chromium, WebKit, mobile Chromium, and mobile WebKit. Firefox completed the
-  mutation-request check, but its three page fixtures were blocked before
-  navigation by the local Playwright browser-context runtime; no page-level
-  RT-303 assertion failed.
-
-### Findings and comparison history
-
-- No P0, P1, or P2 mismatch was found in the first RT-303 comparison.
-- The source does not depict Tag-type details or Lost Mode content. Those are
-  intentional product-state additions rather than visual drift, and they reuse
-  the approved axis, spacing, typography, and color system.
-- The in-app browser initially captured a stitched full-page desktop image;
-  this was capture-tool output rather than page layout. A normal viewport
-  capture replaced it, and DOM metrics independently confirmed
-  `1440 x 900` with no overflow.
-
-### Follow-up polish
-
-- No P3 visual change is required for RT-303. Future tickets should attach
-  working activation and Finder controls to the reserved state experiences
-  without changing the approved public-page visual system.
+- Replace the temporary product photography when final release assets are
+  supplied, harmonizing visible product marks such as FORGE, ForgeTag,
+  SmartTag2, and the flag artwork.
+- Consider a plugin-owned icon close control if TagCore later approves a
+  bundled icon; the current text Close control is accessible and functional.
+- Add lifestyle photography only when approved assets exist; the current
+  compact text use-case rail avoids fabricated imagery.
 
 final result: passed

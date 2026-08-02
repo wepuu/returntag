@@ -13,7 +13,8 @@ export default defineConfig( {
 		},
 		{
 			name: 'mobile-safari',
-			testMatch: /(?:public-tag-route|tag-entry)\.spec\.ts/,
+			testMatch:
+				/(?:public-tag-route|tag-entry|theme-homepage)\.spec\.ts/,
 			use: { ...devices[ 'iPhone 12' ] },
 		},
 	],

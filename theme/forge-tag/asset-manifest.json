@@ -9,6 +9,39 @@
     "runtimePath": "assets/images/forge-logo.png",
     "sha256": "6e1b446ce5ca667409b6be486c451516f722e22b79d4ae3c8230c53d020fcb75"
   },
+  "productImages": [
+    {
+      "role": "sticker",
+      "name": "ForgeTag Sticker product sheet",
+      "source": "User-confirmed official Sticker product photography; safety derivative approved 2026-08-02",
+      "sourceSha256": "f2d06056743e867e08005c39f5dc25602e0fd7441ae844cb02e0917b3bb28f46",
+      "runtimePath": "assets/images/product-sticker-safe.png",
+      "runtimeSha256": "3ac2d2f5ced3ad8c83b92ddf55b2fef2117d972bdaa7700fc3b877c2eb08595f",
+      "transformation": "Image-generation edit removes every QR code, legacy domain, and Tag ID without adding a replacement code or product claim"
+    },
+    {
+      "role": "classic_tag",
+      "name": "ForgeTag Classic Tag product family",
+      "source": "User-confirmed official Classic Tag photography; safety derivative approved 2026-08-02",
+      "sourceSha256": [
+        "167d3de4f5cfd1dbe828233bd8206f6a7865f494761f4b94ac34b441052512ce",
+        "ecdc51109865b97292cce485afa2218ef5fd0c7e4b36d573f2fb4397f5f31684",
+        "83233160923222f77bfa83198003a5b20d2b829efba1a16c5cff1eb46bef3550"
+      ],
+      "runtimePath": "assets/images/product-classic-family-safe.png",
+      "runtimeSha256": "919d69ba993c88d5dc9d2cec06b22f8b6b03797219f0815b841592242e5deec7",
+      "transformation": "Image-generation composition uses only product fronts and removes reverse-side QR codes, legacy domains, and Tag IDs"
+    },
+    {
+      "role": "smart_tag",
+      "name": "ForgeTag Smart Tag product",
+      "source": "User-confirmed official Smart Tag product photography approved 2026-08-02",
+      "sourceSha256": "a24308f09992bcd1ee13fadf703fa3911cb9d5840887230c3eb8bae186d9936e",
+      "runtimePath": "assets/images/product-smart-tag.png",
+      "runtimeSha256": "a24308f09992bcd1ee13fadf703fa3911cb9d5840887230c3eb8bae186d9936e",
+      "transformation": "Exact byte-for-byte runtime copy; visible model artwork is not used as an approved public model name"
+    }
+  ],
   "fonts": [
     {
       "family": "Manrope",

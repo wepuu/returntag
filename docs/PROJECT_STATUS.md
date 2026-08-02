@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-314 ForgeTag Theme Stage 2 design-system foundation; Schema remains `8`
+* Current workstream: RT-314 ForgeTag Theme Stage 3B product-media and visual-acceptance baseline; Schema remains `8`
 
 
 
@@ -800,6 +800,56 @@ Stage 2 establishes the source-controlled visual foundation:
 Stage 2 does not add a homepage Pattern, TagCore entry placement, WooCommerce
 Shop/Product/Cart/Checkout Templates, business logic, product copy approval,
 Schema, database write, Option, route, API, email, queue, Theme artifact,
+release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
+TagCore remains `0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 3A implementation
+
+Stage 3A establishes the source-controlled homepage engineering baseline:
+
+- a `front-page.html` Template composed from reusable Header, Footer, Hero,
+  Return Route, product-family, recovery-path, use-case, and privacy Patterns;
+- TagCore-owned Activate and Report entry rendering through four
+  `tagcore/tag-entry-link` dynamic blocks, with a plugin-owned `secondary`
+  Block Style for Report actions;
+- a page-scoped, mobile-first stylesheet with keyboard focus, reduced-motion,
+  forced-colors, narrow-screen, and 200-percent zoom protections;
+- static contract tests that reject copied forms, hard-coded TagCore entry
+  paths, unsupported product families, and deep Theme selectors into TagCore;
+- WordPress integration and browser regression coverage for block-style
+  registration, dialog behavior, responsive hierarchy, local requests, and
+  accessibility.
+
+Stage 3A uses only the approved ForgeTag logo, local Manrope and Inter fonts,
+and recorded Lucide icons. It does not copy RT-313 reference-only imagery or
+substitute generated placeholders. Approved production product photography is
+still required for Stage 3B visual acceptance. This stage adds no WooCommerce
+Shop/Product/Cart/Checkout Template, Schema, Migration, database write, Option,
+route, API, Tag state change, email, queue, Theme artifact, release tag,
+GitHub Release, or deployment. Theme version remains `0.1.0`, TagCore remains
+`0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 3B implementation
+
+Stage 3B integrates the user-confirmed official source photographs for the
+three canonical product families without exposing obsolete identifiers:
+
+- `tag2.png` supplies the Sticker source; the Theme uses a safety derivative
+  with every QR code, obsolete domain, and Tag ID removed;
+- `tag1.jpg`, `tag3.jpg`, and `tag4.jpg` supply the Classic Tag sources; the
+  Theme uses a front-only family composition that excludes reverse-side QR,
+  domain, and Tag ID content;
+- `forge-smarttag.png` supplies the Smart Tag source and is copied byte-for-byte
+  into the Theme; the visible model artwork is not used as public product copy
+  or Alt text;
+- runtime paths, transformations, source hashes, and output hashes are pinned
+  in `theme/forge-tag/asset-manifest.json` and enforced by Theme checks;
+- the Hero and product-family cards use responsive local images with explicit
+  dimensions, descriptive translatable Alt text, and no remote request.
+
+The source files under `docs/design/` remain unchanged and are not loaded by
+WordPress. Stage 3B changes no WooCommerce Template, Schema, Migration,
+database write, Option, route, API, Tag state, email, queue, Theme artifact,
 release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
 TagCore remains `0.4.0`, and Schema remains `8`.
 

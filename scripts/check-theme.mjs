@@ -35,19 +35,45 @@ const expectedSpacing = new Map( [
 const requiredThemeFiles = [
 	'asset-manifest.json',
 	'assets/css/foundation.css',
+	'assets/css/home.css',
 	'assets/fonts/inter/Inter-Variable-Roman.woff2',
 	'assets/fonts/manrope/Manrope-Variable-Roman.woff2',
 	'assets/images/forge-logo.png',
+	'assets/images/product-classic-family-safe.png',
+	'assets/images/product-smart-tag.png',
+	'assets/images/product-sticker-safe.png',
 	'assets/licenses/Inter-OFL-1.1.txt',
 	'assets/licenses/Lucide-ISC-and-Feather-MIT.txt',
 	'assets/licenses/Manrope-OFL-1.1.txt',
 	'functions.php',
 	'parts/footer.html',
 	'parts/header.html',
+	'patterns/home-hero.php',
+	'patterns/home-privacy.php',
+	'patterns/home-process.php',
+	'patterns/home-products.php',
+	'patterns/home-recovery-paths.php',
+	'patterns/home-use-cases.php',
+	'patterns/site-footer.php',
+	'patterns/site-header.php',
 	'style.css',
+	'templates/front-page.html',
 	'templates/index.html',
 	'theme.json',
 ];
+const homepagePatternSlugs = [
+	'forge-tag/home-hero',
+	'forge-tag/home-process',
+	'forge-tag/home-products',
+	'forge-tag/home-recovery-paths',
+	'forge-tag/home-use-cases',
+	'forge-tag/home-privacy',
+];
+const requiredProductImageRoles = new Map( [
+	[ 'sticker', 'assets/images/product-sticker-safe.png' ],
+	[ 'classic_tag', 'assets/images/product-classic-family-safe.png' ],
+	[ 'smart_tag', 'assets/images/product-smart-tag.png' ],
+] );
 const forbiddenAssetNames = [
 	'homepage.png',
 	'tanchuang.png',
@@ -266,6 +292,52 @@ const checkAssets = async (
 		failures.push( 'asset-manifest.json must declare exactly two fonts' );
 	}
 
+	const productImages = new Map(
+		( manifest.productImages ?? [] ).map( ( image ) => [
+			image.role,
+			image,
+		] )
+	);
+
+	if (
+		productImages.size !== requiredProductImageRoles.size ||
+		[ ...productImages.keys() ].some(
+			( role ) => ! requiredProductImageRoles.has( role )
+		)
+	) {
+		failures.push(
+			'asset-manifest.json must declare exactly the three approved product image roles'
+		);
+	}
+
+	for ( const [ role, runtimePath ] of requiredProductImageRoles ) {
+		const image = productImages.get( role );
+		if ( image?.runtimePath !== runtimePath ) {
+			failures.push( `${ role } product image path is incorrect` );
+			continue;
+		}
+
+		const runtime = await checkManifestFile(
+			themeRoot,
+			runtimePath,
+			image.runtimeSha256,
+			`${ role } product image`,
+			failures
+		);
+
+		if (
+			runtime &&
+			( runtime.subarray( 1, 4 ).toString( 'ascii' ) !== 'PNG' ||
+				runtime.readUInt32BE( 16 ) !== 1254 ||
+				runtime.readUInt32BE( 20 ) !== 1254 ||
+				runtime[ 25 ] !== 2 )
+		) {
+			failures.push(
+				`${ role } product image must remain a 1254x1254 RGB PNG`
+			);
+		}
+	}
+
 	if (
 		manifest.icons?.package !== 'lucide-static' ||
 		manifest.icons?.version !== lucideVersion
@@ -386,7 +458,7 @@ const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
 			failures.push( `${ relativePath } contains a remote runtime URL` );
 		}
 		if (
-			/end[- ]to[- ]end encrypt|verified pair|pairing verified/i.test(
+			/end[- ]to[- ]end encrypt|verified pair|pairing verified|millions sold|tsa approved|trusted travel brand|free shipping|30-day guarantee/i.test(
 				contents
 			)
 		) {
@@ -412,6 +484,121 @@ const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
 		failures.push(
 			'functions.php crosses the Theme presentation boundary'
 		);
+	}
+};
+
+const checkHomepageContract = async ( themeRoot, failures ) => {
+	const template = await readFile(
+		join( themeRoot, 'templates/front-page.html' ),
+		'utf8'
+	);
+
+	for ( const slug of homepagePatternSlugs ) {
+		if ( ! template.includes( `"slug":"${ slug }"` ) ) {
+			failures.push( `front-page.html must include ${ slug }` );
+		}
+	}
+
+	const patternFiles = [
+		'patterns/site-header.php',
+		'patterns/home-hero.php',
+		'patterns/home-process.php',
+		'patterns/home-products.php',
+		'patterns/home-recovery-paths.php',
+		'patterns/home-use-cases.php',
+		'patterns/home-privacy.php',
+		'patterns/site-footer.php',
+	];
+	const contents = (
+		await Promise.all(
+			patternFiles.map( ( path ) =>
+				readFile( join( themeRoot, path ), 'utf8' )
+			)
+		)
+	).join( '\n' );
+
+	if ( /\/(?:tag\/activate|tag\/report)\/?/i.test( contents ) ) {
+		failures.push(
+			'homepage Patterns must not hard-code TagCore entry paths'
+		);
+	}
+	if ( /<(?:form|input)\b/i.test( contents ) ) {
+		failures.push( 'homepage Patterns must not reproduce a Tag ID form' );
+	}
+	if (
+		/\.returntag-entry-(?:link|dialog|entry)/.test(
+			await readFile( join( themeRoot, 'assets/css/home.css' ), 'utf8' )
+		)
+	) {
+		failures.push(
+			'home.css must not style TagCore through deep selectors'
+		);
+	}
+
+	const entryBlocks = [
+		...contents.matchAll(
+			/<!-- wp:tagcore\/tag-entry-link\s+(\{[^\r\n]+\})\s+\/-->/g
+		),
+	].map( ( match ) => JSON.parse( match[ 1 ] ) );
+	const activate = entryBlocks.filter(
+		( attributes ) => attributes.intent === 'activate'
+	);
+	const report = entryBlocks.filter(
+		( attributes ) => attributes.intent === 'report'
+	);
+
+	if (
+		entryBlocks.length !== 4 ||
+		activate.length !== 2 ||
+		report.length !== 2
+	) {
+		failures.push(
+			'homepage shell must place two Activate and two Report TagCore blocks'
+		);
+	}
+	if (
+		report.some(
+			( attributes ) =>
+				typeof attributes.className !== 'string' ||
+				! attributes.className
+					.split( /\s+/ )
+					.includes( 'is-style-secondary' )
+		)
+	) {
+		failures.push(
+			'every homepage Report block must use the secondary style'
+		);
+	}
+	if (
+		entryBlocks.some( ( attributes ) =>
+			Object.keys( attributes ).some(
+				( key ) => ! [ 'className', 'intent' ].includes( key )
+			)
+		)
+	) {
+		failures.push(
+			'homepage TagCore blocks accept only intent and Block Style'
+		);
+	}
+
+	for ( const family of [ 'Sticker', 'Classic Tag', 'Smart Tag' ] ) {
+		if ( ! contents.includes( family ) ) {
+			failures.push(
+				`homepage is missing the ${ family } product family`
+			);
+		}
+	}
+
+	for ( const runtimePath of requiredProductImageRoles.values() ) {
+		if ( ! contents.includes( runtimePath ) ) {
+			failures.push(
+				`homepage is missing the approved ${ runtimePath } product image`
+			);
+		}
+	}
+
+	if ( contents.includes( 'forge-home-hero--awaiting-media' ) ) {
+		failures.push( 'homepage must not retain the awaiting-media state' );
 	}
 };
 
@@ -502,6 +689,16 @@ export const validateTheme = async ( {
 	} catch ( error ) {
 		failures.push(
 			`Theme boundary validation failed: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
+	try {
+		await checkHomepageContract( themeRoot, failures );
+	} catch ( error ) {
+		failures.push(
+			`Homepage contract validation failed: ${
 				error instanceof Error ? error.message : String( error )
 			}`
 		);
