@@ -11,12 +11,12 @@
 This document defines versioning, quality gates, artifact, deployment, and
 rollback procedures for TagCore and the independently versioned ForgeTag
 Theme. Composer, Node build scripts, continuous integration, dependency
-monitoring, and TagCore tagged artifact assembly are present. The ForgeTag
-Theme engineering skeleton, design tokens, pinned runtime-asset baseline, and
-Stage 3B product-media baseline are present; Theme artifact automation and
-final release approval remain RT-314 follow-ups. Production publication and
-deployment remain manual,
-explicitly authorized operations.
+monitoring, TagCore tagged artifact assembly, and ForgeTag tagged artifact
+assembly are present. The ForgeTag Theme engineering skeleton, design tokens,
+pinned runtime assets, product-media baseline, and WooCommerce Template
+baseline are present; final Theme release approval remains a separate RT-314
+follow-up. Production publication and deployment remain manual, explicitly
+authorized operations.
 
 ## 2. Versioning
 
@@ -34,10 +34,10 @@ version `8`.
 
 The ForgeTag Theme uses independent semantic versioning. Its version is
 declared in `theme/forge-tag/style.css` and must not be inferred from the
-TagCore plugin version or Schema version. RT-314 Stages 1 through 3B establish
-Theme version `0.1.0`, its design-system foundation, homepage engineering
-baseline, and product-media baseline; this does not represent production
-release approval.
+TagCore plugin version or Schema version. RT-314 Stages 1 through 4 establish
+Theme version `0.1.0`, its design-system foundation, homepage and product-media
+baseline, WooCommerce Template baseline, and artifact automation; this does
+not represent production release approval.
 
 ## 3. Git workflow
 
@@ -117,9 +117,11 @@ TagCore entry links. Stage 3A adds the source-controlled homepage Patterns,
 TagCore-owned entry placement, and responsive/accessibility regression
 coverage on top of the Stage 2 asset and identity checks. Stage 3B adds pinned
 official product sources through privacy-safe runtime copies and derivatives,
-plus image-integrity and browser regression coverage. No Stage 1 through 3B
-work creates a Theme tag, ZIP, checksum, GitHub Release, deployment, or
-artifact workflow.
+plus image-integrity and browser regression coverage. Stage 4 adds the four
+WooCommerce Block Templates, commerce regression coverage, and the
+tag-triggered artifact workflow. The workflow assembles and uploads an Actions
+artifact only after an approved Theme tag is pushed; Stage 4 implementation
+itself creates no tag, ZIP, checksum, GitHub Release, or deployment.
 
 The source-controlled Theme is the production design source of truth. A Site
 Editor Template, Template Part, Pattern, or Global Styles change intended for

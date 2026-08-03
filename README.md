@@ -586,6 +586,30 @@ an approved product name in public copy or Alt text. Stage 3B changes no
 Schema, database data, Option, product API, Tag state, email, queue, artifact,
 release tag, or deployment.
 
+## RT-314 ForgeTag Theme Stage 4
+
+RT-314 Stage 4 adds the WooCommerce Block Theme engineering baseline for Shop
+Archive, Single Product, Cart, and Checkout. The Theme uses inherited Product
+Collection queries and WooCommerce's public product blocks; Cart and Checkout
+render the assigned page content through the Page Content Wrapper instead of
+embedding or replacing WooCommerce's canonical blocks.
+
+Theme-owned wrappers provide responsive presentation without deep selectors
+into WooCommerce or TagCore internals. Static checks reject copied commerce
+forms, direct Cart or Checkout block ownership, business identifiers, and
+unsupported internal selectors. The WordPress matrix verifies the commerce
+surfaces across the supported WordPress and WooCommerce versions, while
+Playwright covers catalog, product, add-to-cart, Cart, Checkout, local-only
+requests, accessibility, and 320px/200-percent text behavior.
+
+An independent tag-triggered workflow now assembles the exact approved Theme
+runtime allowlist as `forge-tag-v{version}.zip`, verifies the `forge-tag/`
+archive root, and produces a matching SHA-256 checksum. The workflow uploads
+Actions artifacts only. This stage does not create a tag, GitHub Release,
+deployment, Schema change, Option, route, API, email, queue, or TagCore product
+behavior; Theme version remains `0.1.0`, TagCore remains `0.4.0`, and Schema
+remains `8`.
+
 ## RT-009 risk-based CI and E2E profiles
 
 RT-009 adds fail-closed path classification and the stable `Quality Gate`

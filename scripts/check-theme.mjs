@@ -34,14 +34,19 @@ const expectedSpacing = new Map( [
 ] );
 const requiredThemeFiles = [
 	'asset-manifest.json',
+	'assets/css/commerce.css',
 	'assets/css/foundation.css',
 	'assets/css/home.css',
 	'assets/fonts/inter/Inter-Variable-Roman.woff2',
 	'assets/fonts/manrope/Manrope-Variable-Roman.woff2',
 	'assets/images/forge-logo.png',
+	'assets/images/forge-travel-lock-family.png',
 	'assets/images/product-classic-family-safe.png',
 	'assets/images/product-smart-tag.png',
 	'assets/images/product-sticker-safe.png',
+	'assets/images/review-avatars/chris-d.png',
+	'assets/images/review-avatars/daniel-k.png',
+	'assets/images/review-avatars/megan-r.png',
 	'assets/licenses/Inter-OFL-1.1.txt',
 	'assets/licenses/Lucide-ISC-and-Feather-MIT.txt',
 	'assets/licenses/Manrope-OFL-1.1.txt',
@@ -49,16 +54,23 @@ const requiredThemeFiles = [
 	'parts/footer.html',
 	'parts/header.html',
 	'patterns/home-hero.php',
+	'patterns/home-brand-story.php',
 	'patterns/home-privacy.php',
 	'patterns/home-process.php',
 	'patterns/home-products.php',
 	'patterns/home-recovery-paths.php',
+	'patterns/home-testimonials.php',
 	'patterns/home-use-cases.php',
 	'patterns/site-footer.php',
 	'patterns/site-header.php',
 	'style.css',
 	'templates/front-page.html',
 	'templates/index.html',
+	'templates/archive-product.html',
+	'templates/page-cart.html',
+	'templates/page-checkout.html',
+	'templates/page.html',
+	'templates/single-product.html',
 	'theme.json',
 ];
 const homepagePatternSlugs = [
@@ -67,8 +79,17 @@ const homepagePatternSlugs = [
 	'forge-tag/home-products',
 	'forge-tag/home-recovery-paths',
 	'forge-tag/home-use-cases',
+	'forge-tag/home-brand-story',
+	'forge-tag/home-testimonials',
 	'forge-tag/home-privacy',
 ];
+const approvedBrandStoryPatternPath = 'patterns/home-brand-story.php';
+const requiredBrandHeritagePath = 'assets/images/forge-travel-lock-family.png';
+const requiredReviewAvatarPaths = new Map( [
+	[ 'megan_r', 'assets/images/review-avatars/megan-r.png' ],
+	[ 'chris_d', 'assets/images/review-avatars/chris-d.png' ],
+	[ 'daniel_k', 'assets/images/review-avatars/daniel-k.png' ],
+] );
 const requiredProductImageRoles = new Map( [
 	[ 'sticker', 'assets/images/product-sticker-safe.png' ],
 	[ 'classic_tag', 'assets/images/product-classic-family-safe.png' ],
@@ -267,6 +288,87 @@ const checkAssets = async (
 		}
 	}
 
+	const brandHeritage = manifest.brandHeritage;
+	if (
+		brandHeritage?.runtimePath !== requiredBrandHeritagePath ||
+		brandHeritage?.sourceSha256 !== brandHeritage?.runtimeSha256 ||
+		brandHeritage?.transformation !== 'Exact byte-for-byte runtime copy' ||
+		! /user-authorized/i.test( brandHeritage?.rights ?? '' ) ||
+		! /brand owner approved/i.test( brandHeritage?.contentApproval ?? '' )
+	) {
+		failures.push( 'brand-heritage asset contract is incorrect' );
+	} else {
+		const runtime = await checkManifestFile(
+			themeRoot,
+			requiredBrandHeritagePath,
+			brandHeritage.runtimeSha256,
+			'brand-heritage image',
+			failures
+		);
+
+		if (
+			runtime &&
+			( runtime.subarray( 1, 4 ).toString( 'ascii' ) !== 'PNG' ||
+				runtime.readUInt32BE( 16 ) !== 3377 ||
+				runtime.readUInt32BE( 20 ) !== 2424 ||
+				runtime[ 25 ] !== 6 )
+		) {
+			failures.push(
+				'brand-heritage image must remain a 3377x2424 RGBA PNG'
+			);
+		}
+	}
+
+	const reviewAvatars = new Map(
+		( manifest.reviewAvatars ?? [] ).map( ( avatar ) => [
+			avatar.role,
+			avatar,
+		] )
+	);
+	if (
+		reviewAvatars.size !== requiredReviewAvatarPaths.size ||
+		[ ...reviewAvatars.keys() ].some(
+			( role ) => ! requiredReviewAvatarPaths.has( role )
+		)
+	) {
+		failures.push(
+			'asset-manifest.json must declare exactly the three reviewer avatars'
+		);
+	}
+	for ( const [ role, runtimePath ] of requiredReviewAvatarPaths ) {
+		const avatar = reviewAvatars.get( role );
+		if (
+			avatar?.runtimePath !== runtimePath ||
+			avatar?.dimensions?.width !== 256 ||
+			avatar?.dimensions?.height !== 256 ||
+			! /non-identifying illustration, not a customer photograph/i.test(
+				avatar?.source ?? ''
+			)
+		) {
+			failures.push( `${ role } reviewer avatar contract is incorrect` );
+			continue;
+		}
+
+		const runtime = await checkManifestFile(
+			themeRoot,
+			runtimePath,
+			avatar.runtimeSha256,
+			`${ role } reviewer avatar`,
+			failures
+		);
+
+		if (
+			runtime &&
+			( runtime.subarray( 1, 4 ).toString( 'ascii' ) !== 'PNG' ||
+				runtime.readUInt32BE( 16 ) !== 256 ||
+				runtime.readUInt32BE( 20 ) !== 256 )
+		) {
+			failures.push(
+				`${ role } reviewer avatar must remain a 256x256 PNG`
+			);
+		}
+	}
+
 	for ( const font of manifest.fonts ?? [] ) {
 		const runtime = await checkManifestFile(
 			themeRoot,
@@ -457,9 +559,13 @@ const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
 		if ( /https?:\/\//i.test( contents ) ) {
 			failures.push( `${ relativePath } contains a remote runtime URL` );
 		}
+		const claimContents =
+			relativePath === approvedBrandStoryPatternPath
+				? contents.replace( /millions sold|trusted travel brand/gi, '' )
+				: contents;
 		if (
 			/end[- ]to[- ]end encrypt|verified pair|pairing verified|millions sold|tsa approved|trusted travel brand|free shipping|30-day guarantee/i.test(
-				contents
+				claimContents
 			)
 		) {
 			failures.push(
@@ -493,10 +599,17 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		'utf8'
 	);
 
+	let previousPatternIndex = -1;
 	for ( const slug of homepagePatternSlugs ) {
-		if ( ! template.includes( `"slug":"${ slug }"` ) ) {
+		const patternIndex = template.indexOf( `"slug":"${ slug }"` );
+		if ( patternIndex === -1 ) {
 			failures.push( `front-page.html must include ${ slug }` );
+		} else if ( patternIndex <= previousPatternIndex ) {
+			failures.push(
+				'front-page.html homepage Pattern order is incorrect'
+			);
 		}
+		previousPatternIndex = patternIndex;
 	}
 
 	const patternFiles = [
@@ -506,6 +619,8 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		'patterns/home-products.php',
 		'patterns/home-recovery-paths.php',
 		'patterns/home-use-cases.php',
+		'patterns/home-brand-story.php',
+		'patterns/home-testimonials.php',
 		'patterns/home-privacy.php',
 		'patterns/site-footer.php',
 	];
@@ -597,8 +712,208 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		}
 	}
 
+	if ( ! contents.includes( requiredBrandHeritagePath ) ) {
+		failures.push(
+			'homepage is missing the approved brand-heritage image'
+		);
+	}
+
+	const brandStoryPattern = await readFile(
+		join( themeRoot, approvedBrandStoryPatternPath ),
+		'utf8'
+	);
+	const requiredBrandProofIcons = [
+		'assets/icons/calendar-days.svg',
+		'assets/icons/chart-no-axes-column-increasing.svg',
+		'assets/icons/shield-check.svg',
+	];
+	const requiredBrandCopy = [
+		'FROM A BRAND BUILT ON TRAVEL SECURITY',
+		'From a brand built on travel security',
+		'Since 2015, Forge has helped travelers protect what matters with TSA locks trusted by customers across Amazon and beyond.',
+		'ForgeTag brings that same security mindset to item recovery and tracking.',
+		'2015',
+		'Founded',
+		'Millions',
+		'Sold',
+		'Trusted',
+		'Travel Brand',
+	];
+	if (
+		( brandStoryPattern.match( /<h2\b/g ) ?? [] ).length !== 1 ||
+		( brandStoryPattern.match( /<ul\b/g ) ?? [] ).length !== 1 ||
+		( brandStoryPattern.match( /<li\b/g ) ?? [] ).length !== 3 ||
+		! /<p class="forge-home-brand-story__summary">/.test(
+			brandStoryPattern
+		)
+	) {
+		failures.push(
+			'homepage brand story must keep one heading, one summary, and a three-item semantic proof list'
+		);
+	}
+	for ( const icon of requiredBrandProofIcons ) {
+		if ( ! brandStoryPattern.includes( icon ) ) {
+			failures.push( `homepage brand story is missing ${ icon }` );
+		}
+	}
+	for ( const copy of requiredBrandCopy ) {
+		if ( ! brandStoryPattern.includes( copy ) ) {
+			failures.push(
+				`homepage brand story is missing owner-approved copy: ${ copy }`
+			);
+		}
+	}
+
+	const testimonialPattern = await readFile(
+		join( themeRoot, 'patterns/home-testimonials.php' ),
+		'utf8'
+	);
+	const requiredTestimonialAvatars = [
+		'assets/images/review-avatars/megan-r.png',
+		'assets/images/review-avatars/chris-d.png',
+		'assets/images/review-avatars/daniel-k.png',
+	];
+	const requiredTestimonialCopy = [
+		'Megan R.',
+		'Chris D.',
+		'Daniel K.',
+		'Setup took maybe two minutes, and the tag feels sturdy without being bulky. I also like that someone can contact me without my personal information being printed on the luggage.',
+		'The sticker is low-profile, the QR code is easy to scan, and the activation process was straightforward. Hopefully I never need it, but it gives me some extra peace of mind.',
+		'I received the message and got my bag back that evening. The process was simple, and neither of us had to post personal information publicly.',
+	];
+	if (
+		( testimonialPattern.match( /<figure\b/g ) ?? [] ).length !== 3 ||
+		( testimonialPattern.match( /<blockquote\b/g ) ?? [] ).length !== 3 ||
+		( testimonialPattern.match( /<figcaption\b/g ) ?? [] ).length !== 3 ||
+		( testimonialPattern.match( /Verified Buyer/g ) ?? [] ).length !== 3 ||
+		( testimonialPattern.match( /assets\/icons\/star\.svg/g ) ?? [] )
+			.length !== 15 ||
+		(
+			testimonialPattern.match(
+				/class="forge-home-testimonial__avatar"/g
+			) ?? []
+		).length !== 3 ||
+		( testimonialPattern.match( /role="img"/g ) ?? [] ).length !== 3
+	) {
+		failures.push(
+			'homepage testimonials must contain exactly three semantic reviews, fifteen stars, and three avatars'
+		);
+	}
+	for ( const path of requiredTestimonialAvatars ) {
+		if ( ! testimonialPattern.includes( path ) ) {
+			failures.push( `homepage testimonials are missing ${ path }` );
+		}
+	}
+	for ( const copy of requiredTestimonialCopy ) {
+		if ( ! testimonialPattern.includes( copy ) ) {
+			failures.push(
+				`homepage testimonials are missing approved content: ${ copy }`
+			);
+		}
+	}
+	if (
+		/placeholder|sample testimonial|example review|customer name|active tracking|battery dies|tracking feature|J\. Parker|carousel|swiper|pagination|autoplay|<script\b/i.test(
+			testimonialPattern
+		)
+	) {
+		failures.push(
+			'homepage testimonials contain placeholder, unsupported behavior, or unapproved Smart Tag claims'
+		);
+	}
+
 	if ( contents.includes( 'forge-home-hero--awaiting-media' ) ) {
 		failures.push( 'homepage must not retain the awaiting-media state' );
+	}
+};
+
+const checkCommerceContract = async ( themeRoot, failures ) => {
+	const templatePaths = [
+		'templates/archive-product.html',
+		'templates/single-product.html',
+		'templates/page-cart.html',
+		'templates/page-checkout.html',
+	];
+	const templates = new Map(
+		await Promise.all(
+			templatePaths.map( async ( path ) => [
+				path,
+				await readFile( join( themeRoot, path ), 'utf8' ),
+			] )
+		)
+	);
+
+	for ( const [ path, contents ] of templates ) {
+		if ( ! contents.includes( 'forge-commerce' ) ) {
+			failures.push( `${ path } must use the Theme commerce wrapper` );
+		}
+		if ( /<(?:form|iframe|input|script)\b|wp:html\b/i.test( contents ) ) {
+			failures.push( `${ path } contains forbidden custom behavior` );
+		}
+		if ( /\b(?:tag_id|owner_id|returntag_)\b/i.test( contents ) ) {
+			failures.push( `${ path } crosses the TagCore data boundary` );
+		}
+	}
+
+	const archive = templates.get( 'templates/archive-product.html' );
+	if (
+		! archive.includes( 'wp:woocommerce/product-collection ' ) ||
+		! archive.includes( '"inherit":true' ) ||
+		! archive.includes( 'wp:woocommerce/product-template' ) ||
+		! archive.includes( 'wp:query-pagination' )
+	) {
+		failures.push(
+			'archive-product.html must keep the inherited WooCommerce catalog contract'
+		);
+	}
+
+	const single = templates.get( 'templates/single-product.html' );
+	for ( const block of [
+		'woocommerce/product-image-gallery',
+		'post-title',
+		'woocommerce/product-price',
+		'post-excerpt',
+		'woocommerce/add-to-cart-form',
+		'woocommerce/product-details',
+	] ) {
+		if ( ! single.includes( `wp:${ block }` ) ) {
+			failures.push( `single-product.html is missing ${ block }` );
+		}
+	}
+
+	for ( const page of [ 'cart', 'checkout' ] ) {
+		const path = `templates/page-${ page }.html`;
+		const contents = templates.get( path );
+		if (
+			! contents.includes(
+				`wp:woocommerce/page-content-wrapper {"page":"${ page }"}`
+			) ||
+			! contents.includes( 'wp:post-content ' )
+		) {
+			failures.push(
+				`${ path } must render the assigned WooCommerce page content`
+			);
+		}
+		if (
+			new RegExp( `wp:woocommerce/${ page }(?:\\s|/)` ).test( contents )
+		) {
+			failures.push(
+				`${ path } must not replace assigned page content with a direct ${ page } block`
+			);
+		}
+	}
+
+	const commerceCss = await readFile(
+		join( themeRoot, 'assets/css/commerce.css' ),
+		'utf8'
+	);
+	if (
+		/\.wc-block-components-|\.woocommerce(?:\s|[-_.#:[>+~])/i.test(
+			commerceCss
+		)
+	) {
+		failures.push(
+			'commerce.css must not depend on WooCommerce internal selectors'
+		);
 	}
 };
 
@@ -704,6 +1019,16 @@ export const validateTheme = async ( {
 		);
 	}
 
+	try {
+		await checkCommerceContract( themeRoot, failures );
+	} catch ( error ) {
+		failures.push(
+			`Commerce contract validation failed: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
 	return { failures: [ ...new Set( failures ) ], fileCount: files.length };
 };
 
@@ -720,7 +1045,7 @@ if (
 		process.exitCode = 1;
 	} else {
 		process.stdout.write(
-			`Theme check passed: ${ result.fileCount } files, ${ iconWhitelist.length } pinned icons, two local fonts, and one approved logo.\n`
+			`Theme check passed: ${ result.fileCount } files, ${ iconWhitelist.length } pinned icons, two local fonts, one approved logo, and one approved brand-heritage image.\n`
 		);
 	}
 }

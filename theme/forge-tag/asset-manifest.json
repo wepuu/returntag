@@ -9,6 +9,51 @@
     "runtimePath": "assets/images/forge-logo.png",
     "sha256": "6e1b446ce5ca667409b6be486c451516f722e22b79d4ae3c8230c53d020fcb75"
   },
+  "brandHeritage": {
+    "name": "Forge travel-lock product family",
+    "source": "User-supplied Forge travel-lock product image approved for the homepage on 2026-08-03",
+    "rights": "User-authorized for ForgeTag website use",
+    "contentApproval": "Brand owner approved the supplied homepage effect copy and proof values for template use on 2026-08-03",
+    "sourceSha256": "d478a6b910edaa31eba99858da5886309ba5a40354e3fe14d30b16a47b064929",
+    "runtimePath": "assets/images/forge-travel-lock-family.png",
+    "runtimeSha256": "d478a6b910edaa31eba99858da5886309ba5a40354e3fe14d30b16a47b064929",
+    "transformation": "Exact byte-for-byte runtime copy"
+  },
+  "reviewAvatars": [
+    {
+      "role": "megan_r",
+      "name": "Illustrated reviewer avatar for Megan R.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/megan-r.png",
+      "runtimeSha256": "388c36d319514ecd1608affbf360a18af4abff3545406fa629d6cdef537cfab7",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    },
+    {
+      "role": "chris_d",
+      "name": "Illustrated reviewer avatar for Chris D.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/chris-d.png",
+      "runtimeSha256": "a25991568f9e6aa555f10c0db145b8114126d88990fc71e3cbee77da165c2ca1",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    },
+    {
+      "role": "daniel_k",
+      "name": "Illustrated reviewer avatar for Daniel K.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/daniel-k.png",
+      "runtimeSha256": "c79a351d467361a6eb78f67245d2b3d7a30478c77a62a524156203876b13dbf0",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    }
+  ],
   "productImages": [
     {
       "role": "sticker",
@@ -147,6 +192,21 @@
         "name": "loader-circle",
         "sourceSha256": "c91b99da8e532773010fe91d6165f73857fb42eb81dc05d05904f895c719d531",
         "runtimeSha256": "b692734d3422182e11b33bf032ba0198d71968d4e4faffb67d78b39420dcb31f"
+      },
+      {
+        "name": "calendar-days",
+        "sourceSha256": "b0614d5ba13cbd7a986386e4e1da4c443be0d0d3731a9186c61f56763a8b70e5",
+        "runtimeSha256": "3add57dd996f74dc464f7735eb645fa6b187fe5587edbd6f7ab3d418110a22cc"
+      },
+      {
+        "name": "chart-no-axes-column-increasing",
+        "sourceSha256": "7351b3fbaa29029033b79d3e81301a7610f499901d830d943a8d533b32109af6",
+        "runtimeSha256": "05364576a5187187be24aba2cb5404b9435d6edd70aec8c1d0a5bec686a27f0c"
+      },
+      {
+        "name": "star",
+        "sourceSha256": "de5a5befe984a58bf46fae21e95cf77bb2ea81d65448c13053c7cb7e5cf568e6",
+        "runtimeSha256": "bcdade02166f18328290b794f88788ed5a2a2d4f10669f322440efd328926c56"
       },
       {
         "name": "key-round",

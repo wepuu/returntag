@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-314 ForgeTag Theme Stage 3B product-media and visual-acceptance baseline; Schema remains `8`
+* Current workstream: RT-314 ForgeTag Theme Stage 4 commerce and release-contract baseline; Schema remains `8`
 
 
 
@@ -852,6 +852,34 @@ WordPress. Stage 3B changes no WooCommerce Template, Schema, Migration,
 database write, Option, route, API, Tag state, email, queue, Theme artifact,
 release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
 TagCore remains `0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 4 implementation
+
+Stage 4 establishes the WooCommerce and Theme artifact engineering baseline:
+
+- source-controlled Shop Archive, Single Product, Cart, and Checkout Block
+  Templates using WooCommerce public blocks and Theme-owned wrappers;
+- inherited Product Collection behavior for the catalog and assigned Page
+  Content Wrapper behavior for Cart and Checkout, preserving WooCommerce as
+  the source of truth for commerce state and forms;
+- responsive commerce presentation, shared brand-shell styling, local-only
+  asset loading, main-content accessibility checks, and 320px/200-percent
+  text regression coverage;
+- static checks that reject copied forms, direct Cart or Checkout block
+  ownership, TagCore/business identifiers, and WooCommerce internal selectors;
+- WordPress/WooCommerce matrix verification plus browser coverage for catalog,
+  product, add-to-cart, Cart, and Checkout rendering;
+- tag-triggered Theme artifact automation that validates the Theme version and
+  exact runtime allowlist, creates a `forge-tag/`-rooted ZIP and SHA-256
+  checksum, and uploads Actions artifacts without publishing a GitHub Release
+  or deploying them.
+
+Stage 4 creates no Git tag, ZIP in the repository, GitHub Release, deployment,
+Schema, Migration, database write, product-state rule, TagCore route, API,
+email, queue, or personal-data flow. Theme version remains `0.1.0`, TagCore
+remains `0.4.0`, and Schema remains `8`. WooCommerce templates remain an
+engineering/responsive baseline and do not imply final commercial copy or
+page-level visual approval.
 
 ## RT-009 risk-based CI and E2E optimization
 

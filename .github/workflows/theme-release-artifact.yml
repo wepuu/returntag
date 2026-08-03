@@ -1,0 +1,68 @@
+name: Theme release artifact
+
+on:
+  push:
+    tags:
+      - 'forge-tag-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build immutable ForgeTag ZIP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Theme source
+        run: npm run check:theme
+
+      - name: Assemble Theme runtime directory
+        shell: bash
+        run: |
+          mkdir -p artifacts/forge-tag
+          cp theme/forge-tag/asset-manifest.json artifacts/forge-tag/
+          cp theme/forge-tag/functions.php artifacts/forge-tag/
+          cp theme/forge-tag/style.css artifacts/forge-tag/
+          cp theme/forge-tag/theme.json artifacts/forge-tag/
+          cp -R theme/forge-tag/assets artifacts/forge-tag/
+          cp -R theme/forge-tag/parts artifacts/forge-tag/
+          cp -R theme/forge-tag/patterns artifacts/forge-tag/
+          cp -R theme/forge-tag/templates artifacts/forge-tag/
+
+      - name: Validate tag and runtime allowlist
+        shell: bash
+        run: node scripts/check-theme-artifact.mjs --theme-root artifacts/forge-tag --tag "$GITHUB_REF_NAME"
+
+      - name: Create ZIP and checksum
+        working-directory: artifacts
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#forge-tag-v}"
+          zip -q -r "forge-tag-v${version}.zip" forge-tag
+          unzip -Z1 "forge-tag-v${version}.zip" | awk 'index($0, "forge-tag/") != 1 { exit 1 }'
+          sha256sum "forge-tag-v${version}.zip" > "forge-tag-v${version}.zip.sha256"
+          sha256sum --check "forge-tag-v${version}.zip.sha256"
+          echo "FORGE_TAG_VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Upload immutable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-tag-v${{ env.FORGE_TAG_VERSION }}
+          path: |
+            artifacts/forge-tag-v${{ env.FORGE_TAG_VERSION }}.zip
+            artifacts/forge-tag-v${{ env.FORGE_TAG_VERSION }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 90
+

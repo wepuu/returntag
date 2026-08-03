@@ -1,0 +1,64 @@
+/*
+ * RT-314 Stage 4 WooCommerce presentation baseline.
+ * Keep styling on Theme-owned wrappers and public Block surfaces.
+ */
+
+.forge-commerce {
+	min-block-size: 60vh;
+	padding-block: clamp(2.5rem, 6vw, 6rem);
+	overflow-wrap: anywhere;
+}
+
+.forge-commerce__catalog-toolbar {
+	gap: var(--wp--preset--spacing--md);
+	margin-block: var(--wp--preset--spacing--xl);
+}
+
+.forge-commerce__catalog-toolbar > * {
+	min-inline-size: 0;
+	max-inline-size: 100%;
+}
+
+.forge-commerce__catalog-toolbar form,
+.forge-commerce__catalog-toolbar select {
+	max-inline-size: 100%;
+}
+
+.forge-commerce__product-layout {
+	align-items: flex-start;
+	gap: clamp(2rem, 6vw, 6rem);
+}
+
+.forge-commerce__product-summary {
+	min-width: 0;
+}
+
+.forge-commerce__product-summary > * {
+	margin-inline: 0;
+}
+
+.forge-commerce--product > .wp-block-woocommerce-product-details {
+	margin-top: clamp(3rem, 7vw, 6rem);
+}
+
+@media (max-width: 47.999rem) {
+
+	.forge-commerce {
+		padding-block: var(--wp--preset--spacing--2xl);
+	}
+
+	.forge-commerce__catalog-toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.forge-commerce__catalog-toolbar > *,
+	.forge-commerce__catalog-toolbar form,
+	.forge-commerce__catalog-toolbar select {
+		inline-size: 100%;
+	}
+
+	.forge-commerce__product-layout {
+		gap: var(--wp--preset--spacing--xl);
+	}
+}

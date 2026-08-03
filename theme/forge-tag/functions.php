@@ -20,6 +20,7 @@ add_action(
 			array(
 				'assets/css/foundation.css',
 				'assets/css/home.css',
+				'assets/css/commerce.css',
 			)
 		);
 	}
@@ -37,17 +38,34 @@ add_action(
 			(string) $theme->get( 'Version' )
 		);
 
-		if ( is_front_page() ) {
-			$home_stylesheet_path    = get_theme_file_path( 'assets/css/home.css' );
-			$home_stylesheet_version = is_file( $home_stylesheet_path )
-				? (string) filemtime( $home_stylesheet_path )
+		$home_stylesheet_path    = get_theme_file_path( 'assets/css/home.css' );
+		$home_stylesheet_version = is_file( $home_stylesheet_path )
+			? (string) filemtime( $home_stylesheet_path )
+			: (string) $theme->get( 'Version' );
+
+		wp_enqueue_style(
+			'forge-tag-home',
+			get_theme_file_uri( 'assets/css/home.css' ),
+			array( 'forge-tag-foundation' ),
+			$home_stylesheet_version
+		);
+
+		$is_commerce_surface =
+			( function_exists( 'is_woocommerce' ) && is_woocommerce() ) ||
+			( function_exists( 'is_cart' ) && is_cart() ) ||
+			( function_exists( 'is_checkout' ) && is_checkout() );
+
+		if ( $is_commerce_surface ) {
+			$commerce_stylesheet_path    = get_theme_file_path( 'assets/css/commerce.css' );
+			$commerce_stylesheet_version = is_file( $commerce_stylesheet_path )
+				? (string) filemtime( $commerce_stylesheet_path )
 				: (string) $theme->get( 'Version' );
 
 			wp_enqueue_style(
-				'forge-tag-home',
-				get_theme_file_uri( 'assets/css/home.css' ),
-				array( 'forge-tag-foundation' ),
-				$home_stylesheet_version
+				'forge-tag-commerce',
+				get_theme_file_uri( 'assets/css/commerce.css' ),
+				array( 'forge-tag-home' ),
+				$commerce_stylesheet_version
 			);
 		}
 	}

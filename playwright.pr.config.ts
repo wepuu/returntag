@@ -14,7 +14,7 @@ export default defineConfig( {
 		{
 			name: 'mobile-safari',
 			testMatch:
-				/(?:public-tag-route|tag-entry|theme-homepage)\.spec\.ts/,
+				/(?:public-tag-route|tag-entry|theme-(?:commerce|homepage))\.spec\.ts/,
 			use: { ...devices[ 'iPhone 12' ] },
 		},
 	],

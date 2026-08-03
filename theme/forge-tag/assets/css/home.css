@@ -38,7 +38,12 @@
 	height: 44px;
 }
 
-.forge-site-header__inner > .wp-block-woocommerce-customer-account .wc-block-customer-account__link {
+.forge-site-header__inner > .wp-block-woocommerce-mini-cart {
+	flex: 0 0 auto;
+}
+
+.forge-site-header__inner > .wp-block-woocommerce-customer-account
+.wc-block-customer-account__link {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -372,6 +377,252 @@
 	color: var(--wp--preset--color--graphite);
 }
 
+.forge-home-brand-story {
+	background: var(--wp--preset--color--cloud);
+	overflow: clip;
+	padding-block: 0;
+}
+
+.forge-home-brand-story__layout {
+	align-items: stretch;
+	grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+	gap: 0;
+	width: 100%;
+	max-width: none;
+	min-height: clamp(36rem, 39.65vw, 50rem);
+}
+
+.forge-home-brand-story__content,
+.forge-home-brand-story__media {
+	min-width: 0;
+}
+
+.forge-home-brand-story__content {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	max-width: 43rem;
+	margin-inline: 0;
+	padding: clamp(3rem, 4.5vw, 4.5rem) clamp(2rem, 4vw, 4rem) clamp(3rem, 4.5vw, 4.5rem) clamp(2rem, 4vw, 4rem);
+}
+
+.forge-home-brand-story .forge-home-eyebrow {
+	margin-bottom: clamp(1.5rem, 2.4vw, 2.25rem);
+	font-size: clamp(0.76rem, 0.82vw, 0.95rem);
+	letter-spacing: 0.22em;
+	line-height: 1.35;
+}
+
+.forge-home-brand-story .forge-home-section-title {
+	max-width: 15ch;
+	font-size: clamp(3rem, 3.6vw, 4.5rem);
+	font-weight: 700;
+	letter-spacing: -0.035em;
+	line-height: 1.08;
+	text-wrap: balance;
+}
+
+.forge-home-brand-story__summary {
+	max-width: 42rem;
+	margin: clamp(2rem, 3vw, 2.75rem) 0 0;
+	color: var(--wp--preset--color--graphite);
+	font-size: clamp(1rem, 1.25vw, 1.25rem);
+	line-height: 1.68;
+}
+
+.forge-home-brand-story__proofs {
+	display: grid;
+	grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr) minmax(0, 1.12fr);
+	gap: 0;
+	width: 100%;
+	max-width: 42rem;
+	margin: clamp(2.5rem, 4vw, 4rem) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.forge-home-brand-story__proof {
+	box-sizing: border-box;
+	display: grid;
+	grid-template-columns: 3rem minmax(0, 1fr);
+	align-items: center;
+	gap: 0.75rem;
+	min-width: 0;
+	margin: 0;
+	padding: 0 0.625rem;
+}
+
+.forge-home-brand-story__proof:first-child {
+	padding-left: 0;
+}
+
+.forge-home-brand-story__proof + .forge-home-brand-story__proof {
+	border-left: 1px solid var(--wp--preset--color--line);
+}
+
+.forge-home-brand-story__proof-icon {
+	display: block;
+	width: 3rem;
+	height: 3rem;
+	filter: brightness(0) saturate(100%) invert(16%) sepia(100%) saturate(4255%) hue-rotate(351deg) brightness(94%) contrast(94%);
+}
+
+.forge-home-brand-story__proof-copy {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.forge-home-brand-story__proof-copy strong {
+	color: var(--wp--preset--color--ink);
+	font-family: var(--wp--preset--font-family--display);
+	font-size: clamp(1.4rem, 2vw, 1.75rem);
+	font-weight: 700;
+	letter-spacing: -0.025em;
+	line-height: 1.15;
+	white-space: nowrap;
+}
+
+.forge-home-brand-story__proof-copy span {
+	margin-top: var(--wp--preset--spacing--xs);
+	color: var(--wp--preset--color--graphite);
+	font-size: clamp(0.82rem, 1vw, 0.95rem);
+	line-height: 1.35;
+	white-space: nowrap;
+}
+
+.forge-home-brand-story__media {
+	display: flex;
+	align-items: flex-end;
+	align-self: end;
+	justify-content: flex-end;
+	width: calc(100% + clamp(1.5rem, 4vw, 4rem));
+	margin: 0 calc(clamp(1.5rem, 4vw, 4rem) * -1) 0 0;
+}
+
+.forge-home-brand-story__media img {
+	display: block;
+	width: 108%;
+	max-width: 68rem;
+	height: auto;
+	aspect-ratio: 3377 / 2424;
+	object-fit: contain;
+	object-position: right bottom;
+	transform: scale(1.08);
+	transform-origin: right bottom;
+}
+
+.forge-home-testimonials {
+	background: var(--wp--preset--color--cloud);
+}
+
+.forge-home-testimonials__inner > .forge-home-testimonials__title {
+	max-width: none;
+	margin-inline: auto;
+	color: var(--wp--preset--color--forge-red);
+	font-size: var(--wp--preset--font-size--eyebrow);
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	line-height: 1.3;
+	text-transform: uppercase;
+}
+
+.forge-home-testimonials__grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: clamp(0.875rem, 1.5vw, 1.5rem);
+	width: 100%;
+	max-width: none;
+	margin-top: clamp(2rem, 4vw, 3rem);
+}
+
+.forge-home-testimonial {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	height: 100%;
+	margin: 0;
+	min-height: clamp(16.5rem, 19vw, 18.5rem);
+	padding: clamp(1.25rem, 2vw, 1.75rem);
+	border: 1px solid rgb(21 23 26 / 10%);
+	border-radius: 1rem;
+	background: var(--wp--preset--color--surface);
+	box-shadow: 0 0.5rem 1.25rem rgb(21 23 26 / 6%);
+}
+
+.forge-home-testimonial__rating {
+	display: inline-flex;
+	align-items: center;
+	min-height: 1.125rem;
+	margin: 0;
+}
+
+.forge-home-testimonial__stars {
+	display: inline-flex;
+	gap: 0.2rem;
+}
+
+.forge-home-testimonial__stars img {
+	display: block;
+	width: 1.125rem;
+	height: 1.125rem;
+	margin-block-start: 0 !important;
+	filter: brightness(0) saturate(100%) invert(16%) sepia(100%) saturate(4255%) hue-rotate(351deg) brightness(94%) contrast(94%);
+}
+
+.forge-home-testimonial__quote {
+	margin: var(--wp--preset--spacing--md) 0 0;
+	padding: 0;
+	border: 0;
+}
+
+.forge-home-testimonial__quote p {
+	margin: 0;
+	color: var(--wp--preset--color--ink);
+	font-size: clamp(0.875rem, 1.15vw, 1rem);
+	line-height: 1.55;
+}
+
+.forge-home-testimonial__caption {
+	display: flex;
+	align-items: center;
+	gap: var(--wp--preset--spacing--sm);
+	width: 100%;
+	margin: auto 0 0;
+	padding-top: var(--wp--preset--spacing--lg);
+}
+
+.forge-home-testimonial__caption p {
+	margin: 0;
+}
+
+.forge-home-testimonial__name {
+	margin: 0;
+	color: var(--wp--preset--color--ink);
+	font-weight: 700;
+}
+
+.forge-home-testimonial__avatar {
+	display: block;
+	flex: 0 0 auto;
+	width: 3rem;
+	height: 3rem;
+	border: 1px solid rgb(21 23 26 / 8%);
+	border-radius: 999px;
+	object-fit: cover;
+}
+
+.forge-home-testimonial__identity {
+	min-width: 0;
+}
+
+.forge-home-testimonial__metadata {
+	margin: var(--wp--preset--spacing--2xs) 0 0;
+	color: var(--wp--preset--color--graphite);
+	font-size: 0.75rem;
+	line-height: 1.35;
+}
+
 .forge-home-privacy {
 	background: var(--wp--preset--color--ink);
 	color: var(--wp--preset--color--surface);
@@ -547,6 +798,35 @@
 	.forge-home-product:last-child p {
 		align-self: start;
 	}
+
+	.forge-home-brand-story__layout {
+		grid-template-columns: minmax(0, 1.08fr) minmax(22rem, 0.92fr);
+	}
+
+	.forge-home-brand-story .forge-home-eyebrow {
+		font-size: 0.72rem;
+		letter-spacing: 0.16em;
+	}
+
+	.forge-home-brand-story__proof {
+		grid-template-columns: minmax(0, 1fr);
+		align-content: start;
+		gap: 0.5rem;
+		padding-inline: 0.5rem;
+	}
+
+	.forge-home-brand-story__proof-icon {
+		width: 2.25rem;
+		height: 2.25rem;
+	}
+
+	.forge-home-brand-story__proof-copy strong {
+		font-size: clamp(1rem, 2vw, 1.25rem);
+	}
+
+	.forge-home-brand-story__proof-copy span {
+		font-size: 0.78rem;
+	}
 }
 
 @media (max-width: 56rem) {
@@ -561,6 +841,8 @@
 	.forge-home-products__grid,
 	.forge-home-hero__layout,
 	.forge-home-recovery__inner,
+	.forge-home-brand-story__layout,
+	.forge-home-testimonials__grid,
 	.forge-home-privacy__grid {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -662,8 +944,66 @@
 		align-items: flex-start;
 	}
 
+	.forge-home-brand-story__layout {
+		gap: 0;
+		min-height: auto;
+	}
+
+	.forge-home-brand-story__content {
+		max-width: 40rem;
+		padding: clamp(3.5rem, 10vw, 5rem) 0 var(--wp--preset--spacing--2xl);
+	}
+
+	.forge-home-brand-story__media {
+		width: 100%;
+		margin: 0;
+	}
+
+	.forge-home-brand-story__media img {
+		width: 100%;
+		max-width: 48rem;
+		margin-inline: auto;
+		transform: none;
+	}
+
 	.forge-site-footer__navigation {
 		width: 100%;
+	}
+}
+
+@media (max-width: 37.5rem) {
+
+	.forge-home-brand-story .forge-home-section-title {
+		font-size: clamp(2.5rem, 12vw, 3.4rem);
+	}
+
+	.forge-home-brand-story__summary {
+		font-size: 1rem;
+		line-height: 1.7;
+	}
+
+	.forge-home-brand-story__proofs {
+		grid-template-columns: minmax(0, 1fr);
+		margin-top: var(--wp--preset--spacing--2xl);
+	}
+
+	.forge-home-brand-story__proof {
+		grid-template-columns: 3rem minmax(0, 1fr);
+		padding: var(--wp--preset--spacing--lg) 0;
+	}
+
+	.forge-home-brand-story__proof:first-child {
+		padding-top: 0;
+	}
+
+	.forge-home-brand-story__proof + .forge-home-brand-story__proof {
+		border-top: 1px solid var(--wp--preset--color--line);
+		border-left: 0;
+	}
+
+	.forge-home-brand-story__proof-icon {
+		width: 3rem;
+		height: 3rem;
 	}
 }
 
@@ -671,12 +1011,15 @@
 
 	.forge-site-header .forge-site-header__inner {
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) auto;
-		gap: var(--wp--preset--spacing--sm);
+		grid-template-columns: minmax(0, 1fr) auto auto auto;
+		gap: var(--wp--preset--spacing--xs);
+		width: calc(100% - 32px);
 	}
 
 	.forge-site-header .forge-site-header__navigation {
-		display: none;
+		display: block;
+		grid-column: 2;
+		grid-row: 1;
 	}
 
 	.forge-site-header .forge-site-header__actions {
@@ -696,10 +1039,26 @@
 		justify-self: start;
 	}
 
+	.forge-site-header__brand .forge-tag-brand-mark {
+		max-inline-size: 100px;
+	}
+
 	.forge-site-header__inner > .wp-block-woocommerce-customer-account {
-		grid-column: 2;
+		grid-column: 3;
 		grid-row: 1;
 		justify-self: end;
+	}
+
+	.forge-site-header__inner > .wp-block-woocommerce-mini-cart {
+		grid-column: 4;
+		grid-row: 1;
+		justify-self: end;
+	}
+
+	.forge-site-header__inner:has(> .wp-block-woocommerce-mini-cart) > .forge-site-header__actions {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		justify-self: stretch;
 	}
 
 	.forge-home-hero__actions,
@@ -715,13 +1074,17 @@
 	.forge-home-section {
 		padding-block: 3rem;
 	}
+
+	.forge-home-section.forge-home-brand-story {
+		padding-block: 0;
+	}
 }
 
 @media (max-width: 22rem) {
 
-	.forge-site-header .forge-site-header__inner {
-		grid-template-columns: minmax(0, 1fr) auto;
-		row-gap: var(--wp--preset--spacing--xs);
+	.forge-site-header
+	.forge-site-header__inner:has(> .wp-block-woocommerce-mini-cart) {
+		grid-template-columns: minmax(0, 1fr) auto auto auto;
 	}
 
 	.forge-site-header .forge-site-header__brand {
@@ -730,14 +1093,28 @@
 	}
 
 	.forge-site-header__inner > .wp-block-woocommerce-customer-account {
-		grid-column: 2;
+		grid-column: 3;
+		grid-row: 1;
+	}
+
+	.forge-site-header__inner > .wp-block-woocommerce-mini-cart {
+		grid-column: 4;
 		grid-row: 1;
 	}
 
 	.forge-site-header .forge-site-header__actions {
 		grid-column: 1 / -1;
 		grid-row: 2;
-		justify-self: end;
+		align-items: stretch;
+		flex-direction: column;
+		justify-self: stretch;
+		width: 100%;
+	}
+
+	.forge-site-header__actions > *,
+	.forge-site-header__report > a,
+	.forge-site-header__activate > a {
+		width: 100%;
 	}
 }
 

@@ -46,6 +46,11 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start
 
+      - name: Activate ForgeTag Theme and open the test storefront
+        run: |
+          npx wp-env run cli wp theme activate forge-tag
+          npx wp-env run cli wp option update woocommerce_coming_soon no
+
       - name: Run full browser profile
         run: npm run test:e2e
 

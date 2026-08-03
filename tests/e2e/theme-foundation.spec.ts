@@ -187,10 +187,10 @@ test.describe( 'RT-314 ForgeTag design-system foundation', () => {
 		const button = page.getByRole( 'link', { name: 'Continue' } );
 		await expect( button ).toBeVisible();
 		expect(
-			await button.evaluate(
-				( node ) => getComputedStyle( node ).transitionDuration
+			await button.evaluate( ( node ) =>
+				parseFloat( getComputedStyle( node ).transitionDuration )
 			)
-		).toBe( '0.00001s' );
+		).toBeLessThanOrEqual( 0.00001 );
 
 		test.skip(
 			testInfo.project.name !== 'chromium',

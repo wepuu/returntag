@@ -95,7 +95,9 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		);
 		await page.goto( fixtureUrl, { waitUntil: 'domcontentloaded' } );
 
-		const trigger = page.getByRole( 'link', { name: 'Activate my tag' } );
+		const trigger = page
+			.getByRole( 'main' )
+			.getByRole( 'link', { name: 'Activate my tag' } );
 		await trigger.click();
 
 		const dialog = page.getByRole( 'dialog', {
@@ -126,6 +128,7 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		if ( testInfo.project.name.startsWith( 'mobile-' ) ) {
 			await page.goto( fixtureUrl, { waitUntil: 'domcontentloaded' } );
 			await page
+				.getByRole( 'main' )
 				.getByRole( 'link', { name: 'Report a found tag' } )
 				.click();
 			await expect( page ).toHaveURL( /\/tag\/report\/$/ );
@@ -145,6 +148,7 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 			waitUntil: 'domcontentloaded',
 		} );
 		await noScriptPage
+			.getByRole( 'main' )
 			.getByRole( 'link', { name: 'Activate my tag' } )
 			.click();
 		await expect( noScriptPage ).toHaveURL( /\/tag\/activate\/$/ );

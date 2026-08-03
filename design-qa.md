@@ -133,3 +133,93 @@ No actionable P0, P1, or P2 visual findings remain.
   compact text use-case rail avoids fabricated imagery.
 
 final result: passed
+
+---
+
+# RT-314 Homepage Detail Pass - Chrome QA
+
+- Brand proof strip: at `1440px`, `Millions`, `Trusted`, and `Travel Brand`
+  each fit their own text column with no wrapping or scroll overflow. The
+  tablet composition switches the proof items to icon-above-text while
+  preserving three columns.
+- Customer stories: three static, equal-height cards use five local red Lucide
+  stars, unchanged sentence excerpts, and local non-identifying illustrated
+  avatars. No carousel controls, pagination dots, scripts, or remote assets are
+  present.
+- Responsive review: Chrome verified `1440px`, `1024px`, `816px`, `720px`
+  effective-width, `390px`, and `320px`; document overflow and metadata
+  overflow were zero at every measured width.
+- Accessibility/runtime: review star rows have an accessible five-out-of-five
+  label while individual icons are hidden; avatar images have empty alternative
+  text because adjacent customer names identify the content. Chrome recorded no
+  page console errors.
+
+final result: passed
+
+---
+
+# RT-314 Brand Story Effect Match - Product Design QA
+
+## Evidence
+
+- Visual source: `C:\Users\admin\AppData\Local\Temp\codex-clipboard-2af81d9e-a3e6-4d1c-86bd-76090a394fbf.jpg`
+  (`6505 x 2579`, RGB), supplied and approved by the brand owner.
+- Implementation: `http://localhost:8888/`, reviewed in the user's connected
+  Chrome session.
+- Desktop capture: `brand-story-redesign-1440-final.png` at a `1440 x 900`
+  viewport. The signed-in WordPress admin toolbar is excluded from normalized
+  section comparison.
+- Side-by-side comparison: `brand-story-redesign-comparison-view.png`, with the
+  source on the left and the implementation on the right at matching section
+  proportions.
+- Responsive captures: `brand-story-redesign-816.png`,
+  `brand-story-redesign-390.png`, `brand-story-redesign-390-image.png`, and
+  `brand-story-redesign-320.png`.
+
+## Final visual review
+
+- Composition: the implementation uses the reference's flat, full-width light
+  gray banner, approximately balanced text and product-image columns, generous
+  whitespace, and bottom/right-aligned travel-lock artwork.
+- Typography: the eyebrow, two-line heading, body copy, and proof hierarchy
+  reproduce the source's scale and rhythm using the Theme's established local
+  Manrope and Inter fonts.
+- Content: the approved heading, paragraph, and all three proof values match the
+  supplied source. The proof strip is a semantic three-item list.
+- Assets: the product image is the approved local transparent lock-family
+  asset at its natural `3377 x 2424` dimensions. The proof icons are pinned
+  local Lucide assets with empty alternative text because their labels carry
+  the meaning.
+- Responsive behavior: the banner remains a two-column layout at `1440px` and
+  `816px`, changes to text-first single-column layout below `768px`, and changes
+  the proof list to divided rows below `600px`.
+- Overflow: Chrome reported zero document overflow at `1440px`, `816px`,
+  `720px`, `390px`, and `320px`. The `720px` effective CSS viewport represents
+  the `1440px` layout at 200-percent scaling; the stricter `320px` case also
+  passed without clipping.
+- Runtime and accessibility: the homepage recorded no console errors; heading
+  order, descriptive product alternative text, local asset delivery, and the
+  primary Activate URL were confirmed in the rendered DOM.
+
+## Findings and resolution history
+
+- Initial mismatch: the heading wrapped to three lines and constrained child
+  blocks did not share a common left edge. Resolved by restoring full content
+  alignment and matching the source's text-column scale.
+- Initial mismatch: the proof strip was visually compact relative to the source.
+  Resolved with larger proof values, red outline icons, and vertical desktop
+  separators that become horizontal mobile separators.
+- Initial mismatch: the travel-lock artwork was undersized in the right column.
+  Resolved with a bounded desktop scale and bottom/right alignment while
+  disabling overflow on mobile.
+- No actionable P0, P1, or P2 visual findings remain.
+
+## Deferred P3 refinements
+
+- The closest pinned Lucide icons intentionally differ in small glyph details
+  from the source's custom calendar, chart, and shield artwork.
+- Chrome automation did not expose a reliable browser-chrome zoom percentage;
+  the review therefore used the equivalent `720px` CSS viewport plus the
+  stricter `320px` viewport rather than claiming a measured toolbar zoom state.
+
+final result: passed
