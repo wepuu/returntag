@@ -1,0 +1,378 @@
+{
+  "$schema": "https://schemas.wp.org/wp/6.9/theme.json",
+  "version": 3,
+  "settings": {
+    "color": {
+      "custom": false,
+      "customDuotone": false,
+      "customGradient": false,
+      "defaultDuotone": false,
+      "defaultGradients": false,
+      "defaultPalette": false,
+      "palette": [
+        {
+          "color": "#DC1117",
+          "name": "Forge Red",
+          "slug": "forge-red"
+        },
+        {
+          "color": "#B90D13",
+          "name": "Red Hover",
+          "slug": "forge-red-hover"
+        },
+        {
+          "color": "#15171A",
+          "name": "Ink",
+          "slug": "ink"
+        },
+        {
+          "color": "#4F555E",
+          "name": "Graphite",
+          "slug": "graphite"
+        },
+        {
+          "color": "#F4F5F7",
+          "name": "Cloud",
+          "slug": "cloud"
+        },
+        {
+          "color": "#FFFFFF",
+          "name": "Surface",
+          "slug": "surface"
+        },
+        {
+          "color": "#D9DDE3",
+          "name": "Line",
+          "slug": "line"
+        },
+        {
+          "color": "#FFFFFF",
+          "name": "Focus Inner",
+          "slug": "focus-inner"
+        },
+        {
+          "color": "#15171A",
+          "name": "Focus Outer",
+          "slug": "focus-outer"
+        }
+      ]
+    },
+    "custom": {
+      "forge": {
+        "layout": {
+          "gutter": "clamp(1.25rem, 4vw, 4rem)"
+        },
+        "motion": {
+          "duration": {
+            "control": "180ms",
+            "dialog": "240ms"
+          },
+          "easing": "cubic-bezier(.2, .8, .2, 1)"
+        },
+        "radius": {
+          "control": "8px",
+          "card": "16px",
+          "media": "24px",
+          "modal": "24px",
+          "pill": "999px"
+        }
+      }
+    },
+    "layout": {
+      "contentSize": "48rem",
+      "wideSize": "90rem"
+    },
+    "shadow": {
+      "defaultPresets": false,
+      "presets": [
+        {
+          "name": "Card",
+          "shadow": "0 8px 24px rgb(21 23 26 / 7%)",
+          "slug": "card"
+        },
+        {
+          "name": "Modal",
+          "shadow": "0 24px 72px rgb(15 15 15 / 20%)",
+          "slug": "modal"
+        }
+      ]
+    },
+    "spacing": {
+      "blockGap": true,
+      "customSpacingSize": false,
+      "defaultSpacingSizes": false,
+      "spacingScale": {
+        "steps": 0
+      },
+      "spacingSizes": [
+        {
+          "name": "2X Small",
+          "size": "4px",
+          "slug": "2xs"
+        },
+        {
+          "name": "X Small",
+          "size": "8px",
+          "slug": "xs"
+        },
+        {
+          "name": "Small",
+          "size": "12px",
+          "slug": "sm"
+        },
+        {
+          "name": "Medium",
+          "size": "16px",
+          "slug": "md"
+        },
+        {
+          "name": "Large",
+          "size": "24px",
+          "slug": "lg"
+        },
+        {
+          "name": "X Large",
+          "size": "32px",
+          "slug": "xl"
+        },
+        {
+          "name": "2X Large",
+          "size": "48px",
+          "slug": "2xl"
+        },
+        {
+          "name": "3X Large",
+          "size": "64px",
+          "slug": "3xl"
+        },
+        {
+          "name": "4X Large",
+          "size": "96px",
+          "slug": "4xl"
+        },
+        {
+          "name": "5X Large",
+          "size": "128px",
+          "slug": "5xl"
+        }
+      ],
+      "units": ["px", "rem", "%"]
+    },
+    "typography": {
+      "customFontSize": false,
+      "defaultFontSizes": false,
+      "fluid": true,
+      "fontFamilies": [
+        {
+          "fontFace": [
+            {
+              "fontDisplay": "swap",
+              "fontFamily": "Manrope",
+              "fontStretch": "normal",
+              "fontStyle": "normal",
+              "fontWeight": "200 800",
+              "src": [
+                "file:./assets/fonts/manrope/Manrope-Variable-Roman.woff2"
+              ]
+            }
+          ],
+          "fontFamily": "\"Manrope\", \"Arial\", sans-serif",
+          "name": "Display",
+          "slug": "display"
+        },
+        {
+          "fontFace": [
+            {
+              "fontDisplay": "swap",
+              "fontFamily": "Inter",
+              "fontStretch": "normal",
+              "fontStyle": "normal",
+              "fontWeight": "100 900",
+              "src": ["file:./assets/fonts/inter/Inter-Variable-Roman.woff2"]
+            }
+          ],
+          "fontFamily": "\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+          "name": "Body and UI",
+          "slug": "body"
+        }
+      ],
+      "fontSizes": [
+        {
+          "name": "Display",
+          "size": "clamp(2.75rem, 5vw, 4.5rem)",
+          "slug": "display"
+        },
+        {
+          "name": "Title X Large",
+          "size": "clamp(2.5rem, 4vw, 4rem)",
+          "slug": "title-xl"
+        },
+        {
+          "name": "Title Large",
+          "size": "clamp(2rem, 3vw, 2.75rem)",
+          "slug": "title-lg"
+        },
+        {
+          "name": "Title Medium",
+          "size": "clamp(1.25rem, 2vw, 1.5rem)",
+          "slug": "title-md"
+        },
+        {
+          "name": "Body Large",
+          "size": "1.125rem",
+          "slug": "body-lg"
+        },
+        {
+          "name": "Body",
+          "size": "1rem",
+          "slug": "body"
+        },
+        {
+          "name": "Label",
+          "size": "1rem",
+          "slug": "label"
+        },
+        {
+          "name": "Small",
+          "size": "0.875rem",
+          "slug": "small"
+        },
+        {
+          "name": "Eyebrow",
+          "size": "0.75rem",
+          "slug": "eyebrow"
+        }
+      ]
+    },
+    "useRootPaddingAwareAlignments": true
+  },
+  "styles": {
+    "color": {
+      "background": "var:preset|color|surface",
+      "text": "var:preset|color|ink"
+    },
+    "elements": {
+      "button": {
+        "border": {
+          "color": "var:preset|color|forge-red",
+          "radius": "var:custom|forge|radius|control",
+          "style": "solid",
+          "width": "2px"
+        },
+        "color": {
+          "background": "var:preset|color|forge-red",
+          "text": "var:preset|color|surface"
+        },
+        "spacing": {
+          "padding": {
+            "bottom": "var:preset|spacing|sm",
+            "left": "var:preset|spacing|lg",
+            "right": "var:preset|spacing|lg",
+            "top": "var:preset|spacing|sm"
+          }
+        },
+        "typography": {
+          "fontFamily": "var:preset|font-family|body",
+          "fontSize": "var:preset|font-size|label",
+          "fontWeight": "700",
+          "lineHeight": "1.35",
+          "textDecoration": "none"
+        }
+      },
+      "h1": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|display",
+          "fontSize": "var:preset|font-size|title-xl",
+          "fontWeight": "800",
+          "letterSpacing": "-0.035em",
+          "lineHeight": "1.08"
+        }
+      },
+      "h2": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|display",
+          "fontSize": "var:preset|font-size|title-lg",
+          "fontWeight": "750",
+          "letterSpacing": "-0.03em",
+          "lineHeight": "1.12"
+        }
+      },
+      "h3": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|display",
+          "fontSize": "var:preset|font-size|title-md",
+          "fontWeight": "700",
+          "letterSpacing": "-0.02em",
+          "lineHeight": "1.25"
+        }
+      },
+      "heading": {
+        "color": {
+          "text": "var:preset|color|ink"
+        },
+        "typography": {
+          "fontFamily": "var:preset|font-family|display"
+        }
+      },
+      "link": {
+        "color": {
+          "text": "var:preset|color|ink"
+        },
+        "typography": {
+          "textDecoration": "underline"
+        }
+      }
+    },
+    "spacing": {
+      "blockGap": "var:preset|spacing|md",
+      "padding": {
+        "bottom": "0",
+        "left": "var:custom|forge|layout|gutter",
+        "right": "var:custom|forge|layout|gutter",
+        "top": "0"
+      }
+    },
+    "typography": {
+      "fontFamily": "var:preset|font-family|body",
+      "fontSize": "var:preset|font-size|body",
+      "fontWeight": "400",
+      "lineHeight": "1.55"
+    },
+    "blocks": {
+      "core/navigation": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|body",
+          "fontSize": "var:preset|font-size|label",
+          "fontWeight": "650"
+        }
+      },
+      "core/post-excerpt": {
+        "color": {
+          "text": "var:preset|color|graphite"
+        },
+        "typography": {
+          "lineHeight": "1.6"
+        }
+      },
+      "core/site-title": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|display",
+          "fontWeight": "800",
+          "letterSpacing": "-0.035em"
+        }
+      }
+    }
+  },
+  "templateParts": [
+    {
+      "area": "header",
+      "name": "header",
+      "title": "Header"
+    },
+    {
+      "area": "footer",
+      "name": "footer",
+      "title": "Footer"
+    }
+  ]
+}

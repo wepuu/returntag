@@ -235,6 +235,7 @@ export record, or Event is deleted or reused.
 |   |-- composer.json            Plugin runtime and PHP development dependencies
 |   |-- tagcore.php              Minimal plugin bootstrap
 |   `-- uninstall.php            Guarded, non-destructive uninstaller
+|-- theme/forge-tag/             Source-controlled ForgeTag Block Theme
 |-- tests/                       JavaScript unit and Playwright tests
 |-- package.json                 Node build, environment, and browser-test commands
 |-- .wp-env.json                 WordPress 7.0.2/PHP 8.4/WooCommerce 10 environment
@@ -306,13 +307,13 @@ Pull requests use risk-based routing with a stable `Quality Gate` result:
 - documentation-only changes run Markdown relative-link checks, the RT-313
   design-asset manifest validation, a tracked-text secret scan, and the final
   gate without installing Composer, npm, wp-env, or Playwright dependencies;
-- TagCore, JavaScript, or future Theme runtime changes run PHP 8.3/8.4/8.5,
+- TagCore, JavaScript, or Theme runtime changes run PHP 8.3/8.4/8.5,
   JavaScript, four WordPress/WooCommerce integration environments, and the
-  21-test PR browser profile;
+  bounded desktop-Chromium and Mobile-Safari PR browser profile;
 - Migration, Persistence, Repository, and integration-test changes add the
   MariaDB 10.11 and MySQL 8.0 compatibility matrix;
 - workflow, Playwright, wp-env, lock-file, classifier, or unknown-path changes
-  fail closed to the complete quality matrix and 70-test browser profile.
+  fail closed to the complete quality matrix and five-project browser profile.
 
 The PR browser profile runs all 14 tests in desktop Chromium and the seven
 public Tag route/manual-entry tests in Mobile Safari. The complete five-project
@@ -510,9 +511,127 @@ currently approved for direct production use, subject to its documented
 light-surface and display-size limits. The remaining supplied images are
 reference-only and must not be copied into Theme runtime assets or templates.
 
-This baseline does not create the Theme. RT-314 remains a separately
-authorized work item and requires licensed typography and icon assets plus
-approved product photography before final visual acceptance.
+This baseline did not create the Theme. RT-314 was subsequently authorized as
+a separate work item. Stage 2 below now locks the licensed typography and icon
+baseline; approved product photography remains required before final visual
+acceptance.
+
+## RT-314 ForgeTag Theme Stage 1
+
+RT-314 Stage 1 creates the independently versioned `theme/forge-tag/` Block
+Theme engineering skeleton with Text Domain `forge-tag` and Theme version
+`0.1.0`. The minimum source-controlled baseline contains `style.css`,
+`theme.json` version 3, a narrow translation bootstrap, Header and Footer
+Template Parts, and the required `templates/index.html` fallback.
+
+The ForgeTag Theme release contract is independent from TagCore: approved
+Theme tags use `forge-tag-v{version}`, immutable artifacts use
+`forge-tag-v{version}.zip` with `forge-tag/` at the archive root, and every ZIP
+requires a SHA-256 checksum. Stage 1 defines and version-checks this contract;
+it does not create packaging automation, a tag, an artifact, a release, or a
+deployment. Design tokens, approved runtime assets, fonts, icons, homepage
+Patterns, TagCore entry integration, WooCommerce templates, and final visual
+acceptance remain later RT-314 stages.
+
+## RT-314 ForgeTag Theme Stage 2
+
+RT-314 Stage 2 implements the approved design-system foundation without adding
+page-specific product behavior. `theme.json` now exposes the controlled color,
+typography, spacing, radius, shadow, motion, and layout tokens; frontend and
+editor surfaces share the scoped `assets/css/foundation.css` interaction and
+accessibility rules.
+
+The Theme vendors the approved ForgeTag logo, local Manrope and Inter variable
+fonts, and the exact 17-icon Lucide allowlist. Versions, licenses,
+transformations, and SHA-256 values are recorded in
+`theme/forge-tag/asset-manifest.json` and enforced by `npm run check:theme`.
+WordPress matrix checks activate the Theme, verify its identity, and confirm
+the brand shell still responds when WooCommerce is disabled. Stage 2 adds no
+homepage Pattern, commerce Template, TagCore entry placement, product logic,
+Schema, database write, Option, route, email, queue, release artifact, tag, or
+deployment.
+
+## RT-314 ForgeTag Theme Stage 3A
+
+RT-314 Stage 3A adds the source-controlled homepage shell without moving
+product behavior into the Theme. The front-page Template composes reusable
+Header, Footer, Hero, Return Route, product-family, recovery-path, use-case,
+and privacy Patterns. Activate and Report actions are rendered only through
+the `tagcore/tag-entry-link` dynamic block; Report uses the plugin-owned
+`secondary` Block Style and the Theme does not reproduce Tag ID forms or
+hard-code TagCore paths.
+
+The engineering baseline is mobile-first, keyboard accessible, translatable,
+and remains useful when WooCommerce is unavailable. It uses the approved logo,
+local fonts, and Lucide allowlist only. Approved production product
+photography is still required before Stage 3B visual acceptance; the
+reference-only RT-313 images are not runtime assets. Stage 3A changes no
+Schema, database data, Option, product API, Tag state, email, queue, artifact,
+release tag, or deployment.
+
+## RT-314 ForgeTag Theme Stage 3B
+
+RT-314 Stage 3B adds user-confirmed official source photography for Sticker,
+Classic Tag, and Smart Tag to the homepage presentation. The original design
+files remain unchanged under `docs/design/`; the Theme loads only independent,
+SHA-256-pinned runtime copies or safety derivatives from
+`theme/forge-tag/assets/images/`.
+
+The Sticker derivative removes every supplied QR code, obsolete domain, and
+Tag ID. The Classic Tag derivative is a front-only family composition derived
+from the three supplied Classic Tag photographs, so no reverse-side QR code,
+obsolete domain, or Tag ID is exposed. The Smart Tag runtime file is an exact
+copy of the supplied official image; visible model artwork is not treated as
+an approved product name in public copy or Alt text. Stage 3B changes no
+Schema, database data, Option, product API, Tag state, email, queue, artifact,
+release tag, or deployment.
+
+## RT-314 ForgeTag Theme Stage 4
+
+RT-314 Stage 4 adds the WooCommerce Block Theme engineering baseline for Shop
+Archive, Single Product, Cart, and Checkout. The Theme uses inherited Product
+Collection queries and WooCommerce's public product blocks; Cart and Checkout
+render the assigned page content through the Page Content Wrapper instead of
+embedding or replacing WooCommerce's canonical blocks.
+
+Theme-owned wrappers provide responsive presentation without deep selectors
+into WooCommerce or TagCore internals. Static checks reject copied commerce
+forms, direct Cart or Checkout block ownership, business identifiers, and
+unsupported internal selectors. The WordPress matrix verifies the commerce
+surfaces across the supported WordPress and WooCommerce versions, while
+Playwright covers catalog, product, add-to-cart, Cart, Checkout, local-only
+requests, accessibility, and 320px/200-percent text behavior.
+
+An independent tag-triggered workflow now assembles the exact approved Theme
+runtime allowlist as `forge-tag-v{version}.zip`, verifies the `forge-tag/`
+archive root, and produces a matching SHA-256 checksum. The workflow uploads
+Actions artifacts only. This stage does not create a tag, GitHub Release,
+deployment, Schema change, Option, route, API, email, queue, or TagCore product
+behavior; Theme version remains `0.1.0`, TagCore remains `0.4.0`, and Schema
+remains `8`.
+
+## RT-314 ForgeTag Theme Stage 5
+
+RT-314 Stage 5 closes the production integration seam between the replaceable
+ForgeTag Theme and the existing RT-312 TagCore entry adapter. The Theme keeps
+exactly two Activate and two Report placements through the server-rendered
+`tagcore/tag-entry-link` block; TagCore continues to own same-site URL
+generation, the desktop dialog, the mobile and no-JavaScript standalone pages,
+Tag ID normalization, rate limiting, canonical routing, state resolution, and
+privacy controls.
+
+Static checks now reject hard-coded TagCore paths, copied Tag ID forms, and
+dependencies on TagCore DOM internals anywhere in Theme runtime files. PHP and
+browser regression verifies isolated multi-instance dialogs, the exact 768px
+progressive-enhancement boundary, Script Module failure fallback, and ordinary
+same-site links. The WordPress matrix additionally proves that entry remains
+usable without WooCommerce, canonical TagCore routes survive a Theme change,
+and the ForgeTag brand shell fails safely when TagCore is unavailable.
+
+Stage 5 adds no product workflow, API, Schema, Migration, database write,
+Option, dependency, lock-file change, email, queue, release tag, GitHub Release,
+or deployment. Theme version remains `0.1.0`, TagCore remains `0.4.0`, and
+Schema remains `8`.
 
 ## RT-009 risk-based CI and E2E profiles
 
@@ -521,10 +640,11 @@ result. Documentation-only changes run documentation, design-manifest, and
 tracked-text secret checks; runtime and database-sensitive changes add the
 applicable PHP, JavaScript, WordPress, database, and browser matrices.
 
-Pull requests use the bounded 21-test browser profile unless the changed paths
-require the full 70-test, five-project regression. The complete suite also
-runs daily and by manual dispatch. RT-009 changes CI, tests, and documentation
-only; project and plugin version remain `0.4.0` and Schema remains `8`.
+Pull requests use the bounded desktop-Chromium and Mobile-Safari browser
+profile unless the changed paths require the full five-project regression.
+The complete suite also runs daily and by manual dispatch. RT-009 changes CI,
+tests, and documentation only; project and plugin version remain `0.4.0` and
+Schema remains `8`.
 
 The protected `main` branch requires pull requests and the exact
 `Quality Gate` check, applies protection to administrators, and disallows

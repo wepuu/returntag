@@ -157,11 +157,46 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start ${{ matrix.config }}
 
-      - name: Enable WooCommerce HPOS
-        run: npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_custom_orders_table_enabled yes
-
       - name: Run WordPress integration tests
         run: npx wp-env run ${{ matrix.config }} tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration
+
+      - name: Activate plugins and verify ForgeTag Theme
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore woocommerce
+          npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
+          npx wp-env run ${{ matrix.config }} tests-cli wp rewrite structure '/%postname%/' --hard
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$theme = wp_get_theme(); if (get_stylesheet() !== "forge-tag" || $theme->get("Version") !== "0.1.0" || $theme->get("TextDomain") !== "forge-tag") { WP_CLI::error("ForgeTag Theme identity contract failed."); }'
+
+      - name: Enable WooCommerce HPOS
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_custom_orders_table_enabled yes
+          npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_coming_soon no
+
+      - name: Verify ForgeTag commerce template resolution
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$templates = array("archive-product" => "forge-commerce--catalog", "page-cart" => "forge-commerce--cart", "page-checkout" => "forge-commerce--checkout"); foreach ($templates as $slug => $marker) { $template = get_block_template(get_stylesheet() . "//" . $slug, "wp_template"); if (!$template instanceof WP_Block_Template || !str_contains($template->content, $marker)) { WP_CLI::error("ForgeTag {$slug} Template resolution contract failed."); } }'
+
+      - name: Verify the ForgeTag and TagCore entry contract
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$block = WP_Block_Type_Registry::get_instance()->get_registered("tagcore/tag-entry-link"); if (!$block) { WP_CLI::error("TagCore entry block is not registered."); }'
+          node scripts/check-wp-env-runtime.mjs entry
+
+      - name: Verify TagCore entry without WooCommerce
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin deactivate woocommerce
+          node scripts/check-wp-env-runtime.mjs without-woocommerce
+
+      - name: Verify TagCore routes with a replacement Theme
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp theme activate twentytwentyfive
+          node scripts/check-wp-env-runtime.mjs replacement-theme
+
+      - name: Verify the brand shell fails safely without TagCore
+        run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin deactivate tagcore
+          node scripts/check-wp-env-runtime.mjs without-tagcore
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore
 
       - name: Stop WordPress
         if: always()
@@ -272,6 +307,11 @@ jobs:
 
       - name: Start WordPress
         run: npx wp-env start
+
+      - name: Activate ForgeTag Theme
+        run: |
+          npx wp-env run cli wp theme activate forge-tag
+          npx wp-env run cli wp option update woocommerce_coming_soon no
 
       - name: Run PR browser profile
         if: needs.classify.outputs.full_e2e != 'true'

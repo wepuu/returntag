@@ -4,15 +4,21 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = dirname( dirname( fileURLToPath( import.meta.url ) ) );
 const expectedVersion = '0.4.0';
+const expectedThemeVersion = '0.1.0';
 
 const readJson = async ( path ) =>
 	JSON.parse( await readFile( join( repositoryRoot, path ), 'utf8' ) );
 
-const [ packageJson, packageLock, bootstrap ] = await Promise.all( [
-	readJson( 'package.json' ),
-	readJson( 'package-lock.json' ),
-	readFile( join( repositoryRoot, 'plugin/tagcore/tagcore.php' ), 'utf8' ),
-] );
+const [ packageJson, packageLock, bootstrap, themeStylesheet ] =
+	await Promise.all( [
+		readJson( 'package.json' ),
+		readJson( 'package-lock.json' ),
+		readFile(
+			join( repositoryRoot, 'plugin/tagcore/tagcore.php' ),
+			'utf8'
+		),
+		readFile( join( repositoryRoot, 'theme/forge-tag/style.css' ), 'utf8' ),
+	] );
 
 const versions = new Map( [
 	[ 'package.json', packageJson.version ],
@@ -34,18 +40,31 @@ const mismatches = [ ...versions ].filter(
 	( [ , version ] ) => version !== expectedVersion
 );
 
-if ( mismatches.length > 0 ) {
-	for ( const [ source, version ] of mismatches ) {
+const themeVersions = new Map( [
+	[
+		'ForgeTag theme header',
+		themeStylesheet.match( /^Version:\s+(\S+)\s*$/m )?.[ 1 ],
+	],
+] );
+
+const themeMismatches = [ ...themeVersions ].filter(
+	( [ , version ] ) => version !== expectedThemeVersion
+);
+
+if ( mismatches.length > 0 || themeMismatches.length > 0 ) {
+	for ( const [ source, version ] of [ ...mismatches, ...themeMismatches ] ) {
 		process.stderr.write(
-			`${ source } declares ${ String(
-				version
-			) }; expected ${ expectedVersion }.\n`
+			`${ source } declares ${ String( version ) }; expected ${
+				themeVersions.has( source )
+					? expectedThemeVersion
+					: expectedVersion
+			}.\n`
 		);
 	}
 
 	process.exitCode = 1;
 } else {
 	process.stdout.write(
-		`Release metadata consistently declares ${ expectedVersion }.\n`
+		`Release metadata consistently declares TagCore ${ expectedVersion } and ForgeTag Theme ${ expectedThemeVersion }.\n`
 	);
 }

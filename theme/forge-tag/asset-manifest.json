@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "themeVersion": "0.1.0",
+  "baselineDate": "2026-08-01",
+  "brand": {
+    "name": "ForgeTag approved logo",
+    "source": "RT-313 production-approved brand asset",
+    "sourceCommit": "50f593c",
+    "runtimePath": "assets/images/forge-logo.png",
+    "sha256": "6e1b446ce5ca667409b6be486c451516f722e22b79d4ae3c8230c53d020fcb75"
+  },
+  "brandHeritage": {
+    "name": "Forge travel-lock product family",
+    "source": "User-supplied Forge travel-lock product image approved for the homepage on 2026-08-03",
+    "rights": "User-authorized for ForgeTag website use",
+    "contentApproval": "Brand owner approved the supplied homepage effect copy and proof values for template use on 2026-08-03",
+    "sourceSha256": "d478a6b910edaa31eba99858da5886309ba5a40354e3fe14d30b16a47b064929",
+    "runtimePath": "assets/images/forge-travel-lock-family.png",
+    "runtimeSha256": "d478a6b910edaa31eba99858da5886309ba5a40354e3fe14d30b16a47b064929",
+    "transformation": "Exact byte-for-byte runtime copy"
+  },
+  "reviewAvatars": [
+    {
+      "role": "megan_r",
+      "name": "Illustrated reviewer avatar for Megan R.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/megan-r.png",
+      "runtimeSha256": "388c36d319514ecd1608affbf360a18af4abff3545406fa629d6cdef537cfab7",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    },
+    {
+      "role": "chris_d",
+      "name": "Illustrated reviewer avatar for Chris D.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/chris-d.png",
+      "runtimeSha256": "a25991568f9e6aa555f10c0db145b8114126d88990fc71e3cbee77da165c2ca1",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    },
+    {
+      "role": "daniel_k",
+      "name": "Illustrated reviewer avatar for Daniel K.",
+      "source": "Built-in image generation on 2026-08-03; non-identifying illustration, not a customer photograph",
+      "runtimePath": "assets/images/review-avatars/daniel-k.png",
+      "runtimeSha256": "c79a351d467361a6eb78f67245d2b3d7a30478c77a62a524156203876b13dbf0",
+      "dimensions": {
+        "width": 256,
+        "height": 256
+      }
+    }
+  ],
+  "productImages": [
+    {
+      "role": "sticker",
+      "name": "ForgeTag Sticker product sheet",
+      "source": "User-confirmed official Sticker product photography; safety derivative approved 2026-08-02",
+      "sourceSha256": "f2d06056743e867e08005c39f5dc25602e0fd7441ae844cb02e0917b3bb28f46",
+      "runtimePath": "assets/images/product-sticker-safe.png",
+      "runtimeSha256": "3ac2d2f5ced3ad8c83b92ddf55b2fef2117d972bdaa7700fc3b877c2eb08595f",
+      "transformation": "Image-generation edit removes every QR code, legacy domain, and Tag ID without adding a replacement code or product claim"
+    },
+    {
+      "role": "classic_tag",
+      "name": "ForgeTag Classic Tag product family",
+      "source": "User-confirmed official Classic Tag photography; safety derivative approved 2026-08-02",
+      "sourceSha256": [
+        "167d3de4f5cfd1dbe828233bd8206f6a7865f494761f4b94ac34b441052512ce",
+        "ecdc51109865b97292cce485afa2218ef5fd0c7e4b36d573f2fb4397f5f31684",
+        "83233160923222f77bfa83198003a5b20d2b829efba1a16c5cff1eb46bef3550"
+      ],
+      "runtimePath": "assets/images/product-classic-family-safe.png",
+      "runtimeSha256": "919d69ba993c88d5dc9d2cec06b22f8b6b03797219f0815b841592242e5deec7",
+      "transformation": "Image-generation composition uses only product fronts and removes reverse-side QR codes, legacy domains, and Tag IDs"
+    },
+    {
+      "role": "smart_tag",
+      "name": "ForgeTag Smart Tag product",
+      "source": "User-confirmed official Smart Tag product photography approved 2026-08-02",
+      "sourceSha256": "a24308f09992bcd1ee13fadf703fa3911cb9d5840887230c3eb8bae186d9936e",
+      "runtimePath": "assets/images/product-smart-tag.png",
+      "runtimeSha256": "a24308f09992bcd1ee13fadf703fa3911cb9d5840887230c3eb8bae186d9936e",
+      "transformation": "Exact byte-for-byte runtime copy; visible model artwork is not used as an approved public model name"
+    }
+  ],
+  "fonts": [
+    {
+      "family": "Manrope",
+      "version": "git-fb629caaa15ad25c051089c98f09cf6c8e30a86b",
+      "sourceUrl": "https://github.com/google/fonts/raw/fb629caaa15ad25c051089c98f09cf6c8e30a86b/ofl/manrope/Manrope%5Bwght%5D.ttf",
+      "sourceSha256": "d0639be45d0af36e798172419d7bd173c4bd4f29e2b76cbb69db1d11bf8b0a40",
+      "runtimePath": "assets/fonts/manrope/Manrope-Variable-Roman.woff2",
+      "runtimeSha256": "1d5dcc36fb8036f8c5d04c0b6317c9ee8a729be46feeb1fee74f6517282586ba",
+      "conversion": "FontTools 4.63.0 with Brotli 1.1.0; flavor changed from TTF to WOFF2 without subsetting",
+      "axes": {
+        "wght": "200 800"
+      },
+      "license": "SIL Open Font License 1.1",
+      "licensePath": "assets/licenses/Manrope-OFL-1.1.txt",
+      "licenseSha256": "e01b637272e0cbdfb240184dd98ea5cc671556d9894dae2668d92ab2c906787c"
+    },
+    {
+      "family": "Inter",
+      "version": "4.1",
+      "sourceUrl": "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
+      "sourceArchiveSha256": "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
+      "runtimePath": "assets/fonts/inter/Inter-Variable-Roman.woff2",
+      "runtimeSha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+      "axes": {
+        "opsz": "14 32",
+        "wght": "100 900"
+      },
+      "license": "SIL Open Font License 1.1",
+      "licensePath": "assets/licenses/Inter-OFL-1.1.txt",
+      "licenseSha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+    }
+  ],
+  "icons": {
+    "package": "lucide-static",
+    "version": "1.27.0",
+    "npmIntegrity": "sha512-ev1Wufm+RsKpQ6CfmS0PgYF+NTB1aaltfE+jUgBYGB8PV5b5qqHpzsTLPsMWFRFdpVMv66eIK8/Xf9d8cl3HhA==",
+    "sourceArchiveSha256": "706bc3cd84574409b25a06e28598eadf8076a7792e5a7708162111aba008ef84",
+    "transform": "The pinned source stroke-width of 2 is changed deterministically to 1.5; no path geometry is modified.",
+    "licensePath": "assets/licenses/Lucide-ISC-and-Feather-MIT.txt",
+    "licenseSha256": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57",
+    "files": [
+      {
+        "name": "menu",
+        "sourceSha256": "1b7ba68f74b1cfe683d305052ff7978668965e130bb188fd3817f432937232fa",
+        "runtimeSha256": "437972b2634623a3d853f29a245761ef37df242397b44c8fcd4717eb58814a37"
+      },
+      {
+        "name": "x",
+        "sourceSha256": "91838db27fa28755a0c4d78662aadf275e6cb8ac06d30c1941e6c9d29c976522",
+        "runtimeSha256": "d5c354b0a509985fa3c01fe38e947623c7f386f69b046a4b66eda03b4c9df24c"
+      },
+      {
+        "name": "user",
+        "sourceSha256": "1195a3fa1a6245c5dae012be81e0f1eae88c7addb0a1ecb4bb09cc360307dfd3",
+        "runtimeSha256": "36a2565374c73515efaf34fea19896e91953f33f957cfdacbeeb8a90c1a86289"
+      },
+      {
+        "name": "shopping-bag",
+        "sourceSha256": "23cd8aa4d89cecfd91dea8d8043f8e08c1858826e242cacc1f9c323dfb67350c",
+        "runtimeSha256": "a21233042a0ae6b7ceba5ac4c5800d8f25ba3d2dd4aadabc335004fb1507b57f"
+      },
+      {
+        "name": "search",
+        "sourceSha256": "e62a1359f6b47091cd27048086ca56855b6c066c8d580f6c366a4f4cae4be9dd",
+        "runtimeSha256": "2af39b971379c62f42dcb9cff75b28897c9b9ef7eb670d71f6e5462bf3624718"
+      },
+      {
+        "name": "arrow-right",
+        "sourceSha256": "9c28bcba969fca2db8cb608207c5b5c70bfdd51b671de783121dff9f38f37ee3",
+        "runtimeSha256": "1c7794cb9154c7f7f73daf23ce9b21f466a4b5b784e0613777b2f00d139cc0c5"
+      },
+      {
+        "name": "chevron-down",
+        "sourceSha256": "731bb0d0b17ece722ceb69b4dca7b3a116bafe0308bae96135a2f968790f72a0",
+        "runtimeSha256": "ae0071a43432a492eea20b8c12232dd1116375ae95ca75aa6fc0add3fdd7f8cc"
+      },
+      {
+        "name": "qr-code",
+        "sourceSha256": "910bc07dcf56b795a9b8069fed7acd571eddf654f6555c2401fd107f5217cf5c",
+        "runtimeSha256": "bc382888210df54690051c17d9d5f49e5e05d1b7dda1c69a15131dd58968d0ac"
+      },
+      {
+        "name": "mail-check",
+        "sourceSha256": "ac4e84f83938b615e5763a3c86eed4d4cbcb129dcc4a44c7181036392b85eb2e",
+        "runtimeSha256": "8b35face234e138d2fd164b2530db459f3efa0009ee96aec23de07506ce5d2d5"
+      },
+      {
+        "name": "shield-check",
+        "sourceSha256": "6eb34dbd171307ff58b98530712338b745e9562824baff38bfd08a9f74125b54",
+        "runtimeSha256": "1005d0c19758ee5f8829af8d7f064145acdbf88a7134d882ebde8dfa694b3592"
+      },
+      {
+        "name": "circle-check",
+        "sourceSha256": "313a4db4353ab2d843f8d7db31d6319c5a7707cf52cb5d1686f02ade4c0068dc",
+        "runtimeSha256": "7e2203d4c6247b4891c4752d257438899184145c2ef6af8d249f77a2439f2ca7"
+      },
+      {
+        "name": "circle-alert",
+        "sourceSha256": "682e790649da42ccd2d4000a2debfb3be8296e9231cdd1f73d286dc7791c8825",
+        "runtimeSha256": "a7d4a53f31cc2158b469f406baa9fbc33df10838ac82a89b15972bdcd0afefe7"
+      },
+      {
+        "name": "loader-circle",
+        "sourceSha256": "c91b99da8e532773010fe91d6165f73857fb42eb81dc05d05904f895c719d531",
+        "runtimeSha256": "b692734d3422182e11b33bf032ba0198d71968d4e4faffb67d78b39420dcb31f"
+      },
+      {
+        "name": "calendar-days",
+        "sourceSha256": "b0614d5ba13cbd7a986386e4e1da4c443be0d0d3731a9186c61f56763a8b70e5",
+        "runtimeSha256": "3add57dd996f74dc464f7735eb645fa6b187fe5587edbd6f7ab3d418110a22cc"
+      },
+      {
+        "name": "chart-no-axes-column-increasing",
+        "sourceSha256": "7351b3fbaa29029033b79d3e81301a7610f499901d830d943a8d533b32109af6",
+        "runtimeSha256": "05364576a5187187be24aba2cb5404b9435d6edd70aec8c1d0a5bec686a27f0c"
+      },
+      {
+        "name": "star",
+        "sourceSha256": "de5a5befe984a58bf46fae21e95cf77bb2ea81d65448c13053c7cb7e5cf568e6",
+        "runtimeSha256": "bcdade02166f18328290b794f88788ed5a2a2d4f10669f322440efd328926c56"
+      },
+      {
+        "name": "key-round",
+        "sourceSha256": "83d2f34b2690ac96f083f061b1126482ea0c37770b48debd2e3c70ba44908f49",
+        "runtimeSha256": "502a169c6805bfc6c4558fa5bb5113c10128be0ab5ead85b129b32d10ea31060"
+      },
+      {
+        "name": "luggage",
+        "sourceSha256": "27d5695635d22f1aefd310ebbdb1233a1eb240ff938a9daa20318a765e782cbd",
+        "runtimeSha256": "ed0a3cc445f60bf3e31ab55ff8e16928710b85a25d1e80042261ac6e704701f9"
+      },
+      {
+        "name": "package",
+        "sourceSha256": "b0d1b1001c913696efb39207734f6ba970e3aa7c7d6f36c39f1bf8034b15e273",
+        "runtimeSha256": "8f3e3789b7d0a53c960daaca198cab5e2132c70cb13e6644f8a528665ce1b8a1"
+      },
+      {
+        "name": "smartphone",
+        "sourceSha256": "80cbe9a361ba03bf3e8ca02bdf05d7b06eccd99e8010b02c463bfc56d4d90de0",
+        "runtimeSha256": "bb18c16d292c6ad2c81afcf8e449ccaf29dd935aa46d11ccf9a7a5cacba87bae"
+      }
+    ]
+  }
+}

@@ -6,6 +6,7 @@
     "./plugin/tagcore",
     "https://downloads.wordpress.org/plugin/woocommerce.10.9.4.zip"
   ],
+  "themes": ["./theme/forge-tag"],
   "port": 8888,
   "config": {
     "WP_DEBUG": true,

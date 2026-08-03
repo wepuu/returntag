@@ -67,6 +67,27 @@ Markdown 文档由 Git 版本控制审计，不适用像素尺寸、Alpha 通道
 
 新产品摄影进入主题前，仍必须完成单独的来源、授权、内容和隐私审查。
 
+### 5.1 RT-314 产品图批准更新（2026-08-02）
+
+用户确认以下文件为正式产品图片来源：
+
+- `tag1.jpg`、`tag3.jpg` 和 `tag4.jpg`：Classic Tag；
+- `tag2.png`：Sticker；
+- `forge-smarttag.png`：Smart Tag。
+
+原始文件继续原样保存在 `docs/design/` 中用于来源审计，WordPress 不会直接加载。由于
+Classic Tag 和 Sticker 原图含旧域名、既有 Tag ID 或二维码图案，生产准入仅适用于
+下列已审查的运行时衍生文件：
+
+| 产品角色 | Theme 运行时文件 | 转换说明 | SHA-256 |
+|---|---|---|---|
+| Sticker | `assets/images/product-sticker-safe.png` | 图像生成编辑移除全部二维码、旧域名和 Tag ID，同时保留正式产品外形。 | `3ac2d2f5ced3ad8c83b92ddf55b2fef2117d972bdaa7700fc3b877c2eb08595f` |
+| Classic Tag | `assets/images/product-classic-family-safe.png` | 图像生成合成仅使用三张已批准 Classic Tag 来源图中的产品正面，不含背面二维码、域名或 Tag ID。 | `919d69ba993c88d5dc9d2cec06b22f8b6b03797219f0815b841592242e5deec7` |
+| Smart Tag | `assets/images/product-smart-tag.png` | 逐字节一致的运行时副本；图片中可见的型号图案不视为已批准的公开产品名或 Alt 文本。 | `a24308f09992bcd1ee13fadf703fa3911cb9d5840887230c3eb8bae186d9936e` |
+
+本次更新仅覆盖上述三个已审查输出原有的运行时禁令，不批准五个源文件的直接运行时
+使用，也不批准真实或模拟的二维码/Tag ID、旧域名或额外产品声明。
+
 ## 6. 本机排除文件
 
 | 文件 | 分类 | 排除理由 | 处理 |

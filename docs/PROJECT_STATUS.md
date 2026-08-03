@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-010 project-status Markdown and README alignment; Schema remains `8`
+* Current workstream: RT-314 ForgeTag Theme Stage 5 TagCore integration baseline; Schema remains `8`
 
 
 
@@ -756,8 +756,155 @@ Smart Tag production photography without an old domain, old ID, or real
 routable QR code. Manrope, Inter, Lucide, and their licenses remain RT-314
 deliverables.
 
-Do not infer or begin RT-314 automatically. Wait for explicit user authorization
-and acceptance criteria.
+RT-314 was subsequently authorized through Issue #52 with explicit staged
+acceptance criteria. Do not infer authorization for later stages, release, or
+deployment from the Stage 2 implementation.
+
+## RT-314 Stage 1 implementation
+
+RT-314 is explicitly authorized through Issue #52. Stage 1 establishes:
+
+- the independently versioned `theme/forge-tag/` Block Theme skeleton with
+  Text Domain `forge-tag` and Theme version `0.1.0`;
+- the required `style.css` and `templates/index.html`, a WordPress
+  `6.9`-schema `theme.json` version 3 baseline, minimal translation bootstrap,
+  and source-controlled Header and Footer Template Parts;
+- an independent Theme release contract using Git tag
+  `forge-tag-v{version}`, artifact `forge-tag-v{version}.zip`, archive root
+  `forge-tag/`, and a matching SHA-256 checksum;
+- automated release-metadata validation that keeps Theme `0.1.0` independent
+  from TagCore `0.4.0` and Schema `8`.
+
+Stage 1 adds no design Tokens, fonts, icons, runtime design image, homepage
+Pattern, TagCore entry block placement, WooCommerce template, packaging
+workflow, release tag, ZIP, deployment, route, API, Option, Migration, Schema,
+database behavior, product-state change, email, queue, or personal-data
+processing. Those Theme implementation items remain later RT-314 stages.
+
+## RT-314 Stage 2 implementation
+
+Stage 2 establishes the source-controlled visual foundation:
+
+- approved Global Styles tokens for color, local typography, spacing, radius,
+  shadow, motion, and layout width;
+- scoped frontend and editor foundation CSS for minimum control sizes, visible
+  focus, reduced motion, and forced-colors support;
+- the production-approved ForgeTag logo, self-hosted Manrope and Inter variable
+  fonts, and the exact 17-icon Lucide allowlist;
+- a machine-readable asset manifest containing pinned sources, licenses,
+  transformations, and SHA-256 evidence;
+- automated Theme boundary, asset-integrity, identity, WordPress activation,
+  WooCommerce-disabled shell, responsive, local-asset, and accessibility
+  regression checks.
+
+Stage 2 does not add a homepage Pattern, TagCore entry placement, WooCommerce
+Shop/Product/Cart/Checkout Templates, business logic, product copy approval,
+Schema, database write, Option, route, API, email, queue, Theme artifact,
+release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
+TagCore remains `0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 3A implementation
+
+Stage 3A establishes the source-controlled homepage engineering baseline:
+
+- a `front-page.html` Template composed from reusable Header, Footer, Hero,
+  Return Route, product-family, recovery-path, use-case, and privacy Patterns;
+- TagCore-owned Activate and Report entry rendering through four
+  `tagcore/tag-entry-link` dynamic blocks, with a plugin-owned `secondary`
+  Block Style for Report actions;
+- a page-scoped, mobile-first stylesheet with keyboard focus, reduced-motion,
+  forced-colors, narrow-screen, and 200-percent zoom protections;
+- static contract tests that reject copied forms, hard-coded TagCore entry
+  paths, unsupported product families, and deep Theme selectors into TagCore;
+- WordPress integration and browser regression coverage for block-style
+  registration, dialog behavior, responsive hierarchy, local requests, and
+  accessibility.
+
+Stage 3A uses only the approved ForgeTag logo, local Manrope and Inter fonts,
+and recorded Lucide icons. It does not copy RT-313 reference-only imagery or
+substitute generated placeholders. Approved production product photography is
+still required for Stage 3B visual acceptance. This stage adds no WooCommerce
+Shop/Product/Cart/Checkout Template, Schema, Migration, database write, Option,
+route, API, Tag state change, email, queue, Theme artifact, release tag,
+GitHub Release, or deployment. Theme version remains `0.1.0`, TagCore remains
+`0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 3B implementation
+
+Stage 3B integrates the user-confirmed official source photographs for the
+three canonical product families without exposing obsolete identifiers:
+
+- `tag2.png` supplies the Sticker source; the Theme uses a safety derivative
+  with every QR code, obsolete domain, and Tag ID removed;
+- `tag1.jpg`, `tag3.jpg`, and `tag4.jpg` supply the Classic Tag sources; the
+  Theme uses a front-only family composition that excludes reverse-side QR,
+  domain, and Tag ID content;
+- `forge-smarttag.png` supplies the Smart Tag source and is copied byte-for-byte
+  into the Theme; the visible model artwork is not used as public product copy
+  or Alt text;
+- runtime paths, transformations, source hashes, and output hashes are pinned
+  in `theme/forge-tag/asset-manifest.json` and enforced by Theme checks;
+- the Hero and product-family cards use responsive local images with explicit
+  dimensions, descriptive translatable Alt text, and no remote request.
+
+The source files under `docs/design/` remain unchanged and are not loaded by
+WordPress. Stage 3B changes no WooCommerce Template, Schema, Migration,
+database write, Option, route, API, Tag state, email, queue, Theme artifact,
+release tag, GitHub Release, or deployment. Theme version remains `0.1.0`,
+TagCore remains `0.4.0`, and Schema remains `8`.
+
+## RT-314 Stage 4 implementation
+
+Stage 4 establishes the WooCommerce and Theme artifact engineering baseline:
+
+- source-controlled Shop Archive, Single Product, Cart, and Checkout Block
+  Templates using WooCommerce public blocks and Theme-owned wrappers;
+- inherited Product Collection behavior for the catalog and assigned Page
+  Content Wrapper behavior for Cart and Checkout, preserving WooCommerce as
+  the source of truth for commerce state and forms;
+- responsive commerce presentation, shared brand-shell styling, local-only
+  asset loading, main-content accessibility checks, and 320px/200-percent
+  text regression coverage;
+- static checks that reject copied forms, direct Cart or Checkout block
+  ownership, TagCore/business identifiers, and WooCommerce internal selectors;
+- WordPress/WooCommerce matrix verification plus browser coverage for catalog,
+  product, add-to-cart, Cart, and Checkout rendering;
+- tag-triggered Theme artifact automation that validates the Theme version and
+  exact runtime allowlist, creates a `forge-tag/`-rooted ZIP and SHA-256
+  checksum, and uploads Actions artifacts without publishing a GitHub Release
+  or deploying them.
+
+Stage 4 creates no Git tag, ZIP in the repository, GitHub Release, deployment,
+Schema, Migration, database write, product-state rule, TagCore route, API,
+email, queue, or personal-data flow. Theme version remains `0.1.0`, TagCore
+remains `0.4.0`, and Schema remains `8`. WooCommerce templates remain an
+engineering/responsive baseline and do not imply final commercial copy or
+page-level visual approval.
+
+## RT-314 Stage 5 implementation
+
+Stage 5 closes the Theme-to-TagCore production integration baseline:
+
+- the Header and Hero retain exactly two Activate and two Report placements
+  through the closed `tagcore/tag-entry-link` dynamic-block contract;
+- static Theme checks reject hard-coded manual-entry or canonical Tag paths,
+  copied Tag ID forms, and CSS or markup dependencies on TagCore DOM internals
+  across every runtime Theme file;
+- TagCore integration coverage verifies invalid-intent fail-closed behavior and
+  unique dialog relationships for repeated block instances;
+- browser coverage verifies all four homepage entry instances, exact 767px and
+  768px behavior, desktop focus restoration, mobile full-screen navigation,
+  no-JavaScript operation, and Script Module failure fallback;
+- the WordPress compatibility matrix verifies TagCore entry with WooCommerce
+  disabled, TagCore routes under a replacement Theme, and safe brand-shell
+  rendering when TagCore is disabled.
+
+Stage 5 changes no TagCore business service, public product API, route, Schema,
+Migration, database data, Option, dependency, lock file, email, queue, feature
+flag, release tag, GitHub Release, or deployment. Theme version remains
+`0.1.0`, TagCore remains `0.4.0`, and Schema remains `8`. Finder messaging and
+Owner Account presentation are not represented as complete by this integration
+baseline.
 
 ## RT-009 risk-based CI and E2E optimization
 
@@ -771,9 +918,9 @@ RT-009 reduces pull-request feedback time without removing accepted coverage:
 - documentation-only changes avoid npm, Composer, wp-env, and Playwright setup
   while retaining relative-link, RT-313 asset-manifest, exclusion, and tracked
   text secret checks;
-- runtime pull requests use a 21-test profile: all 14 logical tests in desktop
-  Chromium plus seven public-route and manual-entry tests in Mobile Safari;
-- the existing 70-test, five-project browser suite remains intact for daily
+- runtime pull requests use a bounded desktop-Chromium profile plus selected
+  public-route, manual-entry, commerce, and homepage tests in Mobile Safari;
+- the complete five-project browser suite remains intact for daily
   03:00 Asia/Shanghai regression, manual dispatch, and CI/E2E infrastructure
   changes;
 - administrator browser state is created once per Playwright run and reused
@@ -790,5 +937,6 @@ state, WooCommerce mapping, email, queue, or personal-data processing.
 The first `Quality Gate` on `main` completed successfully for commit
 `a56ea74046634cabcc387e533ffa3150a158e25a`. The protected `main` branch now
 requires pull requests and the exact `Quality Gate` check, applies protection
-to administrators, and disallows force pushes and deletion. RT-314 must still
-wait for explicit user authorization.
+to administrators, and disallows force pushes and deletion. RT-314 is now
+explicitly authorized through Stage 5; release, publication, and deployment
+remain separate approvals.

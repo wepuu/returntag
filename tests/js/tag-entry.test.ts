@@ -22,6 +22,15 @@ describe( 'TagCore manual Tag entry', () => {
 		expect(
 			shouldEnhanceEntryClick( { ...click, metaKey: true }, true )
 		).toBe( false );
+		expect(
+			shouldEnhanceEntryClick( { ...click, ctrlKey: true }, true )
+		).toBe( false );
+		expect(
+			shouldEnhanceEntryClick( { ...click, shiftKey: true }, true )
+		).toBe( false );
+		expect(
+			shouldEnhanceEntryClick( { ...click, altKey: true }, true )
+		).toBe( false );
 		expect( shouldEnhanceEntryClick( { ...click, button: 1 }, true ) ).toBe(
 			false
 		);

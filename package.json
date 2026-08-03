@@ -14,14 +14,17 @@
     "start:admin": "wp-scripts start plugin/tagcore/assets/src/admin.tsx --output-path=plugin/tagcore/build/admin",
     "start:public": "wp-scripts start plugin/tagcore/assets/src/public.ts --output-path=plugin/tagcore/build/public --experimental-modules",
     "lint:js": "wp-scripts lint-js plugin/tagcore/assets/src scripts tests/ci tests/js tests/e2e playwright.config.ts playwright.pr.config.ts playwright.shared.config.ts",
-    "lint:css": "wp-scripts lint-style plugin/tagcore/assets/src/**/*.css",
+    "lint:css": "wp-scripts lint-style plugin/tagcore/assets/src/**/*.css theme/forge-tag/assets/css/**/*.css",
     "test:unit": "wp-scripts test-unit-js",
     "test:ci": "node --test tests/ci/*.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:pr": "playwright test --config=playwright.pr.config.ts",
     "typecheck": "tsc --noEmit",
     "check:version": "node scripts/check-release-version.mjs",
-    "check": "npm run check:version && npm run test:ci && npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit && npm run build",
+    "check:theme": "node scripts/check-theme.mjs",
+    "check:theme-artifact": "node scripts/check-theme-artifact.mjs --theme-root theme/forge-tag --allow-source-readme",
+    "sync:theme-icons": "node scripts/sync-theme-icons.mjs",
+    "check": "npm run check:version && npm run check:theme && npm run check:theme-artifact && npm run test:ci && npm run lint:js && npm run lint:css && npm run typecheck && npm run test:unit && npm run build",
     "env:start": "wp-env start",
     "env:start:minimum": "wp-env start --config=.wp-env.minimum.json",
     "env:start:woocommerce-9": "wp-env start --config=.wp-env.woocommerce-9.json",
@@ -56,6 +59,7 @@
     "@types/node": "24.13.3",
     "@wordpress/env": "11.11.0",
     "@wordpress/scripts": "33.0.0",
+    "lucide-static": "1.27.0",
     "typescript": "6.0.3"
   }
 }
