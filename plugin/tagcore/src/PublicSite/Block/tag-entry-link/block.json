@@ -11,8 +11,7 @@
   "attributes": {
     "intent": {
       "type": "string",
-      "enum": ["activate", "report"],
-      "default": "activate"
+      "enum": ["activate", "report"]
     }
   },
   "supports": {

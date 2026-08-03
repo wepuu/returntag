@@ -559,6 +559,31 @@ const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
 		if ( /https?:\/\//i.test( contents ) ) {
 			failures.push( `${ relativePath } contains a remote runtime URL` );
 		}
+		if (
+			/["'(=]\s*\/(?:tag\/(?:activate|report)\/?|t\/[^"')\s<]*)(?:["')\s]|$)/i.test(
+				contents
+			)
+		) {
+			failures.push(
+				`${ relativePath } must not hard-code a TagCore entry path`
+			);
+		}
+		if (
+			/\.(?:returntag-entry-link|returntag-entry-dialog|returntag-entry-page)(?:\b|__)/.test(
+				contents
+			)
+		) {
+			failures.push(
+				`${ relativePath } must not style or depend on TagCore DOM internals`
+			);
+		}
+		if (
+			/<(?:form|input)\b[^>]*(?:returntag|tag[_-]?id)/i.test( contents )
+		) {
+			failures.push(
+				`${ relativePath } must not reproduce a TagCore Tag ID form`
+			);
+		}
 		const claimContents =
 			relativePath === approvedBrandStoryPatternPath
 				? contents.replace( /millions sold|trusted travel brand/gi, '' )

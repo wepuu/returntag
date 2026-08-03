@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-314 ForgeTag Theme Stage 4 commerce and release-contract baseline; Schema remains `8`
+* Current workstream: RT-314 ForgeTag Theme Stage 5 TagCore integration baseline; Schema remains `8`
 
 
 
@@ -881,6 +881,31 @@ remains `0.4.0`, and Schema remains `8`. WooCommerce templates remain an
 engineering/responsive baseline and do not imply final commercial copy or
 page-level visual approval.
 
+## RT-314 Stage 5 implementation
+
+Stage 5 closes the Theme-to-TagCore production integration baseline:
+
+- the Header and Hero retain exactly two Activate and two Report placements
+  through the closed `tagcore/tag-entry-link` dynamic-block contract;
+- static Theme checks reject hard-coded manual-entry or canonical Tag paths,
+  copied Tag ID forms, and CSS or markup dependencies on TagCore DOM internals
+  across every runtime Theme file;
+- TagCore integration coverage verifies invalid-intent fail-closed behavior and
+  unique dialog relationships for repeated block instances;
+- browser coverage verifies all four homepage entry instances, exact 767px and
+  768px behavior, desktop focus restoration, mobile full-screen navigation,
+  no-JavaScript operation, and Script Module failure fallback;
+- the WordPress compatibility matrix verifies TagCore entry with WooCommerce
+  disabled, TagCore routes under a replacement Theme, and safe brand-shell
+  rendering when TagCore is disabled.
+
+Stage 5 changes no TagCore business service, public product API, route, Schema,
+Migration, database data, Option, dependency, lock file, email, queue, feature
+flag, release tag, GitHub Release, or deployment. Theme version remains
+`0.1.0`, TagCore remains `0.4.0`, and Schema remains `8`. Finder messaging and
+Owner Account presentation are not represented as complete by this integration
+baseline.
+
 ## RT-009 risk-based CI and E2E optimization
 
 RT-009 reduces pull-request feedback time without removing accepted coverage:
@@ -893,9 +918,9 @@ RT-009 reduces pull-request feedback time without removing accepted coverage:
 - documentation-only changes avoid npm, Composer, wp-env, and Playwright setup
   while retaining relative-link, RT-313 asset-manifest, exclusion, and tracked
   text secret checks;
-- runtime pull requests use a 21-test profile: all 14 logical tests in desktop
-  Chromium plus seven public-route and manual-entry tests in Mobile Safari;
-- the existing 70-test, five-project browser suite remains intact for daily
+- runtime pull requests use a bounded desktop-Chromium profile plus selected
+  public-route, manual-entry, commerce, and homepage tests in Mobile Safari;
+- the complete five-project browser suite remains intact for daily
   03:00 Asia/Shanghai regression, manual dispatch, and CI/E2E infrastructure
   changes;
 - administrator browser state is created once per Playwright run and reused
@@ -912,5 +937,6 @@ state, WooCommerce mapping, email, queue, or personal-data processing.
 The first `Quality Gate` on `main` completed successfully for commit
 `a56ea74046634cabcc387e533ffa3150a158e25a`. The protected `main` branch now
 requires pull requests and the exact `Quality Gate` check, applies protection
-to administrators, and disallows force pushes and deletion. RT-314 must still
-wait for explicit user authorization.
+to administrators, and disallows force pushes and deletion. RT-314 is now
+explicitly authorized through Stage 5; release, publication, and deployment
+remain separate approvals.

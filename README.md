@@ -307,13 +307,13 @@ Pull requests use risk-based routing with a stable `Quality Gate` result:
 - documentation-only changes run Markdown relative-link checks, the RT-313
   design-asset manifest validation, a tracked-text secret scan, and the final
   gate without installing Composer, npm, wp-env, or Playwright dependencies;
-- TagCore, JavaScript, or future Theme runtime changes run PHP 8.3/8.4/8.5,
+- TagCore, JavaScript, or Theme runtime changes run PHP 8.3/8.4/8.5,
   JavaScript, four WordPress/WooCommerce integration environments, and the
-  21-test PR browser profile;
+  bounded desktop-Chromium and Mobile-Safari PR browser profile;
 - Migration, Persistence, Repository, and integration-test changes add the
   MariaDB 10.11 and MySQL 8.0 compatibility matrix;
 - workflow, Playwright, wp-env, lock-file, classifier, or unknown-path changes
-  fail closed to the complete quality matrix and 70-test browser profile.
+  fail closed to the complete quality matrix and five-project browser profile.
 
 The PR browser profile runs all 14 tests in desktop Chromium and the seven
 public Tag route/manual-entry tests in Mobile Safari. The complete five-project
@@ -610,6 +610,29 @@ deployment, Schema change, Option, route, API, email, queue, or TagCore product
 behavior; Theme version remains `0.1.0`, TagCore remains `0.4.0`, and Schema
 remains `8`.
 
+## RT-314 ForgeTag Theme Stage 5
+
+RT-314 Stage 5 closes the production integration seam between the replaceable
+ForgeTag Theme and the existing RT-312 TagCore entry adapter. The Theme keeps
+exactly two Activate and two Report placements through the server-rendered
+`tagcore/tag-entry-link` block; TagCore continues to own same-site URL
+generation, the desktop dialog, the mobile and no-JavaScript standalone pages,
+Tag ID normalization, rate limiting, canonical routing, state resolution, and
+privacy controls.
+
+Static checks now reject hard-coded TagCore paths, copied Tag ID forms, and
+dependencies on TagCore DOM internals anywhere in Theme runtime files. PHP and
+browser regression verifies isolated multi-instance dialogs, the exact 768px
+progressive-enhancement boundary, Script Module failure fallback, and ordinary
+same-site links. The WordPress matrix additionally proves that entry remains
+usable without WooCommerce, canonical TagCore routes survive a Theme change,
+and the ForgeTag brand shell fails safely when TagCore is unavailable.
+
+Stage 5 adds no product workflow, API, Schema, Migration, database write,
+Option, dependency, lock-file change, email, queue, release tag, GitHub Release,
+or deployment. Theme version remains `0.1.0`, TagCore remains `0.4.0`, and
+Schema remains `8`.
+
 ## RT-009 risk-based CI and E2E profiles
 
 RT-009 adds fail-closed path classification and the stable `Quality Gate`
@@ -617,10 +640,11 @@ result. Documentation-only changes run documentation, design-manifest, and
 tracked-text secret checks; runtime and database-sensitive changes add the
 applicable PHP, JavaScript, WordPress, database, and browser matrices.
 
-Pull requests use the bounded 21-test browser profile unless the changed paths
-require the full 70-test, five-project regression. The complete suite also
-runs daily and by manual dispatch. RT-009 changes CI, tests, and documentation
-only; project and plugin version remain `0.4.0` and Schema remains `8`.
+Pull requests use the bounded desktop-Chromium and Mobile-Safari browser
+profile unless the changed paths require the full five-project regression.
+The complete suite also runs daily and by manual dispatch. RT-009 changes CI,
+tests, and documentation only; project and plugin version remain `0.4.0` and
+Schema remains `8`.
 
 The protected `main` branch requires pull requests and the exact
 `Quality Gate` check, applies protection to administrators, and disallows

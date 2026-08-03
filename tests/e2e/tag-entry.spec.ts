@@ -159,4 +159,30 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		).toBeVisible();
 		await context.close();
 	} );
+
+	test( 'desktop link remains usable when progressive enhancement fails to load', async ( {
+		adminPage,
+		page,
+	}, testInfo ) => {
+		test.skip( testInfo.project.name.startsWith( 'mobile-' ) );
+		const fixtureUrl = await createEntryPage(
+			adminPage,
+			testInfo.project.name
+		);
+
+		await page.route(
+			'**/wp-content/plugins/tagcore/build/public/public.ts.js*',
+			( route ) => route.abort()
+		);
+		await page.goto( fixtureUrl, { waitUntil: 'domcontentloaded' } );
+		await page
+			.getByRole( 'main' )
+			.getByRole( 'link', { name: 'Activate my tag' } )
+			.click();
+
+		await expect( page ).toHaveURL( /\/tag\/activate\/$/ );
+		await expect(
+			page.getByRole( 'heading', { name: 'Activate your ForgeTag' } )
+		).toBeVisible();
+	} );
 } );

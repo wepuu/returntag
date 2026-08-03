@@ -14,7 +14,8 @@ Theme. Composer, Node build scripts, continuous integration, dependency
 monitoring, TagCore tagged artifact assembly, and ForgeTag tagged artifact
 assembly are present. The ForgeTag Theme engineering skeleton, design tokens,
 pinned runtime assets, product-media baseline, and WooCommerce Template
-baseline are present; final Theme release approval remains a separate RT-314
+baseline are present. The Stage 5 TagCore integration and independence gates
+are also present; final Theme release approval remains a separate RT-314
 follow-up. Production publication and deployment remain manual, explicitly
 authorized operations.
 
@@ -34,10 +35,10 @@ version `8`.
 
 The ForgeTag Theme uses independent semantic versioning. Its version is
 declared in `theme/forge-tag/style.css` and must not be inferred from the
-TagCore plugin version or Schema version. RT-314 Stages 1 through 4 establish
+TagCore plugin version or Schema version. RT-314 Stages 1 through 5 establish
 Theme version `0.1.0`, its design-system foundation, homepage and product-media
-baseline, WooCommerce Template baseline, and artifact automation; this does
-not represent production release approval.
+baseline, WooCommerce Template baseline, artifact automation, and TagCore
+integration gates; this does not represent production release approval.
 
 ## 3. Git workflow
 
@@ -122,6 +123,16 @@ WooCommerce Block Templates, commerce regression coverage, and the
 tag-triggered artifact workflow. The workflow assembles and uploads an Actions
 artifact only after an approved Theme tag is pushed; Stage 4 implementation
 itself creates no tag, ZIP, checksum, GitHub Release, or deployment.
+
+Stage 5 requires the Header and Hero entry blocks to remain ordinary same-site
+links with TagCore-owned progressive enhancement. Acceptance verifies the exact
+desktop/mobile breakpoint, no-JavaScript and failed-Script-Module fallback,
+unique dialog relationships, and canonical redirect behavior. The compatibility
+matrix must also prove that WooCommerce can be disabled without removing entry,
+that TagCore manual and canonical routes survive switching to Twenty Twenty-Five,
+and that disabling TagCore leaves the ForgeTag brand shell renderable without
+hard-coded replacement links. Finder messaging and Owner Account completion are
+not implied by these entry checks.
 
 The source-controlled Theme is the production design source of truth. A Site
 Editor Template, Template Part, Pattern, or Global Styles change intended for

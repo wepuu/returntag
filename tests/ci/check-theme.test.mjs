@@ -237,6 +237,31 @@ describe( 'ForgeTag Theme contract', () => {
 		assertFailure( result, /must not reproduce a Tag ID form/ );
 	} );
 
+	it( 'rejects TagCore coupling outside homepage Patterns', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'templates/page.html' );
+			const template = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				`${ template }\n<a href="/tag/report/">Report</a><a href="/t/A7R2W9/">Tag</a><form><input name="returntag_tag_id"></form>`
+			);
+
+			const cssPath = join( themeRoot, 'assets/css/commerce.css' );
+			const stylesheet = await readFile( cssPath, 'utf8' );
+			await writeFile(
+				cssPath,
+				`${ stylesheet }\n.returntag-entry-dialog__surface { color: red; }`
+			);
+		} );
+
+		assertFailure( result, /must not hard-code a TagCore entry path/ );
+		assertFailure( result, /must not reproduce a TagCore Tag ID form/ );
+		assertFailure(
+			result,
+			/must not style or depend on TagCore DOM internals/
+		);
+	} );
+
 	it( 'rejects missing entry intents and secondary treatment', async () => {
 		const result = await withThemeCopy( async ( themeRoot ) => {
 			const path = join( themeRoot, 'patterns/home-hero.php' );

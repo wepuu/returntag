@@ -218,11 +218,43 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		expect(
 			await page.locator( '[data-returntag-tag-entry="report"]' ).count()
 		).toBe( 2 );
+		const entryRoots = page.locator( '[data-returntag-tag-entry]' );
+		await expect( entryRoots ).toHaveCount( 4 );
+		const entryContracts = await entryRoots.evaluateAll( ( roots ) =>
+			roots.map( ( root ) => {
+				const trigger = root.querySelector< HTMLAnchorElement >(
+					'[data-returntag-tag-entry-trigger]'
+				);
+				const dialog = root.querySelector< HTMLDialogElement >(
+					'[data-returntag-tag-entry-dialog]'
+				);
+
+				return {
+					controls: trigger?.getAttribute( 'aria-controls' ) ?? '',
+					dialogId: dialog?.id ?? '',
+					intent: root.getAttribute( 'data-returntag-tag-entry' ),
+					path: trigger ? new URL( trigger.href ).pathname : '',
+					sameOrigin: trigger
+						? new URL( trigger.href ).origin ===
+						  window.location.origin
+						: false,
+				};
+			} )
+		);
+		expect(
+			new Set( entryContracts.map( ( entry ) => entry.dialogId ) ).size
+		).toBe( 4 );
+		for ( const entry of entryContracts ) {
+			expect( entry.controls ).toBe( entry.dialogId );
+			expect( entry.sameOrigin ).toBe( true );
+			expect( entry.path ).toBe(
+				entry.intent === 'activate' ? '/tag/activate/' : '/tag/report/'
+			);
+		}
 		expect( await page.locator( 'main input:visible' ).count() ).toBe( 0 );
 		expect( [ ...externalRequests ] ).toEqual( [] );
 
 		const hero = page.locator( '.forge-home-hero' );
-		const activate = hero.getByRole( 'link', { name: 'Activate my tag' } );
 		const report = hero.getByRole( 'link', { name: 'Report a found tag' } );
 		const reportStyles = await report.evaluate( ( node ) => {
 			const style = getComputedStyle( node );
@@ -239,15 +271,20 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		} );
 
 		if ( testInfo.project.name === 'chromium' ) {
-			await activate.click();
-			const dialog = page.getByRole( 'dialog', {
-				name: 'Activate your ForgeTag',
-			} );
-			await expect( dialog ).toBeVisible();
-			await expect( dialog.getByLabel( 'Tag ID' ) ).toBeFocused();
-			await page.keyboard.press( 'Escape' );
-			await expect( dialog ).toBeHidden();
-			await expect( activate ).toBeFocused();
+			for ( const root of await entryRoots.all() ) {
+				const trigger = root.locator(
+					'[data-returntag-tag-entry-trigger]'
+				);
+				const dialogId = await trigger.getAttribute( 'aria-controls' );
+				expect( dialogId ).not.toBeNull();
+				await trigger.click();
+				const dialog = page.locator( `#${ dialogId }` );
+				await expect( dialog ).toBeVisible();
+				await expect( dialog.getByLabel( 'Tag ID' ) ).toBeFocused();
+				await page.keyboard.press( 'Escape' );
+				await expect( dialog ).toBeHidden();
+				await expect( trigger ).toBeFocused();
+			}
 		}
 
 		const accessibility = await new AxeBuilder( { page } )
@@ -514,5 +551,31 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		await expect(
 			page.getByRole( 'heading', { name: 'Report a found ForgeTag' } )
 		).toBeVisible();
+	} );
+
+	test( 'switches from full-screen navigation to dialog at 768px', async ( {
+		page,
+	} ) => {
+		await page.setViewportSize( { width: 767, height: 900 } );
+		await page.goto( '/', { waitUntil: 'domcontentloaded' } );
+		await page
+			.locator( '.forge-home-hero' )
+			.getByRole( 'link', { name: 'Activate my tag' } )
+			.click();
+		await expect( page ).toHaveURL( /\/tag\/activate\/$/ );
+
+		await page.setViewportSize( { width: 768, height: 900 } );
+		await page.goto( '/', { waitUntil: 'domcontentloaded' } );
+		const trigger = page
+			.locator( '.forge-home-hero' )
+			.getByRole( 'link', { name: 'Activate my tag' } );
+		await trigger.click();
+		const dialog = page.getByRole( 'dialog', {
+			name: 'Activate your ForgeTag',
+		} );
+		await expect( dialog ).toBeVisible();
+		await expect( page ).toHaveURL( /\/$/ );
+		await page.keyboard.press( 'Escape' );
+		await expect( trigger ).toBeFocused();
 	} );
 } );

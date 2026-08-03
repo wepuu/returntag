@@ -1,6 +1,6 @@
 # ForgeTag Theme
 
-**Status:** RT-314 Stage 4 commerce and release-contract baseline
+**Status:** RT-314 Stage 5 TagCore integration baseline
 
 **Version:** `0.1.0`
 
@@ -57,6 +57,15 @@ The independent release workflow validates the exact runtime allowlist and an
 approved `forge-tag-v{version}` tag before assembling a `forge-tag/`-rooted ZIP
 and SHA-256 checksum. It uploads workflow artifacts only; release approval and
 deployment remain separate, explicit operations.
+
+Stage 5 closes the tested integration seam without moving product behavior into
+the Theme. Header and Hero keep two Activate and two Report placements through
+`tagcore/tag-entry-link`; TagCore owns their generated URLs, desktop dialogs,
+mobile and no-JavaScript pages, normalization, routing, state, and privacy
+controls. Repository checks reject hard-coded TagCore paths, copied Tag ID
+forms, and dependencies on plugin DOM internals across all Theme runtime files.
+The compatibility matrix verifies entry without WooCommerce, TagCore routes
+under a replacement Theme, and a safe brand shell when TagCore is disabled.
 
 Production Site Editor changes must be exported to this directory, reviewed,
 tested, and committed. Database-only templates or Global Styles are not a

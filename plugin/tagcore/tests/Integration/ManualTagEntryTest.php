@@ -55,6 +55,7 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertNotNull( $block );
 		self::assertArrayHasKey( 'intent', $block->attributes );
 		self::assertSame( array( 'activate', 'report' ), $block->attributes['intent']['enum'] );
+		self::assertArrayNotHasKey( 'default', $block->attributes['intent'] );
 		self::assertArrayNotHasKey( 'tag_id', $block->attributes );
 		self::assertArrayNotHasKey( 'redirect', $block->attributes );
 		self::assertTrue(
@@ -82,6 +83,52 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'aria-labelledby=', $html );
 		self::assertStringContainsString( 'data-returntag-tag-entry-form', $html );
 		self::assertStringNotContainsString( '<iframe', $html );
+	}
+
+	/**
+	 * Invalid presentation intent fails closed without publishing a fallback URL.
+	 */
+	public function test_invalid_block_intent_renders_nothing(): void {
+		$invalid = render_block(
+			array(
+				'blockName' => TagEntryLinkBlock::BLOCK_NAME,
+				'attrs'     => array( 'intent' => 'unknown' ),
+			)
+		);
+		$missing = render_block(
+			array(
+				'blockName' => TagEntryLinkBlock::BLOCK_NAME,
+				'attrs'     => array(),
+			)
+		);
+
+		self::assertSame( '', $invalid );
+		self::assertSame( '', $missing );
+	}
+
+	/**
+	 * Repeated Theme placements keep their dialog relationships isolated.
+	 */
+	public function test_multiple_block_instances_use_unique_dialog_ids(): void {
+		$html = render_block(
+			array(
+				'blockName' => TagEntryLinkBlock::BLOCK_NAME,
+				'attrs'     => array( 'intent' => 'activate' ),
+			)
+		) . render_block(
+			array(
+				'blockName' => TagEntryLinkBlock::BLOCK_NAME,
+				'attrs'     => array( 'intent' => 'report' ),
+			)
+		);
+
+		$controls   = array();
+		$dialog_ids = array();
+
+		self::assertSame( 2, preg_match_all( '/aria-controls="([^"]+)"/', $html, $controls ) );
+		self::assertSame( 2, preg_match_all( '/<dialog id="([^"]+)"/', $html, $dialog_ids ) );
+		self::assertSame( $controls[1], $dialog_ids[1] );
+		self::assertCount( 2, array_unique( $dialog_ids[1] ) );
 	}
 
 	/**
