@@ -55,7 +55,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
     "@playwright/test": "1.61.1",
-    "@types/jest": "29.5.14",
+    "@types/jest": "30.0.0",
     "@types/node": "24.13.3",
     "@wordpress/env": "11.11.0",
     "@wordpress/scripts": "33.0.0",
