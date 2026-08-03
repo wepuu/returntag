@@ -157,6 +157,9 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start ${{ matrix.config }}
 
+      - name: Run WordPress integration tests
+        run: npx wp-env run ${{ matrix.config }} tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration
+
       - name: Activate plugins and verify ForgeTag Theme
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore woocommerce
@@ -171,9 +174,6 @@ jobs:
       - name: Verify ForgeTag commerce template resolution
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp eval '$templates = array("archive-product" => "forge-commerce--catalog", "page-cart" => "forge-commerce--cart", "page-checkout" => "forge-commerce--checkout"); foreach ($templates as $slug => $marker) { $template = get_block_template(get_stylesheet() . "//" . $slug, "wp_template"); if (!$template instanceof WP_Block_Template || !str_contains($template->content, $marker)) { WP_CLI::error("ForgeTag {$slug} Template resolution contract failed."); } }'
-
-      - name: Run WordPress integration tests
-        run: npx wp-env run ${{ matrix.config }} tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration
 
       - name: Verify the ForgeTag and TagCore entry contract
         run: |

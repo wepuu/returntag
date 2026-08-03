@@ -10,6 +10,9 @@ const workflowPath = new URL(
 describe( 'Quality workflow contracts', () => {
 	it( 'activates mounted plugins before checking the TagCore entry contract', async () => {
 		const workflow = await readFile( workflowPath, 'utf8' );
+		const integration = workflow.indexOf(
+			'Run WordPress integration tests'
+		);
 		const activation = workflow.indexOf(
 			'wp plugin activate tagcore woocommerce'
 		);
@@ -17,11 +20,16 @@ describe( 'Quality workflow contracts', () => {
 			'Verify the ForgeTag and TagCore entry contract'
 		);
 
+		assert.notEqual( integration, -1, 'Integration test step is required' );
 		assert.notEqual( activation, -1, 'Mounted plugins must be activated' );
 		assert.notEqual(
 			entryContract,
 			-1,
 			'TagCore entry contract is required'
+		);
+		assert.ok(
+			integration < activation,
+			'Plugins must activate after integration resets site state'
 		);
 		assert.ok( activation < entryContract, 'Plugins must activate first' );
 	} );
