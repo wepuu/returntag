@@ -16,12 +16,16 @@ describe( 'Quality workflow contracts', () => {
 		const activation = workflow.indexOf(
 			'wp plugin activate tagcore woocommerce'
 		);
+		const rewrite = workflow.indexOf(
+			"wp rewrite structure '/%postname%/' --hard"
+		);
 		const entryContract = workflow.indexOf(
 			'Verify the ForgeTag and TagCore entry contract'
 		);
 
 		assert.notEqual( integration, -1, 'Integration test step is required' );
 		assert.notEqual( activation, -1, 'Mounted plugins must be activated' );
+		assert.notEqual( rewrite, -1, 'Pretty permalinks must be initialized' );
 		assert.notEqual(
 			entryContract,
 			-1,
@@ -31,6 +35,11 @@ describe( 'Quality workflow contracts', () => {
 			integration < activation,
 			'Plugins must activate after integration resets site state'
 		);
+		assert.ok(
+			activation < rewrite,
+			'Rewrite rules require active plugins'
+		);
+		assert.ok( rewrite < entryContract, 'Routes must be flushed first' );
 		assert.ok( activation < entryContract, 'Plugins must activate first' );
 	} );
 
@@ -50,5 +59,25 @@ describe( 'Quality workflow contracts', () => {
 		assert.match( commerceStep, /page-cart/ );
 		assert.match( commerceStep, /page-checkout/ );
 		assert.doesNotMatch( commerceStep, /wp_remote_get\(/ );
+	} );
+
+	it( 'runs HTTP contracts from the runner instead of inside WP-CLI', async () => {
+		const workflow = await readFile( workflowPath, 'utf8' );
+
+		for ( const mode of [
+			'entry',
+			'without-woocommerce',
+			'replacement-theme',
+			'without-tagcore',
+		] ) {
+			assert.match(
+				workflow,
+				new RegExp(
+					`node scripts/check-wp-env-runtime\\.mjs ${ mode }`
+				)
+			);
+		}
+
+		assert.doesNotMatch( workflow, /wp_remote_get\(home_url/ );
 	} );
 } );

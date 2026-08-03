@@ -164,6 +164,7 @@ jobs:
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore woocommerce
           npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
+          npx wp-env run ${{ matrix.config }} tests-cli wp rewrite structure '/%postname%/' --hard
           npx wp-env run ${{ matrix.config }} tests-cli wp eval '$theme = wp_get_theme(); if (get_stylesheet() !== "forge-tag" || $theme->get("Version") !== "0.1.0" || $theme->get("TextDomain") !== "forge-tag") { WP_CLI::error("ForgeTag Theme identity contract failed."); }'
 
       - name: Enable WooCommerce HPOS
@@ -177,23 +178,24 @@ jobs:
 
       - name: Verify the ForgeTag and TagCore entry contract
         run: |
-          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$block = WP_Block_Type_Registry::get_instance()->get_registered("tagcore/tag-entry-link"); if (!$block) { WP_CLI::error("TagCore entry block is not registered."); } $home = wp_remote_get(home_url("/")); $body = is_wp_error($home) ? "" : wp_remote_retrieve_body($home); if (is_wp_error($home) || wp_remote_retrieve_response_code($home) !== 200 || substr_count($body, "data-returntag-tag-entry=\"activate\"") !== 2 || substr_count($body, "data-returntag-tag-entry=\"report\"") !== 2) { WP_CLI::error("ForgeTag entry placement contract failed."); } foreach (array("activate", "report") as $intent) { $response = wp_remote_get(home_url("/tag/{$intent}/")); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 || wp_remote_retrieve_header($response, "cache-control") !== "no-store, private" || wp_remote_retrieve_header($response, "referrer-policy") !== "no-referrer" || !str_contains(wp_remote_retrieve_body($response), "returntag-entry-page")) { WP_CLI::error("TagCore {$intent} entry contract failed."); } }'
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$block = WP_Block_Type_Registry::get_instance()->get_registered("tagcore/tag-entry-link"); if (!$block) { WP_CLI::error("TagCore entry block is not registered."); }'
+          node scripts/check-wp-env-runtime.mjs entry
 
       - name: Verify TagCore entry without WooCommerce
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp plugin deactivate woocommerce
-          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$response = wp_remote_get(home_url("/")); $body = is_wp_error($response) ? "" : wp_remote_retrieve_body($response); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 || substr_count($body, "data-returntag-tag-entry=\"activate\"") !== 2 || substr_count($body, "data-returntag-tag-entry=\"report\"") !== 2) { WP_CLI::error("ForgeTag and TagCore entry failed without WooCommerce."); }'
+          node scripts/check-wp-env-runtime.mjs without-woocommerce
 
       - name: Verify TagCore routes with a replacement Theme
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp theme activate twentytwentyfive
-          npx wp-env run ${{ matrix.config }} tests-cli wp eval 'foreach (array("activate", "report") as $intent) { $response = wp_remote_get(home_url("/tag/{$intent}/")); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 || !str_contains(wp_remote_retrieve_body($response), "returntag-entry-page")) { WP_CLI::error("TagCore {$intent} entry depends on ForgeTag Theme."); } } $scan = wp_remote_get(home_url("/t/A7R2W9/")); if (is_wp_error($scan) || wp_remote_retrieve_response_code($scan) !== 404 || !str_contains(wp_remote_retrieve_body($scan), "returntag-public-page")) { WP_CLI::error("Canonical Tag route depends on ForgeTag Theme."); }'
+          node scripts/check-wp-env-runtime.mjs replacement-theme
 
       - name: Verify the brand shell fails safely without TagCore
         run: |
           npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
           npx wp-env run ${{ matrix.config }} tests-cli wp plugin deactivate tagcore
-          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$response = wp_remote_get(home_url("/")); $body = is_wp_error($response) ? "" : wp_remote_retrieve_body($response); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 || !str_contains($body, "Help what matters find its way back.") || str_contains($body, "data-returntag-tag-entry") || str_contains($body, "/tag/activate/") || str_contains($body, "/tag/report/")) { WP_CLI::error("ForgeTag did not fail safely without TagCore."); }'
+          node scripts/check-wp-env-runtime.mjs without-tagcore
           npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore
 
       - name: Stop WordPress
