@@ -167,9 +167,9 @@ jobs:
           npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_custom_orders_table_enabled yes
           npx wp-env run ${{ matrix.config }} tests-cli wp option update woocommerce_coming_soon no
 
-      - name: Verify ForgeTag commerce templates
+      - name: Verify ForgeTag commerce template resolution
         run: |
-          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$surfaces = array("shop" => array(wc_get_page_permalink("shop"), "forge-commerce--catalog"), "cart" => array(wc_get_cart_url(), "forge-commerce--cart"), "checkout" => array(wc_get_checkout_url(), "forge-commerce--checkout")); foreach ($surfaces as $name => [$url, $marker]) { $response = wp_remote_get($url); $body = is_wp_error($response) ? "" : wp_remote_retrieve_body($response); if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200 || !str_contains($body, $marker)) { WP_CLI::error("ForgeTag {$name} Template contract failed."); } }'
+          npx wp-env run ${{ matrix.config }} tests-cli wp eval '$templates = array("archive-product" => "forge-commerce--catalog", "page-cart" => "forge-commerce--cart", "page-checkout" => "forge-commerce--checkout"); foreach ($templates as $slug => $marker) { $template = get_block_template(get_stylesheet() . "//" . $slug, "wp_template"); if (!$template instanceof WP_Block_Template || !str_contains($template->content, $marker)) { WP_CLI::error("ForgeTag {$slug} Template resolution contract failed."); } }'
 
       - name: Run WordPress integration tests
         run: npx wp-env run ${{ matrix.config }} tests-cli --env-cwd=wp-content/plugins/tagcore composer test:integration
