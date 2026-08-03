@@ -157,8 +157,9 @@ jobs:
       - name: Start WordPress
         run: npx wp-env start ${{ matrix.config }}
 
-      - name: Activate and verify ForgeTag Theme
+      - name: Activate plugins and verify ForgeTag Theme
         run: |
+          npx wp-env run ${{ matrix.config }} tests-cli wp plugin activate tagcore woocommerce
           npx wp-env run ${{ matrix.config }} tests-cli wp theme activate forge-tag
           npx wp-env run ${{ matrix.config }} tests-cli wp eval '$theme = wp_get_theme(); if (get_stylesheet() !== "forge-tag" || $theme->get("Version") !== "0.1.0" || $theme->get("TextDomain") !== "forge-tag") { WP_CLI::error("ForgeTag Theme identity contract failed."); }'
 
