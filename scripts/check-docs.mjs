@@ -11,6 +11,48 @@ const manifestPath = join( designDirectory, 'ASSET-MANIFEST-V1.md' );
 const guidePath = join( designDirectory, 'UI-STYLE-GUIDE-V1.md' );
 const excludedAssets = [ 'a1.jpg', 'ForgeTag文案设计.docx' ];
 const statusMarkdownPaths = [ 'README.md', 'docs/PROJECT_STATUS.md' ];
+const finderEvidenceContract = {
+	'AGENTS.md': [
+		'exactly one required Finder Report evidence image',
+		'Finder email verification remains mandatory before two-way conversation',
+	],
+	'docs/PRD.md': [
+		'| Message for the owner | 选填，填写时为 10–500 字符 |',
+		'| Item photo | 必填，且只能上传一张物品凭证照片 |',
+		'returntag_finder_evidence_enabled',
+	],
+	'docs/adr/0019-finder-evidence-report-without-verification-gate.md': [
+		'The initial flow is deliberately one-way',
+		'**Schema before/after:** `8 -> 8`',
+	],
+	'docs/ARCHITECTURE.md': [
+		'Finder evidence-report contract',
+		'Infrastructure Stage 2 provides purpose-bound',
+	],
+	'docs/DATABASE.md': [
+		'RT-315 Finder Report and private-media persistence expansion',
+		'Schema `8 -> 10`',
+	],
+	'docs/SECURITY.md': [
+		'RT-315 Finder evidence-report security contract',
+		'Content-safety review is mandatory',
+		'RETURNTAG_TAGCORE_PRIVATE_MEDIA_OBJECT_KEY_V1',
+	],
+	'docs/RELEASE.md': [
+		'RT-315 Stage 2 keeps project/plugin version',
+		'`returntag_finder_evidence_enabled`',
+	],
+	'docs/PROJECT_STATUS.md': [
+		'RT-315 Stage 2 private-media safety foundation',
+		'Schema is `10`',
+	],
+};
+const supersededFinderStatements = [
+	'Finder email must be verified before the owner is notified.',
+	'Finder email must be verified before owner notification.',
+	'Finder 在邮箱验证前，Owner 不收到消息。',
+	'- Finder 图片或附件；',
+];
 
 const runGit = ( arguments_ ) => {
 	const result = spawnSync( 'git', arguments_, {
@@ -107,6 +149,51 @@ const checkStatusMarkdownStructure = async () => {
 	}
 
 	return failures;
+};
+
+export const findMissingFinderEvidenceContract = ( contentsByPath ) => {
+	const failures = [];
+
+	for ( const [ relativePath, requiredText ] of Object.entries(
+		finderEvidenceContract
+	) ) {
+		const contents = contentsByPath[ relativePath ] ?? '';
+
+		for ( const text of requiredText ) {
+			if ( ! contents.includes( text ) ) {
+				failures.push(
+					`${ relativePath }: missing RT-315 contract: ${ text }`
+				);
+			}
+		}
+	}
+
+	for ( const [ relativePath, contents ] of Object.entries(
+		contentsByPath
+	) ) {
+		for ( const statement of supersededFinderStatements ) {
+			if ( contents.includes( statement ) ) {
+				failures.push(
+					`${ relativePath }: superseded Finder contract remains: ${ statement }`
+				);
+			}
+		}
+	}
+
+	return failures;
+};
+
+const checkFinderEvidenceContract = async () => {
+	const contentsByPath = {};
+
+	for ( const relativePath of Object.keys( finderEvidenceContract ) ) {
+		contentsByPath[ relativePath ] = await readFile(
+			join( repositoryRoot, relativePath ),
+			'utf8'
+		);
+	}
+
+	return findMissingFinderEvidenceContract( contentsByPath );
 };
 
 const checkRelativeLinks = async ( files ) => {
@@ -331,6 +418,7 @@ export const runDocumentationChecks = async () => {
 	const failures = [
 		...links.failures,
 		...( await checkStatusMarkdownStructure() ),
+		...( await checkFinderEvidenceContract() ),
 		...( await checkAssetManifest() ),
 		...( await checkExclusions() ),
 		...( await checkSecrets( textFiles ) ),

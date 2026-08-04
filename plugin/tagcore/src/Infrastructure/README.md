@@ -52,6 +52,23 @@ query failure or malformed metadata and stops before DDL on failure. These
 adapters are not registered by the plugin bootstrap and implement no product
 workflow.
 
+RT-315 Stage 1 registers expand Migrations `0009` and `0010` for separate
+Finder Report and private-media metadata tables, then adds narrow `$wpdb`
+adapters for their typed ports. Logical parent and submission-time Owner
+snapshots are checked before insert, the media table enforces one row per
+report, and stored derivative tuples must be wholly absent or complete. The
+adapters remain unregistered and perform no upload, object storage, processing,
+notification, verification, or cleanup workflow.
+
+RT-315 Stage 2 adds `Media/` adapters without registering them in the
+production bootstrap. `GdFinderEvidenceImageProcessor` validates exact still
+JPEG/PNG/WebP containers from bytes, confirms Fileinfo/decode agreement,
+applies JPEG orientation, strips metadata through re-encoding, and creates the
+bounded review and email JPEGs. `SodiumFilesystemPrivateMediaStorage` encrypts
+object bytes and opaque references with separate purpose-bound external keys,
+rejects public or symlink roots, and exposes no path or URL. The default safety
+reviewer always fails unavailable until an approved provider is composed.
+
 RT-202 adds `PhpSecureRandomIntegerSource` under `Random/`. It uses PHP
 `random_int()` and has no WordPress, database, queue, HTTP, or logging side
 effect. It is not composed into the RT-201 administration workflow.

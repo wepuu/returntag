@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-314 ForgeTag Theme Stage 5 TagCore integration baseline; Schema remains `8`
+* Current workstream: RT-315 Stage 2 private-media safety foundation; Schema is `10` and runtime remains unimplemented
 
 
 
@@ -940,3 +940,64 @@ requires pull requests and the exact `Quality Gate` check, applies protection
 to administrators, and disallows force pushes and deletion. RT-314 is now
 explicitly authorized through Stage 5; release, publication, and deployment
 remain separate approvals.
+
+## RT-315 Stage 0 contract freeze
+
+RT-315 approves a documentation-only change to the phase-one Finder contract:
+
+* `Message for the owner` is optional and, when present, contains 10–500
+  characters;
+* `Item photo` is required and is exactly one Finder-supplied evidence image;
+* Finder email is optional for initial one-way reporting and is not a gate for
+  the first Owner alert;
+* only a processed, metadata-stripped, safety-approved inline derivative may
+  reach the Owner email;
+* the Owner has no reply path until the Finder optionally verifies an email and
+  the report is linked to a canonical Conversation;
+* Finder Report and private-media persistence are future expand contracts and
+  do not change canonical Conversation states.
+
+Stage 0 adds ADR 0019 and aligns the PRD, repository instructions,
+architecture, database, security, release, and documentation checks. It does
+not implement a route, form, upload, storage object, Migration, repository,
+queue, email, template, Theme behavior, dependency, release, or deployment.
+TagCore remains `0.4.0`, Theme remains `0.1.0`, and Schema remains `8`.
+
+## RT-315 Stage 1 persistence foundation
+
+Stage 1 advances Schema `8 -> 10` with separate Finder Report and private-media
+expand tables. It adds canonical report, evidence, and MIME enums; typed
+encrypted-message, encrypted-reference, digest, and derivative metadata values;
+and narrow insert/read Repository ports with `$wpdb` adapters. The media table
+enforces exactly one evidence row per report, and neither table stores public
+URLs, filenames, email addresses, location, EXIF, or image bytes.
+
+Fresh-install, Schema-8 upgrade, idempotent retry, missing-predecessor,
+cardinality, privacy-field, and Repository round-trip coverage are included.
+The new adapters are not registered by the production bootstrap. Public forms,
+multipart upload handling, private object storage, image processing, content
+safety, rate limits, cleanup, queues, Owner notification, Finder verification,
+Conversation linkage, UI, and Theme behavior remain outside Stage 1. TagCore
+remains `0.4.0`, Theme remains `0.1.0`, and Schema is `10`.
+
+## RT-315 Stage 2 private-media safety foundation
+
+Stage 2 adds an uncomposed, independently testable media kernel inside TagCore:
+
+* bounded source bytes and server-derived JPEG, PNG, or WebP validation;
+* exact container-length checks with animated PNG/WebP and appended-content
+  rejection;
+* GD decode, JPEG orientation handling, metadata-removing re-encoding, and
+  controlled 1600-pixel review plus 800-pixel/200-KiB email derivatives;
+* an explicit content-safety port where only `approved` creates an approved
+  marker and the shipped default always fails unavailable;
+* XChaCha20-Poly1305 encrypted filesystem objects and separately encrypted,
+  purpose-bound opaque references using independent external keys;
+* private-root, traversal, symlink, overwrite, key-reuse, purpose-confusion,
+  ciphertext-tamper, digest, and idempotent-delete regression coverage.
+
+The production bootstrap does not register these classes. No public form,
+multipart boundary, object write, database mutation, rate limit, retention
+Worker, queue, email, Owner notification, Finder verification, Conversation,
+Theme behavior, dependency, or lock-file change is included. TagCore remains
+`0.4.0`, Theme remains `0.1.0`, and Schema remains `10`.

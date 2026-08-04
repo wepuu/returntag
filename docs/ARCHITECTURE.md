@@ -788,3 +788,49 @@ nonce, response, security-header, accessibility, and rendering decisions.
 Templates receive only immutable view data and never query, authorize, or
 mutate. RT-312 adds no Theme, WooCommerce dependency, Tag or Batch query,
 business Event, Migration, Schema, or plugin-version change.
+
+## 27. RT-315 Finder evidence-report contract
+
+RT-315 freezes a TagCore-owned Finder Report workflow. Stage 1 adds the Domain
+vocabulary, typed persistence ports, `$wpdb` adapters, and Schema 9/10. Stage 2
+adds an uncomposed media-safety kernel; neither stage adds a runtime route or
+public write path. `PublicSite` will own the mobile-first form,
+same-site and CSRF decision, bounded multipart input, generic responses,
+accessibility, privacy headers, and output escaping. It accepts an optional
+Owner message, exactly one required evidence image, and an optional Finder
+email that is not an initial-notification gate.
+
+Application will later coordinate four independent use cases: accept a one-way
+report, process its evidence, notify the current Owner, and optionally verify a
+Finder email before linking the report to a canonical Conversation. The report
+aggregate and its states are separate from Conversation; the existing
+Conversation state vocabulary and required verified-email semantics are not
+changed. Templates never process files, resolve ownership, create a report, or
+decide whether notification or reply is allowed.
+
+Infrastructure Stage 2 provides purpose-bound XChaCha20-Poly1305 filesystem
+storage, separately encrypted opaque references, server-side Fileinfo and GD
+signature/decode validation, JPEG orientation handling, metadata-removing
+re-encoding, controlled derivatives, and a fail-closed content-safety port.
+The default reviewer is unavailable and can never approve evidence; a later
+composition stage must supply an approved provider. Atomic rate limiting,
+bounded retention cleanup, and idempotent queue/email adapters remain future
+work. Public WordPress media
+URLs and the Media Library are outside this boundary. Owner notification uses
+only a processed inline CID derivative, resolves the current Owner at send
+time, and carries only an internal report ID in queue arguments.
+
+The dedicated `returntag_finder_evidence_enabled` control fails closed and is
+checked with the existing Finder contact and email-dispatch controls. Image or
+safety failure blocks notification. Finder email verification is optional for
+the first one-way alert but remains mandatory before the Owner gains a reply
+path or any message is delivered to the Finder.
+
+Stage 2 keeps TagCore `0.4.0` and Schema `10`. It adds no Migration and leaves
+the processor, storage adapter, and safety reviewer unregistered by the
+production bootstrap. Stage 1 advanced Schema `8 -> 10` through contiguous
+expand Migrations `0009` and `0010`. The repositories are deliberately not
+registered by the production bootstrap. Future runtime work must remain split
+into reviewable media-processing,
+submission, notification, verification, and UI tickets; business logic remains
+inside `plugin/tagcore` and never moves into the ForgeTag Theme.

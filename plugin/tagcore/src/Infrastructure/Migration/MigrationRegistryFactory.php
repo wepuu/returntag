@@ -37,6 +37,8 @@ final class MigrationRegistryFactory {
 		$conversations = new CreateConversationsTableMigration( $this->database, $table_names, $inspector, $challenges );
 		$messages      = new CreateMessagesTableMigration( $this->database, $table_names, $inspector, $conversations );
 		$access_tokens = new CreateAccessTokensTableMigration( $this->database, $table_names, $inspector, $messages );
+		$events        = new CreateEventsTableMigration( $this->database, $table_names, $inspector, $access_tokens );
+		$reports       = new CreateFinderReportsTableMigration( $this->database, $table_names, $inspector, $events );
 
 		return new MigrationRegistry(
 			array(
@@ -47,7 +49,9 @@ final class MigrationRegistryFactory {
 				$conversations,
 				$messages,
 				$access_tokens,
-				new CreateEventsTableMigration( $this->database, $table_names, $inspector, $access_tokens ),
+				$events,
+				$reports,
+				new CreateFinderReportMediaTableMigration( $this->database, $table_names, $inspector, $reports ),
 			)
 		);
 	}

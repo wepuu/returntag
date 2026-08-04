@@ -64,11 +64,11 @@ use WP_UnitTestCase;
 use wpdb;
 
 /**
- * Verifies typed persistence against the complete Schema version 8.
+ * Verifies typed persistence against the complete Schema version 10.
  */
 final class RepositoryPersistenceTest extends WP_UnitTestCase {
 	/**
-	 * Build a clean Schema version 8 before every test.
+	 * Build a clean Schema version 10 before every test.
 	 */
 	protected function setUp(): void {
 		global $wpdb;
@@ -586,7 +586,7 @@ final class RepositoryPersistenceTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 8, $runner->migrate()->ending_version );
+		self::assertSame( 10, $runner->migrate()->ending_version );
 	}
 
 	/**

@@ -21,6 +21,19 @@ cryptographic adapters remain responsible for producing them. The ports expose
 no generic CRUD, delete, state transition, authentication, token exchange,
 activation, export, relay, or WooCommerce behavior.
 
+RT-315 Stage 1 adds narrow Finder Report and private-media insert/read ports,
+immutable records, and distinct encrypted-message, encrypted-object-reference,
+digest, and bounded-derivative metadata values. These contracts contain no
+object bytes, public URLs, filenames, Finder email, workflow orchestration, or
+delete path.
+
+RT-315 Stage 2 adds bounded source and derivative values, the image-processing
+and private-storage ports, a content-safety reviewer port, and the
+`ReviewFinderEvidence` use case. Only an explicit `approved` decision creates
+`ApprovedFinderEvidence`; rejection and unavailable providers fail closed. No
+Application type carries Tag ID, item name, email, filename, path, URL, or
+provider credentials into the safety request.
+
 RT-202 adds the `TagIdGenerator` and `RandomIntegerSource` ports plus the pure
 alphabet-mapping generator. It returns one candidate only and deliberately has
 no Repository, transaction, queue, collision retry, Batch transition, or

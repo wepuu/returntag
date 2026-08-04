@@ -974,3 +974,51 @@ The existing daily maintenance action inspects and removes at most 500 expired
 manual-entry buckets. Code rollback unregisters the routes and block while
 leaving opaque counters to expire and be cleaned; no Tag ID, Batch, Owner,
 conversation, challenge, message, access token, or audit Event is changed.
+
+## 21. RT-315 Finder Report and private-media persistence expansion
+
+RT-315 Stage 1 advances Schema `8 -> 10` with two separate, dynamically
+prefixed expand Migrations. Migration `0009` creates
+`returntag_finder_reports`; Migration `0010` creates
+`returntag_finder_report_media`. The fresh-install chain now contains ten
+tables. The new typed repositories are not registered by the production
+bootstrap, so Stage 1 creates no public route, upload, object-storage write,
+queue task, email, or notification path.
+
+Schema 9 stores a canonical Tag reference, submission-time
+Owner snapshot for audit only, encrypted nullable Owner message, independent
+report and evidence states, notification state and time, expiry, and UTC
+lifecycle times. Notification authorization must resolve the current Owner at
+send time rather than trusting the snapshot. Report states are independent of
+the canonical Conversation states and may not be stored in
+`returntag_conversations.conversation_status`.
+
+Schema 10 stores exactly one evidence row per Finder Report, enforced by the
+unique `finder_report_id` index. It stores only
+non-public object references, authenticated-encryption and integrity metadata,
+actual MIME, dimensions, byte counts, processing state, derivative versions,
+retention time, and UTC lifecycle times. It must not store source filenames,
+EXIF, GPS, device identifiers, location, public media URLs, plaintext object
+credentials, or access Tokens. Object bytes remain outside WordPress public
+uploads and the Media Library.
+
+Stage 1 includes fresh-install, Schema-8 upgrade, idempotent retry,
+missing-predecessor, unique-cardinality, and typed Repository tests. Object/database
+compensation, runtime locking evidence, and a bounded retention Worker remain
+release blockers for later media-runtime stages. Unnotified quarantine, rejected evidence, and terminal
+processing artifacts expire within 24 hours. Notified evidence expires 30 days
+after Owner notification unless an approved abuse/dispute hold applies. Cleanup
+must remove object bytes and usable references while preserving audit Events,
+accepted Conversation messages, ownership, Tags, and Batch history.
+
+Before a future runtime rollback, disable `returntag_finder_evidence_enabled`
+and stop new intake. Stage 1 has no composed intake and the prior `0.4.0` code
+safely ignores both expand tables. Routine code rollback must preserve Schema
+10 and must not drop either table. No destructive down Migration is provided.
+
+RT-315 Stage 2 does not change Schema `10`, tables, columns, indexes, or the
+Schema option. Encrypted object bytes remain outside the database. The private
+storage descriptor maps directly to the Stage 1 encrypted reference, key ID,
+SHA-256 digest, and byte-count fields; Stage 2 does not write those fields or
+add a state-transition Repository. Database/object compensation and durable
+retention orchestration remain requirements for the later submission Worker.
