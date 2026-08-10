@@ -70,8 +70,13 @@ do not expose SQL or raw exception text.
 
 ## 6. Private finder relay
 
-Finder email must be verified before the owner is notified. Owners never see a
-finder email address, and finders never see an owner email address.
+An initial one-way Finder Report may notify the current Owner without Finder
+email verification only after its required evidence image passes the approved
+private processing and content-safety controls. Finder email is optional for
+that report. It must be verified before a canonical Conversation opens, the
+Owner receives a reply action, or any Owner reply is delivered to the Finder.
+Owners never see a finder email address, and finders never see an owner email
+address.
 
 The other party's address must not appear in:
 
@@ -95,7 +100,9 @@ encryption.
 - Normalize, validate, and length-limit every public input.
 - Escape output at render time for its specific HTML, attribute, URL, JSON, or
   email context.
-- Reject unsafe HTML and scripts; phase one does not support attachments.
+- Reject unsafe HTML and scripts. General attachments remain unsupported; the
+  only phase-one exception is one required Finder Report evidence image under
+  the RT-315 private-media contract.
 - Apply CSRF protection to browser mutations and explicit capabilities to
   administrative routes.
 - Use privacy-safe, non-enumerating error messages.
@@ -107,10 +114,11 @@ advertising pixels, session replay, or unnecessary third-party tracking.
 
 ## 8. Abuse prevention
 
-Rate limits apply to activation, OTP requests and verification, finder message
-submission, secure-token exchange, and dispute endpoints. Limits should combine
-privacy-safe email, IP, device or risk signals without treating one signal as
-identity proof.
+Rate limits apply to activation, OTP requests and verification, Finder Report
+submission, evidence processing, finder message submission, secure-token
+exchange, and dispute endpoints. Limits should combine per-Tag, privacy-safe
+email when present, direct-peer IP, device or risk, and global signals without
+treating one signal as identity proof.
 
 Risk-based CAPTCHA may supplement but not replace server-side validation,
 authorization, throttling, and atomic writes. Owners and finders must be able to
@@ -755,3 +763,161 @@ state, token, permission, arbitrary copy, or redirect target. Desktop dialog
 enhancement uses the native dialog focus model, supports Escape, restores the
 exact trigger, and falls back to the same-site link. Mobile uses the standalone
 full-screen route and never loads the surrounding Theme page.
+
+## 27. RT-315 Finder evidence-report security contract
+
+RT-315 Stage 1 adds Schema 9/10 and typed repositories. Stage 2 adds an
+uncomposed media-safety kernel: bounded source bytes, strict JPEG/PNG/WebP
+container checks, server MIME/decode agreement, 20-megapixel enforcement,
+orientation-aware GD decode, metadata-removing JPEG re-encoding, controlled
+1600-pixel and 800-pixel/200-KiB derivatives, and explicit safety approval.
+There is still no upload endpoint, queue, email, or composed runtime flag.
+Runtime must remain disabled until every control in this section is present and
+`returntag_finder_evidence_enabled` is explicitly enabled.
+
+The public form accepts one optional plain-text Owner message and exactly one
+required JPEG, PNG, or WebP image. The boundary enforces an 8 MiB source limit,
+a 20-megapixel decoded limit, actual file-signature/MIME agreement, successful
+bounded decode, and a single-file cardinality before acceptance. SVG, GIF,
+HEIC, PDF, audio, video, archives, extra files, HTML, scripts, and malformed or
+polyglot-like input are rejected with generic responses. Client filenames and
+client MIME declarations are never trusted or retained.
+
+Accepted bytes enter encrypted non-public quarantine outside WordPress uploads
+and the Media Library. Processing re-encodes decoded pixels, removes EXIF, GPS,
+capture time, device data, embedded profiles not required for safe rendering,
+and original filenames, then creates controlled 1600-pixel review and
+800-pixel/200-KiB email derivatives. Content-safety review is mandatory and
+fails closed. No Owner notification occurs after a decode, storage, scanning,
+processing, timeout, or safety failure. Provider requests use only the minimum
+approved derivative and must not include Tag ID, item name, email, source
+filename, or unnecessary metadata.
+
+Object storage uses authenticated encryption with keys outside WordPress and
+its database. Object references are non-public and never appear in HTML, URLs,
+logs, analytics, or email. Ordinary logs and Events contain only approved
+classification, result, opaque internal identifiers, timings, sizes, and error
+codes; they contain no image bytes, thumbnails, private messages, email,
+location, Tag ID, or object credentials.
+
+The Stage 2 filesystem adapter encrypts every source and derivative object with
+XChaCha20-Poly1305 and encrypts its random opaque reference with a distinct key.
+Associated data binds key version, object purpose, and random identifier.
+`RETURNTAG_TAGCORE_PRIVATE_MEDIA_OBJECT_KEY_V1` and
+`RETURNTAG_TAGCORE_PRIVATE_MEDIA_REFERENCE_KEY_V1` are independent external
+32-byte Base64 keys; they must never be stored in an Option or the database.
+The configured absolute root must resolve outside `ABSPATH`, `WP_CONTENT_DIR`,
+public uploads, and every configured public root. Symlink roots, traversal,
+overwrites, key reuse, purpose confusion, ciphertext modification, digest
+mismatch, and public-root placement fail closed. The adapter returns no path or
+URL and is not yet registered by the production bootstrap.
+
+Content safety remains an external approval boundary. Stage 2 passes only the
+metadata-free review derivative to `FinderEvidenceSafetyReviewer`. The shipped
+default adapter always reports safety unavailable. Only an explicit
+`approved` result creates `ApprovedFinderEvidence`; rejection, provider error,
+timeout, or missing configuration produces no approval marker.
+
+Owner notification runs asynchronously after durable state. Its queue argument
+is only an internal report ID. The Worker rechecks the evidence, Finder-contact,
+and email-dispatch flags; resolves the current Owner at send time; and embeds
+only the processed email derivative as a local MIME CID part. It never attaches
+the original or uses a remote image, public URL, access Token, original
+filename, private item name, Tag ID, or cross-party address. Report ID plus
+derivative version provides idempotency. Terminal failures are bounded and do
+not retry forever.
+
+The Stage 4 WordPress mail adapter explicitly clears Reply-To, CC, and BCC,
+provides text and escaped HTML alternatives, and marks `sent` only when the
+configured mailer accepts the message. It never equates that acceptance with
+provider delivery. A 15-minute stale claim is converged to terminal `failed`
+to prevent an automatic duplicate after an ambiguous Worker crash window.
+
+The initial report is one-way. Without verified Finder email, the Owner sees no
+Secure Reply control and cannot create an orphan reply. Optional Finder email
+uses the existing encryption/HMAC and one-time verification requirements before
+the report may be linked to an open Conversation. Email privacy remains in
+force in every header, body, URL, secure page, log, Event, and administration
+view.
+
+Submission requires a documented same-site/CSRF decision, atomic per-Tag,
+direct-peer IP, device/risk, and global budgets, plus risk-based CAPTCHA when
+appropriate. Suspended or retired Tags, disabled Finder contact, disabled
+evidence processing, unavailable safety controls, storage failure, and rate-
+limit failure all stop acceptance or notification safely. Owners can report or
+block a Finder Report through a future authenticated, nonce-protected action
+with an audit Event.
+
+Quarantine, rejected, and terminal unnotified artifacts expire within 24
+hours. Notified evidence expires 30 days after notification unless an approved
+abuse/dispute hold applies. Cleanup is bounded, retry-safe, and auditable. The
+Finder consent must state that ReturnTag cannot recall a derivative already
+received, cached, exported, or forwarded from the Owner's mailbox.
+
+## 28. RT-315 Stage 5 Finder email verification
+
+The optional continuation is available only from a completed, unexpired,
+Tag-bound Finder Report submission claim. The browser receives no internal
+report ID, Conversation ID, email digest, ciphertext, or queue identifier.
+Same-site and nonce checks protect both request and verification POSTs, and all
+failure states remain generic.
+
+Finder email encryption, lookup HMAC, peer-IP HMAC, and OTP hashing use a
+dedicated external three-key set, report-bound authenticated data, and separate
+domains from activation OTP. Plaintext OTP exists only in Worker memory; the
+queue contains only the challenge ID. Request budgets cover keyed email and
+direct-peer IP minute/hour windows, with persistent hourly challenge counts per
+email and report. Codes expire after ten minutes, allow at most five attempts,
+and are consumed exactly once.
+
+Successful verification atomically creates or reuses one `open` Conversation
+and links it to the report. The current active Owner is resolved at verification
+time; suspended or retired Tags cannot create a Conversation. Neither address
+is rendered, logged, placed in URLs, or exposed in mail headers. This stage
+does not add Secure Reply, message delivery, access Tokens, or attachments.
+
+## 29. RT-315 Stage 6 Secure Reply and bounded relay
+
+Owner and Finder email links carry independent 32-byte random Tokens whose
+keyed digests alone are stored. A GET cannot exchange a Token. The public route
+moves a structurally valid Token to an HttpOnly, SameSite=Strict transient
+cookie, redirects to a clean URL, and requires an explicit nonce-protected POST
+before issuing a 30-minute role-bound session. Link lifetime is 24 hours.
+
+Owner requests re-resolve the current active Owner server-side; transferred,
+suspended, retired, closed, blocked, and expired access fails closed. Finder
+authorization comes only from the role-bound link delivered to the verified
+Finder destination. Neither role can select an Owner, actor role, Conversation,
+recipient, or email through browser input.
+
+Human messages are plain text, 10–500 Unicode characters, limited to 10 per
+role and 20 per Conversation, encrypted at rest with an independent external
+key, escaped at render time, and excluded from logs and Events. Attachments and
+precise-location fields are rejected. Request budgets cover session, direct
+peer and Conversation scopes. Queue payloads contain Message IDs only.
+
+The Worker creates the recipient's next role-bound link in memory, sends no
+cross-party address in headers or content, and records provider acceptance as
+`sent`, not delivered. A stale ambiguous claim is terminal `failed` and is not
+resent. Finder Contact and Email Dispatch remain the incident controls.
+
+## 30. RT-316 participant close and report-block controls
+
+Finder termination and Owner report-block are explicit, same-site,
+nonce-protected POST actions from an active role-bound session. Finder can only
+request `closed`; the current active Owner can only request `blocked`. Neither
+request accepts an identifier, role, status, reason, free text, attachment, or
+recipient from the browser.
+
+The terminal transaction rechecks current ownership and all Stage 6
+eligibility, revokes every link and session, fails still-queued Messages, and
+records a metadata-free Event. Responses, Events, logs, URLs, and queue data
+contain no email, private item name, Tag ID, message body, Token, report reason,
+or evidence filename. Both cookies are cleared after success. Closed or blocked
+Conversations cannot be read, exchanged, messaged, linked, or newly claimed.
+
+The Worker rechecks the exact claimed Message and continuation Token immediately
+before delivery. An email provider call that already passed that final check
+and is in progress cannot be recalled. Its result cannot restore access or the
+Conversation. Stage 7A provides no moderation
+outcome, evidence hold, unblock, reopen, appeal, or ownership-dispute path.

@@ -84,4 +84,20 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_events';
 	}
+
+	/**
+	 * Return the one-way Finder Reports table name.
+	 */
+	public function finder_reports(): string {
+
+		return $this->wordpress_prefix . 'returntag_finder_reports';
+	}
+
+	/**
+	 * Return the private Finder Report media table name.
+	 */
+	public function finder_report_media(): string {
+
+		return $this->wordpress_prefix . 'returntag_finder_report_media';
+	}
 }

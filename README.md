@@ -649,3 +649,31 @@ Schema remains `8`.
 The protected `main` branch requires pull requests and the exact
 `Quality Gate` check, applies protection to administrators, and disallows
 force pushes and deletion.
+
+## RT-315 Finder Report persistence foundation
+
+RT-315 Stage 0 freezes the one-way Finder evidence-report contract. Stage 1
+then advances Schema `8 -> 10` with separate Finder Report and private-media
+metadata tables, canonical enums, typed records and values, narrow Repository
+ports, and `$wpdb` adapters. The media table enforces exactly one evidence row
+per report and stores encrypted non-public references rather than image bytes
+or public URLs.
+
+The Stage 1 adapters are not registered by the production bootstrap. Public
+submission, upload handling, encrypted object storage, image processing,
+content-safety review, rate limits, retention cleanup, queues, email, Finder
+verification, Conversation linkage, and UI remain future work. TagCore remains
+`0.4.0` and Theme remains `0.1.0`.
+
+RT-315 Stage 2 adds the uncomposed private-media safety foundation. Fileinfo
+and GD validate one still JPEG, PNG, or WebP from bytes, enforce 8 MiB and 20
+megapixels, reject malformed/appended or animated containers, apply JPEG
+orientation, strip metadata through re-encoding, and produce a 1600-pixel
+review JPEG plus an 800-pixel/200-KiB email JPEG. A safety decision is explicit;
+the shipped default reviewer always fails unavailable.
+
+Private objects and their opaque references use separate purpose-bound
+XChaCha20-Poly1305 keys loaded outside WordPress storage. The filesystem adapter
+rejects public roots, traversal, symlinks, key reuse, purpose confusion, and
+tampering, and returns no path or URL. Stage 2 adds no route, Hook, database
+write, queue, email, dependency, production composition, or Schema change.

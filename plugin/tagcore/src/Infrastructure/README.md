@@ -52,6 +52,61 @@ query failure or malformed metadata and stops before DDL on failure. These
 adapters are not registered by the plugin bootstrap and implement no product
 workflow.
 
+RT-315 Stage 1 registers expand Migrations `0009` and `0010` for separate
+Finder Report and private-media metadata tables, then adds narrow `$wpdb`
+adapters for their typed ports. Logical parent and submission-time Owner
+snapshots are checked before insert, the media table enforces one row per
+report, and stored derivative tuples must be wholly absent or complete. The
+adapters remain unregistered and perform no upload, object storage, processing,
+notification, verification, or cleanup workflow.
+
+RT-315 Stage 2 adds `Media/` adapters without registering them in the
+production bootstrap. `GdFinderEvidenceImageProcessor` validates exact still
+JPEG/PNG/WebP containers from bytes, confirms Fileinfo/decode agreement,
+applies JPEG orientation, strips metadata through re-encoding, and creates the
+bounded review and email JPEGs. `SodiumFilesystemPrivateMediaStorage` encrypts
+object bytes and opaque references with separate purpose-bound external keys,
+rejects public or symlink roots, and exposes no path or URL. The default safety
+reviewer always fails unavailable until an approved provider is composed.
+
+RT-315 Stage 3 adds fail-closed production composition for the Finder Report
+runtime, a required single-upload boundary, XChaCha20-Poly1305 message
+encryption, option-backed atomic abuse budgets and idempotency claims, and
+Action Scheduler processing/recovery/cleanup hooks. Intake remains unavailable
+unless the dedicated private root and key material are externally configured,
+both Finder controls are enabled, and the
+`returntag_finder_evidence_safety_reviewer` filter supplies an approved adapter
+that implements both safety review and availability contracts. No shipped
+adapter can approve content by default.
+
+RT-315 Stage 4 composes a unique report-ID-only notification action, hourly
+missing-work recovery, stale-claim convergence, current active-Owner lookup,
+and a WordPress email adapter. The mail contains escaped HTML and text bodies,
+clears Reply-To/CC/BCC, embeds only the private controlled JPEG by CID, and
+exposes no media URL, Token, Tag ID, private item name, original filename, or
+cross-party address. WordPress mail acceptance maps to `sent`, never
+`delivered`; failed or ambiguous claims converge terminally without an
+unbounded retry loop.
+
+RT-315 Stage 5 composes Finder-email encryption, lookup digests, OTP delivery,
+durable verification budgets, and a report-linked Conversation opening path.
+Queue payloads contain challenge IDs only, and neither party's address enters
+the other party's response, URL, Event, or email headers.
+
+RT-315 Stage 6 composes the `/secure-reply/` route, hash-only role-bound Access
+Tokens, secure same-site session cookies, encrypted Message persistence, and
+Action Scheduler workers carrying Message IDs only. Schema 12 adds nullable
+claim time and a one-attempt counter plus the dispatch recovery index. Mailer
+acceptance maps to `sent`; failures and stale ambiguous claims converge without
+automatic duplicate delivery. Missing independent relay keys or disabled
+Finder Contact or Email Dispatch controls fail the runtime closed.
+
+RT-316 Stage 7A keeps Schema 12 and extends the same Store transaction boundary
+to terminal participant actions. It locks and revalidates the Conversation,
+updates the allowed role-specific terminal state, revokes all Tokens, fails
+queued Messages, and appends one metadata-free Event atomically. No moderator
+queue, report reason, evidence hold, new table, or Migration is introduced.
+
 RT-202 adds `PhpSecureRandomIntegerSource` under `Random/`. It uses PHP
 `random_int()` and has no WordPress, database, queue, HTTP, or logging side
 effect. It is not composed into the RT-201 administration workflow.

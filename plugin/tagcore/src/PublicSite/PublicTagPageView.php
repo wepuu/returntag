@@ -28,6 +28,7 @@ final readonly class PublicTagPageView {
 	 * @param string|null                $lost_message Approved Finder-safe Lost Mode message.
 	 * @param ActivationOtpFormView|null $activation_form Optional activation OTP form.
 	 * @param SmartTagGuideView|null     $smart_tag_guide Optional static Smart Tag guide.
+	 * @param FinderReportFormView|null  $finder_report_form Optional Finder Report form.
 	 */
 	public function __construct(
 		public string $body_class,
@@ -41,7 +42,8 @@ final readonly class PublicTagPageView {
 		public bool $lost_mode = false,
 		public ?string $lost_message = null,
 		public ?ActivationOtpFormView $activation_form = null,
-		public ?SmartTagGuideView $smart_tag_guide = null
+		public ?SmartTagGuideView $smart_tag_guide = null,
+		public ?FinderReportFormView $finder_report_form = null
 	) {
 	}
 }

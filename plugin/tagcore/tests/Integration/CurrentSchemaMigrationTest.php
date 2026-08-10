@@ -10,12 +10,16 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Infrastructure\Migration\CreateAccessTokensTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\AddMessageDispatchClaimsMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateAuthChallengesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchExportsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateBatchesTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateConversationsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateEventsTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\CreateFinderReportMediaTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\CreateFinderReportsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateMessagesTableMigration;
+use ReturnTag\TagCore\Infrastructure\Migration\LinkFinderReportsToConversationsMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\CreateTagsTableMigration;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationLifecycle;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistry;
@@ -57,16 +61,16 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Production composition must register contiguous versions one through eight.
+	 * Production composition must register contiguous versions one through twelve.
 	 */
-	public function test_production_registry_registers_versions_one_through_eight(): void {
+	public function test_production_registry_registers_versions_one_through_twelve(): void {
 		global $wpdb;
 
 		$registry   = ( new MigrationRegistryFactory( $wpdb ) )->create();
 		$migrations = $registry->all();
 
-		self::assertSame( 8, $registry->target_version() );
-		self::assertCount( 8, $migrations );
+		self::assertSame( 12, $registry->target_version() );
+		self::assertCount( 12, $migrations );
 		self::assertInstanceOf( CreateBatchesTableMigration::class, $migrations[0] );
 		self::assertInstanceOf( CreateTagsTableMigration::class, $migrations[1] );
 		self::assertInstanceOf( CreateBatchExportsTableMigration::class, $migrations[2] );
@@ -75,30 +79,34 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 		self::assertInstanceOf( CreateMessagesTableMigration::class, $migrations[5] );
 		self::assertInstanceOf( CreateAccessTokensTableMigration::class, $migrations[6] );
 		self::assertInstanceOf( CreateEventsTableMigration::class, $migrations[7] );
-		self::assertSame( array( 1, 2, 3, 4, 5, 6, 7, 8 ), array_map( static fn( $migration ): int => $migration->version(), $migrations ) );
+		self::assertInstanceOf( CreateFinderReportsTableMigration::class, $migrations[8] );
+		self::assertInstanceOf( CreateFinderReportMediaTableMigration::class, $migrations[9] );
+		self::assertInstanceOf( LinkFinderReportsToConversationsMigration::class, $migrations[10] );
+		self::assertInstanceOf( AddMessageDispatchClaimsMigration::class, $migrations[11] );
+		self::assertSame( range( 1, 12 ), array_map( static fn( $migration ): int => $migration->version(), $migrations ) );
 	}
 
 	/**
 	 * The registered activation hook must execute the current production chain.
 	 */
-	public function test_plugin_activation_executes_production_chain_to_eight(): void {
+	public function test_plugin_activation_executes_production_chain_to_twelve(): void {
 		global $wpdb;
 
 		do_action( 'activate_' . plugin_basename( RETURNTAG_TAGCORE_FILE ), false );
 
 		$registry = ( new MigrationRegistryFactory( $wpdb ) )->create();
-		self::assertSame( 8, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
-		self::assertTrue( $registry->all()[7]->verify() );
+		self::assertSame( 12, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
+		self::assertTrue( $registry->all()[11]->verify() );
 		self::assertSame( $this->table_names( $wpdb ), $this->existing_returntag_tables( $wpdb ) );
 	}
 
 	/**
-	 * A real TagCore upgrade hook must preserve predecessor data while reaching eight.
+	 * A real TagCore upgrade hook must preserve Schema-8 data while reaching eleven.
 	 */
-	public function test_plugin_upgrade_advances_four_to_eight_and_preserves_data(): void {
+	public function test_plugin_upgrade_advances_eight_to_twelve_and_preserves_data(): void {
 		global $wpdb;
 
-		$this->migrate_to( $wpdb, 4 );
+		$this->migrate_to( $wpdb, 8 );
 		$this->insert_batch_fixture( $wpdb, 'RT110-UPGRADE' );
 
 		$this->lifecycle( $wpdb )->after_plugin_upgrade(
@@ -119,7 +127,7 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 			)
 		);
 
-		self::assertSame( 8, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
+		self::assertSame( 12, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
 		self::assertSame( 'RT110-UPGRADE', $batch_code );
 		self::assertSame( $this->table_names( $wpdb ), $this->existing_returntag_tables( $wpdb ) );
 	}
@@ -130,7 +138,7 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	public function test_complete_schema_reconciles_missing_option_without_ddl(): void {
 		global $wpdb;
 
-		$this->migrate_to( $wpdb, 8 );
+		$this->migrate_to( $wpdb, 12 );
 		delete_option( WordPressSchemaVersionStore::OPTION_NAME );
 
 		$ddl_queries = array();
@@ -145,15 +153,15 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 		add_filter( 'query', $observer );
 
 		try {
-			$report = $this->runner( $wpdb, 8 )->migrate();
+			$report = $this->runner( $wpdb, 12 )->migrate();
 		} finally {
 			remove_filter( 'query', $observer );
 		}
 
 		self::assertSame( 0, $report->starting_version );
-		self::assertSame( 8, $report->ending_version );
-		self::assertSame( array( 1, 2, 3, 4, 5, 6, 7, 8 ), $report->applied_versions );
-		self::assertSame( 8, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
+		self::assertSame( 12, $report->ending_version );
+		self::assertSame( range( 1, 12 ), $report->applied_versions );
+		self::assertSame( 12, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
 		self::assertSame( array(), $ddl_queries );
 	}
 
@@ -163,7 +171,7 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	public function test_uninstall_preserves_schema_option_tables_and_data(): void {
 		global $wpdb;
 
-		$this->migrate_to( $wpdb, 8 );
+		$this->migrate_to( $wpdb, 12 );
 		$this->insert_batch_fixture( $wpdb, 'RT110-UNINSTALL' );
 
 		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
@@ -181,7 +189,7 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 			)
 		);
 
-		self::assertSame( 8, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
+		self::assertSame( 12, get_option( WordPressSchemaVersionStore::OPTION_NAME ) );
 		self::assertSame( '1', (string) $batch_count );
 		self::assertSame( $this->table_names( $wpdb ), $this->existing_returntag_tables( $wpdb ) );
 	}
@@ -281,6 +289,8 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 			$names->batches(),
 			$names->conversations(),
 			$names->events(),
+			$names->finder_report_media(),
+			$names->finder_reports(),
 			$names->messages(),
 			$names->tags(),
 		);
@@ -317,7 +327,7 @@ final class CurrentSchemaMigrationTest extends WP_UnitTestCase {
 	private function clear_schema( wpdb $database ): void {
 		$names = new TableNames( $database->prefix );
 
-		foreach ( array( $names->events(), $names->access_tokens(), $names->messages(), $names->conversations(), $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table_name ) {
+		foreach ( array( $names->finder_report_media(), $names->finder_reports(), $names->events(), $names->access_tokens(), $names->messages(), $names->conversations(), $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table_name ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated test cleanup with trusted identifiers.
 			$database->query( "DROP TABLE IF EXISTS {$table_name}" );
 		}

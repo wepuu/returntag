@@ -1,6 +1,6 @@
 # ForgeTag 一期产品需求文档（ReturnTag 项目 PRD）
 
-**文档版本：** V1.0  
+**文档版本：** V1.1（RT-315 Finder Report 合同修订）
 **文档状态：** 开发基线  
 **目标市场：** 美国（US）  
 **代码仓库：** `returntag`  
@@ -205,11 +205,12 @@ Two-Way Private Email Relay
 3. 用户通过实体标签上的二维码或 6 位 ID 激活；
 4. 激活前通过邮箱 OTP 验证身份；
 5. 用户在账户中心管理标签、公开信息和 Lost Mode；
-6. Finder 扫码并验证邮箱后，私密联系 Owner；
-7. Owner 与 Finder 通过 ForgeTag 安全页面完成双向中转沟通；
-8. Smart Tag 页面提供静态智能网络配置说明；
-9. WooCommerce 订单与具体 Tag ID 保持完全解耦；
-10. 后台支持批次冻结、标签暂停、所有权转移、争议处理和审计查询。
+6. Finder 扫码后提交一张必填的物品凭证照片和选填的 Owner 留言，无需注册或验证邮箱；
+7. 凭证通过处理与安全检查后通知当前 Owner；Finder 只有在后续选填并验证邮箱后才能进入双向隐私中转；
+8. Owner 与已验证邮箱的 Finder 通过 ForgeTag 安全页面完成双向中转沟通；
+9. Smart Tag 页面提供静态智能网络配置说明；
+10. WooCommerce 订单与具体 Tag ID 保持完全解耦；
+11. 后台支持批次冻结、标签暂停、所有权转移、争议处理和审计查询。
 
 ### 6.2 一期明确不做
 
@@ -232,7 +233,7 @@ Two-Way Private Email Relay
 - 原生 iOS App；
 - 原生 Android App；
 - 短信验证码；
-- Finder 图片或附件；
+- Finder Report 规定的一张物品凭证照片之外的图片或附件；
 - 实时聊天；
 - 浏览器精确定位。
 
@@ -988,15 +989,14 @@ Finder 的核心任务应在约 30 秒内完成：
 ```text
 扫描 QR
 → 查看 Found Item 页面
-→ 输入邮箱和留言
-→ 接收验证邮件
-→ 点击确认
-→ ForgeTag 通知 Owner
-→ Owner 安全回复
-→ Finder 接收中转邮件
+→ 选填给 Owner 的留言
+→ 上传一张必填的物品凭证照片
+→ ForgeTag 私密处理并检查照片
+→ ForgeTag 通知当前 Owner
+→ Finder 可选填并验证邮箱以开启安全回复
 ```
 
-Finder 不需要注册完整账户。
+Finder 不需要注册完整账户，也不需要提供或验证邮箱即可完成首次单向上报。
 
 ### 17.2 Finder 表单
 
@@ -1004,41 +1004,43 @@ Finder 不需要注册完整账户。
 
 | 字段 | 要求 |
 |---|---|
-| Finder Email | 必填 |
-| Message | 必填，10–500 字符 |
+| Message for the owner | 选填，填写时为 10–500 字符 |
+| Item photo | 必填，且只能上传一张物品凭证照片 |
+| Finder Email | 选填；仅用于后续验证并开启双向回复 |
 | Safety Confirmation | 确认不会索要密码或验证码 |
-| Privacy Consent | 同意邮箱仅用于本次找回会话 |
+| Privacy Consent | 同意凭证照片会经处理后以内嵌缩略图发送给 Owner；提供邮箱时，同意邮箱仅用于本次找回流程 |
 
-一期禁止：
+除一张必填的 Item photo 外，一期禁止：
 
-- 上传图片；
-- 上传附件；
+- 上传更多图片或通用附件；
 - 发送音频；
 - 输入 HTML；
 - 直接发送精确定位；
 - 创建公开评论。
 
-### 17.3 Finder 邮箱验证
+Item photo 是 Finder 证明已找到物品的安全凭证，不是 Owner 的物品资料，也不是 Conversation 附件。系统只接受 JPEG、PNG 或 WebP，源文件最大 8 MiB、解码像素不超过 20 MP；必须校验文件签名与实际 MIME，成功解码后重新编码，移除 EXIF、GPS、设备、时间和原始文件名元数据，并保存在非公开、加密的私有存储中。SVG、GIF、HEIC、PDF、视频、音频和无法安全解码的文件必须拒绝。
 
-Finder 提交表单后，系统不能立即通知 Owner。
+Owner 邮件只允许内嵌通过安全检查的派生缩略图，不得附带原图，也不得使用公开 URL、远程热链或可转发的访问 Token。邮件派生图最长边不超过 800 px、目标大小不超过 200 KiB。用于安全复核的派生主图最长边不超过 1600 px。Finder 必须被明确告知：系统可以按保留策略删除服务器副本，但无法撤回 Owner 邮箱已经接收、缓存或转发的副本。
+
+### 17.3 单向 Finder Report
+
+Finder Report 与双向 Conversation 是两个独立模型。报告提交后，系统先持久化报告与隔离的凭证，再由后台任务完成解码、重新编码、元数据清理和内容安全检查。只有凭证状态为可用时，系统才能解析发送时的当前 Owner 并排队通知；处理失败、被拒绝、超时或安全服务不可用时必须失败关闭，不向 Owner 发送不安全或空内容通知。
 
 正确流程：
 
 ```text
-Finder 提交邮箱和消息
-→ 创建 pending_verification 会话
-→ 向 Finder 发送一次性确认链接
-→ Finder 点击并确认
-→ 会话变为 open
-→ 系统向 Owner 发送通知
+Finder 提交选填留言和一张必填凭证照片
+→ 创建独立 Finder Report 并隔离凭证
+→ 后台处理与内容安全检查
+→ 解析发送时的当前 Owner
+→ 幂等排队并发送含内嵌派生缩略图的 Owner 通知
 ```
 
-该步骤用于降低：
+初次通知不创建 `pending_verification` Conversation，也不允许 Owner 回复匿名 Finder。系统必须对 Tag、直接对等 IP、设备/风险信号和全局提交量执行原子限流；风险升高时可以使用经批准的 CAPTCHA 适配器，但 CAPTCHA 不能替代服务端校验、凭证检查或限流。
 
-- 伪造他人邮箱；
-- 垃圾消息；
-- 恶意骚扰；
-- 无效回信地址。
+### 17.4 可选邮箱验证与双向回复
+
+Finder 可以在初次上报时或之后选填邮箱。系统必须先验证该邮箱，成功后才可创建或关联 canonical Conversation、向 Owner 提供 Secure Reply，并把回复投递给 Finder。验证前不得把匿名报告伪装成可回复会话，也不得将 Owner 回复保存为等待匿名 Finder 领取的消息。
 
 ---
 
@@ -1064,8 +1066,8 @@ j***@example.com
 ### 18.2 通信流程
 
 ```text
-Finder 验证邮箱
-→ ForgeTag 通知 Owner
+Finder 可选填并验证邮箱
+→ ForgeTag 将 Finder Report 关联到 canonical Conversation
 → Owner 点击 Secure Reply
 → Owner 输入回复
 → ForgeTag 转发给 Finder
@@ -1073,25 +1075,27 @@ Finder 验证邮箱
 → 双方继续有限次数的中转会话
 ```
 
-### 18.3 Owner 通知邮件
+### 18.3 Owner Finder Report 通知邮件
 
 推荐 Subject：
 
 ```text
-A finder sent a message about your ForgeTag
+A finder submitted a report about your ForgeTag
 ```
 
 推荐正文：
 
 ```text
-A finder has contacted you through ForgeTag.
+A finder submitted evidence through ForgeTag.
 
-Message:
+Evidence photo:
+[Processed inline thumbnail]
+
+Message for you:
 “I found this item near Terminal 4.”
-
-Reply securely without sharing your email address:
-[Secure Reply]
 ```
+
+如果 Finder 未填写 Message，邮件必须省略整个留言区。只有 Finder 邮箱已经验证并且关联 Conversation 已打开时，邮件或后续安全页面才能显示 Secure Reply。Subject、正文、内嵌图片文件名、CID、邮件头和链接不得包含私人 item name、任一方邮箱、Tag ID 或原始文件名。
 
 不建议在 Subject 中显示具体物品名称，以减少锁屏通知泄露。
 
@@ -1106,6 +1110,41 @@ Reply securely without sharing your email address:
 - 不写入普通日志；
 - 不在 GET 第一次访问时直接消费；
 - 通过 POST 或 Continue 操作建立安全会话。
+
+RT-315 Stage 6 固定以下运行时边界：
+
+- Owner Secure Reply 与 Finder Continue Conversation 邮件链接有效期为 24 小时；
+- 链接 Token 为 32 字节密码学随机值，数据库只保存独立密钥域的 SHA-256 HMAC；
+- 显式 POST 成功交换后创建 30 分钟的 HttpOnly、SameSite=Strict 安全会话；
+- 同一角色与 Conversation 的旧会话在新会话签发时撤销；
+- Owner 每次交换和操作都必须重新验证当前 active Owner，所有权转移后旧路径立即失效。
+
+### 18.5 消息范围与次数
+
+- Owner 与 Finder 的每条消息均为必填纯文本，长度为 10–500 个 Unicode 字符；
+- 每个角色最多发送 10 条人工消息，每个 Conversation 最多发送 20 条人工消息；
+- `system` 投递记录不计入人工消息限额；
+- 一期 Conversation 不支持附件、图片、音频、视频、HTML 或精确位置字段；
+- 消息正文必须使用独立外部密钥加密存储，队列只允许携带 Message ID；
+- 邮件提供者接受只记录为 `sent`，不得当作确认送达；过期的模糊投递认领必须失败关闭，不得自动重复发送。
+
+### 18.6 Stage 7A 参与者安全操作
+
+- Finder 只能通过其已验证、角色绑定的会话显式结束当前 `open`
+  Conversation，并将其转换为 `closed`；
+- 当前 active Owner 只能通过其角色绑定会话执行 `Report and block`，将
+  当前 `open` Conversation 转换为 `blocked`；
+- 两个操作均要求同站点、Nonce 保护的 POST、显式确认和服务端角色、当前
+  Owner、Tag、Finder Report 及 Conversation 状态复核；
+- 状态转换、全部未撤销 Token/Session 撤销、仍为 `queued` 的 Message
+  终止及无元数据审计 Event 必须在同一事务中完成；
+- Finder 结束记录 `conversation_closed`，Owner 举报并屏蔽记录
+  `conversation_reported`，Event 不得包含原因、邮箱、消息正文、Tag ID、
+  Token 或媒体标识；
+- Stage 7A 不接收举报原因、自由文本、附件或位置，也不实现重新打开、解除
+  屏蔽、审核结果、证据保留、申诉、所有权争议或后台审核界面；
+- 已经进入外部邮件提供商调用的消息无法召回，但关闭或屏蔽不能被该调用
+  恢复，且事务前签发的继续访问 Token 必须失效。
 
 相关页面响应头：
 
@@ -1276,6 +1315,8 @@ body_ciphertext
 delivery_status
 provider_message_id
 delivered_at
+dispatch_claimed_at
+dispatch_attempt_count
 created_at
 ```
 
@@ -1325,9 +1366,14 @@ tag_transferred
 tag_suspended
 tag_retired
 finder_message_submitted
+finder_report_submitted
+finder_report_evidence_ready
+finder_report_owner_notified
+finder_report_blocked
 finder_email_verified
 owner_reply_sent
 conversation_closed
+conversation_reported
 recovery_confirmed
 ownership_dispute_opened
 ownership_dispute_resolved
@@ -1340,6 +1386,53 @@ ownership_dispute_resolved
 - 完整消息正文；
 - 不必要的完整邮箱；
 - Apple 或 Google 位置数据。
+
+### 19.9 `returntag_finder_reports`（Schema 9）
+
+职责：保存无需邮箱验证的单向 Finder Report 状态。RT-315 阶段 1 通过 expand Migration `0009` 创建该表和类型化 Repository，但不注册公开写入路径。
+
+计划字段至少包括：
+
+```text
+finder_report_id
+tag_id
+owner_id_at_submission
+message_ciphertext (nullable)
+report_status
+evidence_status
+owner_notification_status
+owner_notified_at
+expires_at
+created_at
+updated_at
+```
+
+报告状态必须使用独立词汇：
+
+```text
+received
+processing
+ready
+notified
+blocked
+expired
+```
+
+这些值不是 Conversation 状态，不得添加到 `returntag_conversations.conversation_status`。发送时必须重新解析当前 Owner；`owner_id_at_submission` 仅用于审计和转移竞争检测，不是发送授权。
+
+### 19.10 `returntag_finder_report_media`（Schema 10）
+
+职责：保存一张 Finder Report 凭证的私有对象引用、处理状态、加密与完整性元数据、尺寸、派生版本和保留期限。不得保存公开媒体 URL、原始文件名、EXIF、GPS、设备信息或邮件访问 Token。媒体状态为：
+
+```text
+quarantined
+processing
+ready
+rejected
+deleted
+```
+
+原图和派生图必须位于 WordPress 公共 uploads/媒体库之外的加密私有存储。数据库只保存不具备公开访问能力的对象引用和必要的非敏感处理元数据。RT-315 阶段 1 通过 expand Migration `0010` 创建该表和类型化 Repository。阶段 2 增加未注册到公开流程的加密私有存储、图片校验/去元数据派生和失败关闭的内容安全接口；公开上传与持久化编排仍由后续阶段实现。
 
 ---
 
@@ -1505,6 +1598,8 @@ failed
 
 不能将 `wp_mail()` 返回成功等同于邮件已经送达。
 
+Finder Report 的 Owner 通知必须在报告和安全派生图提交后异步排队。队列参数只能包含内部 report ID；Worker 在发送前重新解析当前 Owner，验证 Finder evidence 开关、Finder contact 开关和 Email dispatch 开关，并以 report ID 与派生版本建立幂等键。重复任务不得重复通知，永久失败不得无限重试。内嵌图使用本地 MIME CID，不能是远程 URL 或原始附件。
+
 ---
 
 ## 23. 安全与反滥用
@@ -1522,11 +1617,12 @@ failed
 
 ### 23.2 Finder 消息安全
 
-- Finder 必须验证邮箱；
-- 消息限制 10–500 字符；
+- 初次 Finder Report 无需邮箱验证；Finder 邮箱在开启双向 Conversation 前必须验证；
+- Message for the owner 选填，填写时限制 10–500 字符；
+- Item photo 必填且恰好一张，并执行签名/MIME 校验、像素和大小限制、解码重编码、元数据清理、内容安全检查和私有加密存储；
 - HTML 全部转义；
 - 禁止脚本；
-- 禁止附件；
+- 禁止 Item photo 之外的通用附件；
 - 对 URL 做风险提示或限制；
 - 单 Tag 限制短时间会话数量；
 - Owner 可屏蔽和举报；
@@ -1553,6 +1649,7 @@ failed
 ```text
 returntag_global_activation_enabled
 returntag_finder_contact_enabled
+returntag_finder_evidence_enabled
 returntag_email_dispatch_enabled
 returntag_woocommerce_account_enabled
 ```
@@ -1571,6 +1668,7 @@ activation_enabled
 | 某批次 ID 泄露 | 关闭该 Batch Activation |
 | 邮件出现隐私问题 | 关闭 Email Dispatch |
 | Finder 垃圾消息暴增 | 关闭 Finder Contact |
+| Finder 凭证处理、内容安全或媒体隐私异常 | 关闭 Finder Evidence；未通过处理的报告不得通知 Owner |
 | Woo Hook 异常 | 关闭 Woo Account Provisioning |
 
 Feature Flag 用于快速止损，不替代代码修复和正式发布回滚。
@@ -1596,8 +1694,9 @@ Confirmed Recoveries per 1,000 Activated Tags
 | 激活 | Tag 激活成功率 |
 | 激活 | OTP 请求到验证完成率 |
 | 激活 | 并发激活状态收敛成功率 |
-| Finder | 扫码到留言提交率 |
-| Finder | Finder 邮箱验证率 |
+| Finder | 扫码到 Finder Report 提交率 |
+| Finder | 凭证处理通过率与拦截率 |
+| Finder | 选择双向回复的 Finder 邮箱验证率 |
 | 通知 | Owner 邮件投递率 |
 | 会话 | Owner 回复率 |
 | 会话 | 首次回复时间 |
@@ -1641,6 +1740,7 @@ QR 和手动 ID 路由
 Owner Dashboard
 Lost Mode
 Finder 邮箱验证
+Finder Report 必填凭证处理与单向 Owner 通知
 双向隐私会话
 邮件队列和投递状态
 标签转让
@@ -1710,17 +1810,17 @@ Trusted Contact
 
 ### 27.4 Finder 与隐私中转
 
-30. Finder 无需注册完整账户即可提交消息。
-31. Finder 在邮箱验证前，Owner 不收到消息。
-32. Owner 看不到 Finder 真实邮箱。
-33. Finder 看不到 Owner 真实邮箱。
-34. 邮件头、邮件正文和安全页面不得泄露对方邮箱。
-35. Access Token 只能以哈希形式存储。
-36. 邮件安全扫描器预访问链接时不得自动消费 Token。
-37. 双方可以关闭或举报会话。
-38. 会话可以过期。
-39. Suspended 和 Retired 标签不能创建新会话。
-40. 安全页面不加载广告追踪或第三方会话录制脚本。
+30. Finder 无需注册完整账户、提供邮箱或验证邮箱即可提交初次单向 Finder Report。
+31. Message for the owner 为选填且填写时限制为 10–500 字符；Item photo 为必填且恰好一张。
+32. 只有通过处理和内容安全检查的派生图才可通知 Owner。
+33. 初次 Owner 通知不得创建或暗示可回复的 Conversation；Finder 邮箱验证成功前，Owner 不能向 Finder 发送回复。
+34. Finder 选填并验证邮箱后，系统才可创建或关联 canonical Conversation 并开启双向中转。
+35. Owner 看不到 Finder 真实邮箱。
+36. Finder 看不到 Owner 真实邮箱。
+37. 邮件头、邮件正文和安全页面不得泄露对方邮箱、私人 item name、Tag ID 或凭证原始文件名。
+38. Access Token 只能以哈希形式存储；邮件安全扫描器预访问链接时不得自动消费 Token。
+39. 双方可以关闭或举报已验证会话；Owner 可以举报或屏蔽 Finder Report；报告和会话均可以按各自保留策略过期。
+40. Suspended 和 Retired 标签不能创建新报告或会话；安全页面不加载广告追踪或第三方会话录制脚本。
 
 ### 27.5 后台与运营
 
@@ -1929,10 +2029,11 @@ Owner 权限测试
 ### Milestone 5：Finder 隐私中转（v0.6.0）
 
 ```text
-Finder 表单
-Finder 邮箱验证
-Conversation 创建
-Owner 通知
+Finder Report 表单（Message 选填、Item photo 必填）
+私有凭证存储、处理、内容安全与保留
+无需邮箱验证的单向 Owner 通知
+Finder 可选邮箱验证
+验证后 Conversation 创建或关联
 Secure Reply Token
 Owner 回复
 Finder 继续会话
@@ -2015,10 +2116,12 @@ WooCommerce 升级测试
 
 ```text
 Finder 扫描实体 QR
-→ 输入邮箱和消息
-→ 验证 Finder 邮箱
-→ ForgeTag 通知 Owner
-→ 双方通过安全页面中转回复
+→ 选填 Message for the owner
+→ 上传一张必填 Item photo
+→ ForgeTag 处理并安全检查凭证
+→ ForgeTag 通知发送时的当前 Owner
+→ Finder 可选填并验证邮箱
+→ 验证后双方可通过安全页面中转回复
 → Owner 确认找回并关闭会话
 ```
 
@@ -2042,8 +2145,8 @@ ForgeTag 一期采用以下最终产品模型：
 - 不建立订单、物流与 Tag ID 的映射；
 - 以邮箱 OTP 完成无密码注册和登录；
 - 以原子更新完成首次所有权认领；
-- 以双向隐私邮件中转完成 Finder 与 Owner 的联系；
+- 以无需邮箱验证的单向 Finder Report 快速通知 Owner，并在 Finder 可选验证邮箱后通过双向隐私邮件中转继续联系；
 - 以独立平行系统方式支持 Smart Tag 智能网络；
 - 以 Git、CI、Migration、Feature Flag 和版本化发布支持持续迭代与回滚。
 
-由于公开 ID 同时承担激活凭证，Batch 激活开关、限流、邮箱验证、原子认领、导出审计和所有权争议流程均属于一期强制能力，而不是后续优化项。
+由于公开 ID 同时承担激活凭证，Batch 激活开关、限流、原子认领、导出审计和所有权争议流程均属于一期强制能力，而不是后续优化项。Owner 身份仍通过邮箱 OTP 验证；Finder 初次单向报告不需要邮箱验证，但任何双向回复都必须先完成 Finder 邮箱验证。Finder 凭证的私有存储、处理、内容安全、幂等通知和专用紧急开关同样属于上线前强制能力。

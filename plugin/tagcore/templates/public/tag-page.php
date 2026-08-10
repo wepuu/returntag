@@ -221,6 +221,120 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( null !== $view->finder_report_form ) : ?>
+				<section class="returntag-public__finder" aria-labelledby="returntag-finder-title">
+					<?php if ( ReturnTag\TagCore\PublicSite\FinderReportFormState::ACCEPTED === $view->finder_report_form->state ) : ?>
+						<div class="returntag-public__finder-success" role="status">
+							<span class="returntag-public__finder-success-mark" aria-hidden="true">✓</span>
+							<p class="returntag-public__eyebrow"><?php esc_html_e( 'Report received', 'tagcore' ); ?></p>
+							<h2 id="returntag-finder-title"><?php esc_html_e( 'Thank you for helping', 'tagcore' ); ?></h2>
+							<p class="returntag-public__finder-copy"><?php esc_html_e( 'Your report was received and is being checked. If the evidence is approved, the current owner can be notified securely.', 'tagcore' ); ?></p>
+						</div>
+						<?php if ( null !== $view->finder_report_form->email_form ) : ?>
+							<section class="returntag-public__verification returntag-public__finder-email" aria-labelledby="returntag-finder-email-title">
+								<?php if ( ReturnTag\TagCore\PublicSite\FinderEmailFormState::VERIFIED === $view->finder_report_form->email_form->state ) : ?>
+									<div class="returntag-public__notice returntag-public__notice--success" role="status">
+										<h2 id="returntag-finder-email-title"><?php esc_html_e( 'Private contact is ready', 'tagcore' ); ?></h2>
+										<p><?php esc_html_e( 'Your email is verified and linked to this recovery report. It is never shown to the owner.', 'tagcore' ); ?></p>
+									</div>
+								<?php else : ?>
+									<h2 id="returntag-finder-email-title"><?php esc_html_e( 'Continue privately', 'tagcore' ); ?></h2>
+									<p class="returntag-public__verification-intro"><?php esc_html_e( 'Optional. Verify your email so the owner can reply later without either address being shared.', 'tagcore' ); ?></p>
+									<?php if ( ReturnTag\TagCore\PublicSite\FinderEmailFormState::CODE_SENT === $view->finder_report_form->email_form->state ) : ?>
+										<div class="returntag-public__notice returntag-public__notice--success" role="status"><p><?php esc_html_e( 'If the request is eligible, a six-digit code is on its way.', 'tagcore' ); ?></p></div>
+									<?php elseif ( in_array( $view->finder_report_form->email_form->state, array( ReturnTag\TagCore\PublicSite\FinderEmailFormState::INVALID, ReturnTag\TagCore\PublicSite\FinderEmailFormState::ERROR ), true ) ) : ?>
+										<div class="returntag-public__notice returntag-public__notice--error" role="alert"><p><?php esc_html_e( 'We could not verify that request. Check the email and code, then try again.', 'tagcore' ); ?></p></div>
+									<?php endif; ?>
+									<form class="returntag-public__form" method="post" action="<?php echo esc_url( $view->finder_report_form->email_form->action_url ); ?>">
+										<div class="returntag-public__field">
+											<label for="returntag-finder-email"><?php esc_html_e( 'Email address', 'tagcore' ); ?></label>
+											<input id="returntag-finder-email" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::EMAIL_FIELD ); ?>" type="email" inputmode="email" autocomplete="email" maxlength="254" required>
+										</div>
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::REQUEST_ACTION ); ?>">
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->email_form->nonce ); ?>">
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::TOKEN_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->email_form->continuation_token ); ?>">
+										<button class="returntag-public__secondary" type="submit"><?php esc_html_e( 'Email me a code', 'tagcore' ); ?></button>
+									</form>
+									<form class="returntag-public__form" method="post" action="<?php echo esc_url( $view->finder_report_form->email_form->action_url ); ?>">
+										<div class="returntag-public__field">
+											<label for="returntag-finder-verify-email"><?php esc_html_e( 'Email address', 'tagcore' ); ?></label>
+											<input id="returntag-finder-verify-email" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::EMAIL_FIELD ); ?>" type="email" inputmode="email" autocomplete="email" maxlength="254" required>
+										</div>
+										<div class="returntag-public__field">
+											<label for="returntag-finder-email-code"><?php esc_html_e( 'Six-digit code', 'tagcore' ); ?></label>
+											<input id="returntag-finder-email-code" class="returntag-public__code-input" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::CODE_FIELD ); ?>" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required>
+										</div>
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::VERIFY_ACTION ); ?>">
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderEmailFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->email_form->nonce ); ?>">
+										<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::TOKEN_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->email_form->continuation_token ); ?>">
+										<button class="returntag-public__submit" type="submit"><?php esc_html_e( 'Verify and continue', 'tagcore' ); ?></button>
+									</form>
+								<?php endif; ?>
+							</section>
+						<?php endif; ?>
+					<?php else : ?>
+						<div class="returntag-public__finder-intro">
+							<p class="returntag-public__eyebrow"><?php esc_html_e( 'Secure item return', 'tagcore' ); ?></p>
+							<h2 id="returntag-finder-title"><?php esc_html_e( 'Send a private recovery report', 'tagcore' ); ?></h2>
+							<p class="returntag-public__finder-copy"><?php esc_html_e( 'A clear photo helps confirm that you found the item. You do not need an account, and your contact details are not requested.', 'tagcore' ); ?></p>
+						</div>
+
+						<?php if ( ReturnTag\TagCore\PublicSite\FinderReportFormState::ERROR === $view->finder_report_form->state ) : ?>
+							<div class="returntag-public__notice returntag-public__notice--error" role="alert">
+								<p><?php esc_html_e( 'We could not accept this report right now. Refresh the page and try again.', 'tagcore' ); ?></p>
+							</div>
+						<?php endif; ?>
+
+						<ol class="returntag-public__finder-progress" aria-label="<?php esc_attr_e( 'Report progress', 'tagcore' ); ?>">
+							<li aria-current="step"><span>1</span><?php esc_html_e( 'Report details', 'tagcore' ); ?></li>
+							<li><span>2</span><?php esc_html_e( 'Review and send', 'tagcore' ); ?></li>
+						</ol>
+
+						<form class="returntag-public__finder-form" method="post" enctype="multipart/form-data" action="<?php echo esc_url( $view->finder_report_form->action_url ); ?>" data-returntag-finder-form data-message-error="<?php esc_attr_e( 'Leave the message blank or enter 10–500 characters.', 'tagcore' ); ?>">
+							<fieldset class="returntag-public__finder-step" data-returntag-finder-step="1">
+								<legend tabindex="-1"><?php esc_html_e( 'Tell the owner what you found', 'tagcore' ); ?></legend>
+								<div class="returntag-public__field">
+									<label for="returntag-finder-message"><?php esc_html_e( 'Message for the owner', 'tagcore' ); ?> <span><?php esc_html_e( '— optional', 'tagcore' ); ?></span></label>
+									<p id="returntag-finder-message-help" class="returntag-public__field-help"><?php esc_html_e( 'If included, use 10–500 characters. Do not include sensitive personal information.', 'tagcore' ); ?></p>
+									<textarea id="returntag-finder-message" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::MESSAGE_FIELD ); ?>" rows="5" maxlength="500" aria-describedby="returntag-finder-message-help<?php echo ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_MESSAGE === $view->finder_report_form->state ? ' returntag-finder-message-error' : ''; ?>" aria-invalid="<?php echo ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_MESSAGE === $view->finder_report_form->state ? 'true' : 'false'; ?>"></textarea>
+									<?php if ( ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_MESSAGE === $view->finder_report_form->state ) : ?>
+										<p id="returntag-finder-message-error" class="returntag-public__field-error" role="alert"><?php esc_html_e( 'Leave the message blank or enter 10–500 plain-text characters.', 'tagcore' ); ?></p>
+									<?php endif; ?>
+								</div>
+
+								<div class="returntag-public__field returntag-public__photo-field">
+									<label for="returntag-finder-photo"><?php esc_html_e( 'Item photo', 'tagcore' ); ?></label>
+									<p id="returntag-finder-photo-help" class="returntag-public__field-help"><?php esc_html_e( 'Required. Add one clear JPEG, PNG, or WebP image up to 8 MB. The file is kept private and checked before it can be shown to the owner.', 'tagcore' ); ?></p>
+									<input id="returntag-finder-photo" class="returntag-public__finder-file" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::PHOTO_FIELD ); ?>" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" aria-describedby="returntag-finder-photo-help<?php echo ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_PHOTO === $view->finder_report_form->state ? ' returntag-finder-photo-error' : ''; ?>" aria-invalid="<?php echo ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_PHOTO === $view->finder_report_form->state ? 'true' : 'false'; ?>" required>
+									<?php if ( ReturnTag\TagCore\PublicSite\FinderReportFormState::INVALID_PHOTO === $view->finder_report_form->state ) : ?>
+										<p id="returntag-finder-photo-error" class="returntag-public__field-error" role="alert"><?php esc_html_e( 'Choose one valid JPEG, PNG, or WebP image up to 8 MB.', 'tagcore' ); ?></p>
+									<?php endif; ?>
+								</div>
+
+								<button class="returntag-public__secondary" type="button" data-returntag-finder-next><?php esc_html_e( 'Review report', 'tagcore' ); ?></button>
+							</fieldset>
+
+							<fieldset class="returntag-public__finder-step" data-returntag-finder-step="2">
+								<legend tabindex="-1"><?php esc_html_e( 'Review and send', 'tagcore' ); ?></legend>
+								<div class="returntag-public__review-card">
+									<p class="returntag-public__review-row"><strong><?php esc_html_e( 'Message', 'tagcore' ); ?></strong><span data-returntag-finder-message-review><?php esc_html_e( 'No message added', 'tagcore' ); ?></span></p>
+									<p class="returntag-public__review-row"><strong><?php esc_html_e( 'Photo', 'tagcore' ); ?></strong><span data-returntag-finder-photo-review><?php esc_html_e( 'One required image', 'tagcore' ); ?></span></p>
+								</div>
+								<p class="returntag-public__finder-disclosure"><?php esc_html_e( 'Submitting does not guarantee owner notification. The photo must pass processing and safety review first. This report does not open a conversation.', 'tagcore' ); ?></p>
+								<div class="returntag-public__finder-actions">
+									<button class="returntag-public__secondary" type="button" data-returntag-finder-back><?php esc_html_e( 'Back', 'tagcore' ); ?></button>
+									<button class="returntag-public__submit" type="submit"><?php esc_html_e( 'Send report for review', 'tagcore' ); ?></button>
+								</div>
+							</fieldset>
+
+							<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::SUBMIT_ACTION ); ?>">
+							<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->nonce ); ?>">
+							<input type="hidden" name="<?php echo esc_attr( ReturnTag\TagCore\PublicSite\FinderReportFormHandler::TOKEN_FIELD ); ?>" value="<?php echo esc_attr( $view->finder_report_form->submission_token ); ?>">
+						</form>
+					<?php endif; ?>
+				</section>
+			<?php endif; ?>
+
 			<?php if ( null !== $view->product_type_label || null !== $view->public_label ) : ?>
 				<dl class="returntag-public__details">
 					<?php if ( null !== $view->product_type_label ) : ?>
@@ -252,5 +366,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</a>
 		</section>
 	</main>
+	<?php wp_print_footer_scripts(); ?>
 </body>
 </html>

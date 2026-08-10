@@ -20,17 +20,28 @@ use ReturnTag\TagCore\Application\Persistence\EventMetadata;
 use ReturnTag\TagCore\Application\Persistence\EventMetadataPolicy;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceMappingException;
 use ReturnTag\TagCore\Application\Persistence\Pagination\PageSize;
+use ReturnTag\TagCore\Application\Persistence\Record\NewFinderReportMediaRecord;
 use ReturnTag\TagCore\Application\Persistence\RecordValidator;
 use ReturnTag\TagCore\Application\Persistence\Repository\EventRepository;
+use ReturnTag\TagCore\Application\Persistence\Repository\FinderReportMediaRepository;
+use ReturnTag\TagCore\Application\Persistence\Repository\FinderReportRepository;
 use ReturnTag\TagCore\Application\Persistence\Value\AccessTokenDigest;
 use ReturnTag\TagCore\Application\Persistence\Value\EmailCiphertext;
 use ReturnTag\TagCore\Application\Persistence\Value\LookupDigest;
+use ReturnTag\TagCore\Application\Persistence\Value\MediaDerivative;
+use ReturnTag\TagCore\Application\Persistence\Value\MediaDigest;
 use ReturnTag\TagCore\Application\Persistence\Value\MessageCiphertext;
 use ReturnTag\TagCore\Application\Persistence\Value\OtpHash;
+use ReturnTag\TagCore\Application\Persistence\Value\PrivateMediaReferenceCiphertext;
 use ReturnTag\TagCore\Domain\Batch\BatchStatus;
 use ReturnTag\TagCore\Domain\Conversation\ConversationStatus;
 use ReturnTag\TagCore\Domain\Conversation\DeliveryStatus;
 use ReturnTag\TagCore\Domain\Conversation\MessageSenderRole;
+use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceMime;
+use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceSafetyDecision;
+use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceStatus;
+use ReturnTag\TagCore\Domain\FinderReport\FinderReportStatus;
+use ReturnTag\TagCore\Domain\FinderReport\PrivateMediaObjectKind;
 use ReturnTag\TagCore\Domain\Tag\SmartNetwork;
 use ReturnTag\TagCore\Domain\Tag\TagStatus;
 use ReturnTag\TagCore\Domain\Tag\TagType;
@@ -71,6 +82,26 @@ final class PersistenceContractsTest extends TestCase {
 		self::assertSame(
 			array( 'queued', 'sent', 'delivered', 'deferred', 'bounced', 'complained', 'failed' ),
 			array_column( DeliveryStatus::cases(), 'value' )
+		);
+		self::assertSame(
+			array( 'received', 'processing', 'ready', 'notified', 'blocked', 'expired' ),
+			array_column( FinderReportStatus::cases(), 'value' )
+		);
+		self::assertSame(
+			array( 'quarantined', 'processing', 'ready', 'rejected', 'deleted' ),
+			array_column( FinderEvidenceStatus::cases(), 'value' )
+		);
+		self::assertSame(
+			array( 'image/jpeg', 'image/png', 'image/webp' ),
+			array_column( FinderEvidenceMime::cases(), 'value' )
+		);
+		self::assertSame(
+			array( 'approved', 'rejected' ),
+			array_column( FinderEvidenceSafetyDecision::cases(), 'value' )
+		);
+		self::assertSame(
+			array( 'source', 'review', 'email' ),
+			array_column( PrivateMediaObjectKind::cases(), 'value' )
 		);
 	}
 
@@ -218,6 +249,69 @@ final class PersistenceContractsTest extends TestCase {
 		sort( $methods );
 
 		self::assertSame( array( 'append', 'list_by_correlation', 'list_by_target' ), $methods );
+	}
+
+	/**
+	 * Finder Report repositories expose only the approved Stage 3 and 4 transitions.
+	 */
+	public function test_finder_report_repositories_expose_only_approved_workflow_methods(): void {
+		$report_methods = array_map(
+			static fn( \ReflectionMethod $method ): string => $method->getName(),
+			( new ReflectionClass( FinderReportRepository::class ) )->getMethods()
+		);
+		$media_methods  = array_map(
+			static fn( \ReflectionMethod $method ): string => $method->getName(),
+			( new ReflectionClass( FinderReportMediaRepository::class ) )->getMethods()
+		);
+		sort( $report_methods );
+		sort( $media_methods );
+
+		self::assertSame(
+			array( 'claim_owner_notification', 'claim_processing', 'find_by_id', 'find_conversation_id', 'find_current_owner_id', 'find_notifiable', 'find_stale_owner_notification_claims', 'insert', 'link_conversation', 'mark_blocked', 'mark_expired', 'mark_owner_notification_failed', 'mark_owner_notified', 'mark_ready' ),
+			$report_methods
+		);
+		self::assertSame(
+			array( 'claim_processing', 'extend_notified_retention', 'find_by_report_id', 'find_expired', 'find_processable', 'insert', 'mark_deleted', 'mark_ready', 'mark_rejected' ),
+			$media_methods
+		);
+	}
+
+	/**
+	 * Controlled derivatives enforce their frozen size and dimension limits.
+	 */
+	public function test_finder_media_derivative_limits_are_enforced(): void {
+		$reference = PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'encrypted-reference' );
+		$digest    = MediaDigest::from_digest( str_repeat( 'c', 64 ) );
+
+		self::assertSame( 800, MediaDerivative::email( $reference, $digest, 204800, 800, 600 )->width );
+
+		$this->expectException( InvalidArgumentException::class );
+		MediaDerivative::email( $reference, $digest, 204801, 800, 600 );
+	}
+
+	/**
+	 * Source evidence metadata must enforce the frozen byte and decoded-pixel bounds.
+	 */
+	public function test_finder_media_source_limits_are_enforced(): void {
+		$timestamp = new DateTimeImmutable( '2026-08-04 00:00:00', new DateTimeZone( 'UTC' ) );
+
+		$this->expectException( InvalidArgumentException::class );
+		new NewFinderReportMediaRecord(
+			1,
+			PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'encrypted-reference' ),
+			'rt315-test-key',
+			MediaDigest::from_digest( str_repeat( 'd', 64 ) ),
+			FinderEvidenceMime::JPEG,
+			8388608,
+			5001,
+			4000,
+			null,
+			null,
+			FinderEvidenceStatus::QUARANTINED,
+			$timestamp,
+			$timestamp,
+			$timestamp
+		);
 	}
 
 	/**

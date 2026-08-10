@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-314 ForgeTag Theme Stage 5 TagCore integration baseline; Schema remains `8`
+* Current workstream: RT-316 Stage 7A participant Conversation safety controls implemented locally; Schema target remains `12`
 
 
 
@@ -940,3 +940,151 @@ requires pull requests and the exact `Quality Gate` check, applies protection
 to administrators, and disallows force pushes and deletion. RT-314 is now
 explicitly authorized through Stage 5; release, publication, and deployment
 remain separate approvals.
+
+## RT-315 Stage 0 contract freeze
+
+RT-315 approves a documentation-only change to the phase-one Finder contract:
+
+* `Message for the owner` is optional and, when present, contains 10–500
+  characters;
+* `Item photo` is required and is exactly one Finder-supplied evidence image;
+* Finder email is optional for initial one-way reporting and is not a gate for
+  the first Owner alert;
+* only a processed, metadata-stripped, safety-approved inline derivative may
+  reach the Owner email;
+* the Owner has no reply path until the Finder optionally verifies an email and
+  the report is linked to a canonical Conversation;
+* Finder Report and private-media persistence are future expand contracts and
+  do not change canonical Conversation states.
+
+Stage 0 adds ADR 0019 and aligns the PRD, repository instructions,
+architecture, database, security, release, and documentation checks. It does
+not implement a route, form, upload, storage object, Migration, repository,
+queue, email, template, Theme behavior, dependency, release, or deployment.
+TagCore remains `0.4.0`, Theme remains `0.1.0`, and Schema remains `8`.
+
+## RT-315 Stage 1 persistence foundation
+
+Stage 1 advances Schema `8 -> 10` with separate Finder Report and private-media
+expand tables. It adds canonical report, evidence, and MIME enums; typed
+encrypted-message, encrypted-reference, digest, and derivative metadata values;
+and narrow insert/read Repository ports with `$wpdb` adapters. The media table
+enforces exactly one evidence row per report, and neither table stores public
+URLs, filenames, email addresses, location, EXIF, or image bytes.
+
+Fresh-install, Schema-8 upgrade, idempotent retry, missing-predecessor,
+cardinality, privacy-field, and Repository round-trip coverage are included.
+The new adapters are not registered by the production bootstrap. Public forms,
+multipart upload handling, private object storage, image processing, content
+safety, rate limits, cleanup, queues, Owner notification, Finder verification,
+Conversation linkage, UI, and Theme behavior remain outside Stage 1. TagCore
+remains `0.4.0`, Theme remains `0.1.0`, and Schema is `10`.
+
+## RT-315 Stage 2 private-media safety foundation
+
+Stage 2 adds an uncomposed, independently testable media kernel inside TagCore:
+
+* bounded source bytes and server-derived JPEG, PNG, or WebP validation;
+* exact container-length checks with animated PNG/WebP and appended-content
+  rejection;
+* GD decode, JPEG orientation handling, metadata-removing re-encoding, and
+  controlled 1600-pixel review plus 800-pixel/200-KiB email derivatives;
+* an explicit content-safety port where only `approved` creates an approved
+  marker and the shipped default always fails unavailable;
+* XChaCha20-Poly1305 encrypted filesystem objects and separately encrypted,
+  purpose-bound opaque references using independent external keys;
+* private-root, traversal, symlink, overwrite, key-reuse, purpose-confusion,
+  ciphertext-tamper, digest, and idempotent-delete regression coverage.
+
+The production bootstrap does not register these classes. No public form,
+multipart boundary, object write, database mutation, rate limit, retention
+Worker, queue, email, Owner notification, Finder verification, Conversation,
+Theme behavior, dependency, or lock-file change is included. TagCore remains
+`0.4.0`, Theme remains `0.1.0`, and Schema remains `10`.
+
+## RT-315 Stage 3 Finder evidence intake runtime
+
+Stage 3 connects the frozen one-way Finder Report contract to the TagCore
+public Tag route. Eligible Finder pages can render a two-step, progressively
+enhanced form with one required JPEG/PNG/WebP photo and an optional 10–500
+character plain-text message. The boundary collects no Finder name, email, or
+location, uses same-site and WordPress nonce checks, atomically claims a signed
+submission token, applies per-Tag/peer/risk/global budgets, encrypts private
+message and object data, persists before enqueue, and returns only generic
+privacy-safe states.
+
+Processing is asynchronous and report-ID-only. It validates persisted source
+facts, strips metadata through controlled derivatives, requires an explicit
+approved safety decision, converges state transitions transactionally,
+recovers missing or stale work, and deletes expired objects through bounded
+cleanup. The runtime and `returntag_finder_evidence_enabled` flag default off;
+missing private configuration or the shipped unavailable reviewer prevents the
+form from opening. Owner notification, Finder email verification,
+Conversation linkage, Schema changes, dependencies, Theme business logic,
+release, and deployment remain outside Stage 3. TagCore remains `0.4.0`, Theme
+remains `0.1.0`, and Schema remains `10`.
+
+## RT-315 Stage 4 current-Owner notification
+
+Stage 4 adds an asynchronous, report-ID-only Owner notification after the
+Stage 3 evidence pipeline reaches `ready`. The Worker rechecks Finder contact,
+Finder evidence, and email-dispatch controls, atomically claims the report,
+resolves the current active Owner at send time, and embeds only the controlled
+metadata-free email JPEG as a local CID part. Finder email verification is not
+required for this initial one-way notification.
+
+The ForgeTag email includes the optional Finder message when present and makes
+the one-way limitation explicit. It contains no Secure Reply control, public
+media URL, original filename, private item name, Tag ID, access Token, or
+cross-party email address. Mailer acceptance records `sent`, not confirmed
+delivery; failures become bounded terminal states and stale ambiguous claims
+fail closed instead of automatically resending. Successfully notified report
+and media rows receive a 30-day retention boundary. No Conversation or Owner
+reply path is opened. TagCore remains `0.4.0`, Theme remains `0.1.0`, Schema
+remains `10`, and no dependency or lock-file changes are introduced.
+
+## RT-315 Stage 5 optional Finder email verification
+
+Stage 5 adds the optional `Continue privately` path after a Finder Report is
+accepted. A six-digit email OTP is dispatched asynchronously, verified through
+the existing TagCore public-page visual language, and consumed atomically with
+creation and one-to-one linkage of an `open` Conversation. Skipping the step
+does not affect evidence processing or the one-way Owner notification.
+
+The flow uses a short-lived opaque continuation claim rather than exposing an
+internal report ID. It resolves the current active Owner at verification time,
+does not expose either email, and adds no Secure Reply or message delivery.
+TagCore remains `0.4.0`, Theme remains `0.1.0`, and Schema advances `10 -> 11`.
+
+## RT-315 Stage 6 Secure Reply and bounded relay
+
+Stage 6 implements role-bound Secure Reply links, explicit POST exchange into
+30-minute sessions, and 24-hour Owner/Finder email links. Human messages are
+required 10–500 character plain text, limited to 10 per role and 20 per
+Conversation, encrypted at rest, and dispatched through Message-ID-only
+Workers. Schema advances `11 -> 12` with additive dispatch-claim metadata so
+mailer acceptance, failure, and stale ambiguous work converge without an
+automatic duplicate send.
+
+The flow re-resolves current active Owner authorization, never exposes either
+email, and supports no Conversation attachments, HTML, precise location,
+administrative moderation, close/report/block UI, release, or deployment.
+The public route uses no-cache, no-referrer, no-index, same-site, nonce, and
+secure-cookie controls; Stage 7 remains responsible for close, report, block,
+dispute, and administrative moderation behavior. TagCore remains `0.4.0`,
+Theme remains `0.1.0`, and no dependency or lock-file changes are introduced.
+
+Stage 6 acceptance coverage verifies one-time link exchange and session
+rotation, current-Owner invalidation, role and Conversation limits, one-claim
+dispatch convergence, stale-claim terminal failure, canonical lifecycle
+Events, privacy-safe mail headers, secure template structure, and the absence
+of remote assets or cross-party identifiers.
+
+## RT-316 Stage 7A participant safety controls
+
+Stage 7A freezes Finder termination and current-Owner report-block as the two
+participant terminal actions for an existing private Conversation. The
+implementation keeps Schema `12`, revokes all Conversation access, fails
+queued Messages, records metadata-free Events, and renders only generic
+terminal feedback. Administrative moderation outcomes, evidence holds,
+reopening, ownership disputes, release, and deployment remain later work.

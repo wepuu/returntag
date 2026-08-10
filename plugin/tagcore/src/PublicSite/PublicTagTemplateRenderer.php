@@ -31,9 +31,10 @@ final readonly class PublicTagTemplateRenderer {
 	 *
 	 * @param PublicTagPage              $page Privacy-minimized Application view model.
 	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
+	 * @param FinderReportFormView|null  $finder_report_form Optional Finder Report form.
 	 */
-	public function render( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null ): void {
-		echo $this->render_to_string( $page, $activation_form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The standalone template escapes every value for its output context.
+	public function render( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null, ?FinderReportFormView $finder_report_form = null ): void {
+		echo $this->render_to_string( $page, $activation_form, $finder_report_form ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The standalone template escapes every value for its output context.
 	}
 
 	/**
@@ -41,16 +42,17 @@ final readonly class PublicTagTemplateRenderer {
 	 *
 	 * @param PublicTagPage              $page Privacy-minimized Application view model.
 	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
+	 * @param FinderReportFormView|null  $finder_report_form Optional Finder Report form.
 	 * @throws RuntimeException When the packaged template cannot be read.
 	 */
-	public function render_to_string( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null ): string {
+	public function render_to_string( PublicTagPage $page, ?ActivationOtpFormView $activation_form = null, ?FinderReportFormView $finder_report_form = null ): string {
 		$template = $this->plugin_dir . '/templates/public/tag-page.php';
 
 		if ( ! is_readable( $template ) ) {
 			throw new RuntimeException( 'The public Tag template is unavailable.' );
 		}
 
-		$view = $this->present( $page, $activation_form );
+		$view = $this->present( $page, $activation_form, $finder_report_form );
 
 		ob_start();
 		require $template;
@@ -64,8 +66,9 @@ final readonly class PublicTagTemplateRenderer {
 	 *
 	 * @param PublicTagPage              $page Privacy-minimized Application view model.
 	 * @param ActivationOtpFormView|null $activation_form Optional OTP form.
+	 * @param FinderReportFormView|null  $finder_report_form Optional Finder Report form.
 	 */
-	private function present( PublicTagPage $page, ?ActivationOtpFormView $activation_form ): PublicTagPageView {
+	private function present( PublicTagPage $page, ?ActivationOtpFormView $activation_form, ?FinderReportFormView $finder_report_form ): PublicTagPageView {
 		$copy = match ( $page->state ) {
 			PublicTagPageState::INVALID => array(
 				__( 'Tag recovery', 'tagcore' ),
@@ -126,7 +129,8 @@ final readonly class PublicTagTemplateRenderer {
 			$page->lost_mode,
 			$page->lost_message,
 			$activation_form,
-			$this->smart_tag_guide( $page )
+			$this->smart_tag_guide( $page ),
+			$finder_report_form
 		);
 	}
 

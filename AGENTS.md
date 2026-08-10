@@ -3,7 +3,7 @@
 **File scope:** entire `returntag` repository  
 **Project:** ReturnTag  
 **WordPress plugin:** `tagcore`  
-**Last updated:** 2026-07-18
+**Last updated:** 2026-08-04
 
 This file defines mandatory repository-wide instructions for Codex and human contributors. Read it before planning, editing, testing, reviewing, or committing changes.
 
@@ -160,7 +160,12 @@ Smart Tag QR activation and finder recovery must work independently of the smart
 ### 3.6 Identity and privacy relay
 
 - Owners authenticate with passwordless email OTP in the supported flows.
-- Finder email must be verified before the owner is notified.
+- A Finder Report may notify the current Owner without Finder email
+  verification only after its required evidence image passes the approved
+  processing and safety controls.
+- Finder email is optional for the initial one-way report. It must be verified
+  before creating or opening a two-way conversation or delivering an Owner
+  reply to the Finder.
 - Owners must never see finder email addresses.
 - Finders must never see owner email addresses.
 - Do not expose the other party's address in HTML, text, headers, URLs, logs, exports, analytics, or `Reply-To` values.
@@ -378,6 +383,8 @@ returntag_conversations
 returntag_messages
 returntag_access_tokens
 returntag_events
+returntag_finder_reports
+returntag_finder_report_media
 ```
 
 ### 8.2 Migration policy
@@ -488,7 +495,10 @@ Use environment or approved secret management for keys. Do not keep encryption k
 - Apply rate limits to activation, OTP, finder messages, token exchange, and dispute endpoints.
 - Do not reveal whether arbitrary Tag IDs, emails, or users exist through bulk or differential responses.
 - Reject unsafe HTML and scripts from messages and public labels.
-- Do not support attachments in phase one.
+- General attachments remain unsupported in phase one. The only approved
+  exception is exactly one required Finder Report evidence image processed
+  under the documented private-media contract; it is not a conversation
+  attachment.
 
 ### 10.4 Secure links
 
@@ -503,8 +513,13 @@ Sensitive pages must use the approved no-cache, no-referrer, and no-index contro
 
 ### 10.5 Abuse and safety
 
-- Finder email must be verified before owner notification.
-- Limit finder message length to the documented range.
+- Initial Finder Report submission does not require email verification, but
+  its required evidence image must pass validation, re-encoding, metadata
+  removal, and content-safety review before owner notification.
+- Finder email verification remains mandatory before two-way conversation or
+  reply delivery.
+- Limit optional Finder Report messages and conversation messages to their
+  documented ranges.
 - Owners and finders must be able to close or report conversations.
 - Suspended and retired tags cannot open new conversations.
 - Risk-based CAPTCHA may be used only through an approved adapter and must not become the sole protection.
@@ -591,6 +606,14 @@ returntag_email_dispatch_enabled
 returntag_woocommerce_account_enabled
 ```
 
+Finder evidence intake and processing adds this independent fail-closed
+control, which must default disabled until the complete RT-315 media-safety
+contract is implemented:
+
+```text
+returntag_finder_evidence_enabled
+```
+
 Batch activation has its own control:
 
 ```text
@@ -655,8 +678,8 @@ Prioritize end-to-end coverage for:
 
 ```text
 scan -> OTP -> activation
-finder submit -> email verification -> owner notification
-owner secure reply -> finder delivery
+finder evidence submit -> safe processing -> owner notification
+finder optional email verification -> owner secure reply -> finder delivery
 ownership transfer -> previous-owner access revoked
 batch generation -> export -> release -> activation
 ```

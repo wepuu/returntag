@@ -19,11 +19,13 @@ final class PublicRewriteLifecycle {
 	 * @param string                             $plugin_file Absolute TagCore bootstrap file.
 	 * @param PublicTagRouteController           $route Public route adapter.
 	 * @param ManualTagEntryRouteController|null $entry_route Optional manual-entry route adapter.
+	 * @param SecureReplyRouteController|null    $secure_reply_route Optional Secure Reply route adapter.
 	 */
 	public function __construct(
 		private readonly string $plugin_file,
 		private readonly PublicTagRouteController $route,
-		private readonly ?ManualTagEntryRouteController $entry_route = null
+		private readonly ?ManualTagEntryRouteController $entry_route = null,
+		private readonly ?SecureReplyRouteController $secure_reply_route = null
 	) {
 	}
 
@@ -49,6 +51,7 @@ final class PublicRewriteLifecycle {
 
 		$this->route->register_rewrite_rule();
 		$this->entry_route?->register_rewrite_rule();
+		$this->secure_reply_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -64,6 +67,7 @@ final class PublicRewriteLifecycle {
 
 		$this->route->unregister_rewrite_rule();
 		$this->entry_route?->unregister_rewrite_rule();
+		$this->secure_reply_route?->unregister_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -82,6 +86,7 @@ final class PublicRewriteLifecycle {
 
 		$this->route->register_rewrite_rule();
 		$this->entry_route?->register_rewrite_rule();
+		$this->secure_reply_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -95,6 +100,7 @@ final class PublicRewriteLifecycle {
 
 		$this->route->register_rewrite_rule();
 		$this->entry_route?->register_rewrite_rule();
+		$this->secure_reply_route?->register_rewrite_rule();
 		flush_rewrite_rules( false );
 	}
 
@@ -135,6 +141,7 @@ final class PublicRewriteLifecycle {
 			return false;
 		}
 
-		return null === $this->entry_route || array_key_exists( ManualTagEntryRouteController::REWRITE_PATTERN, $rules );
+		return ( null === $this->entry_route || array_key_exists( ManualTagEntryRouteController::REWRITE_PATTERN, $rules ) )
+			&& ( null === $this->secure_reply_route || array_key_exists( SecureReplyRouteController::REWRITE_PATTERN, $rules ) );
 	}
 }

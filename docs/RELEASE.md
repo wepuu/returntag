@@ -600,3 +600,106 @@ until bounded cleanup; they contain only count, expiry, and hashed scope and
 are compatible with the previous stable code. Canonical `/t/{tag_id}` QR
 routing, existing ownership, challenges, messages, and audit records remain
 untouched.
+
+RT-315 Stage 1 leaves project/plugin version `0.4.0` and Theme version `0.1.0`
+unchanged while advancing Schema `8 -> 10`. Fresh activation creates the two
+new tables; upgrade applies contiguous expand Migrations `0009` and `0010`.
+Retry is idempotent, an absent Schema-9 predecessor blocks Schema 10, and the
+prior stable code safely ignores the added tables. Stage 1 creates no media
+object, key, route, form, queue task, email, dependency, artifact, tag,
+deployment, or production write path because its repositories are not composed.
+
+Rollback to the prior code keeps the Schema option and both new tables. Do not
+drop either table or introduce a destructive down Migration. Since no intake is
+registered, no feature-disable action is required for Stage 1 alone.
+
+RT-315 Stage 2 keeps project/plugin version `0.4.0`, Theme version `0.1.0`, and
+Schema version `10`. It adds no route, Hook, Option, database write, queue,
+email, dependency, artifact, tag, deployment, or production composition. Code
+rollback removes only unregistered processing, safety, and encrypted-storage
+classes; Schema 10 and stored business data remain untouched.
+
+Before a later stage composes intake, release configuration must provide two
+independent 32-byte Base64 keys through
+`RETURNTAG_TAGCORE_PRIVATE_MEDIA_OBJECT_KEY_V1` and
+`RETURNTAG_TAGCORE_PRIVATE_MEDIA_REFERENCE_KEY_V1`, plus an absolute private
+storage root outside all web and WordPress content roots. Release acceptance
+must verify GD and Fileinfo support, JPEG/PNG/WebP decode, encrypted round-trip,
+purpose binding, tamper rejection, key separation, metadata stripping,
+derivative bounds, and a real approved content-safety provider. The shipped
+unavailable reviewer intentionally prevents runtime approval.
+
+No Finder evidence runtime may ship until private encrypted storage,
+signature/MIME and decode validation, metadata-stripping re-encoding,
+controlled derivatives, fail-closed content-safety review, atomic abuse
+budgets, bounded retention, idempotent Owner notification, and the default-off
+`returntag_finder_evidence_enabled` control have passed implementation and
+release acceptance. Deployment must also prove that anonymous reports are
+one-way, Owner reply remains unavailable until Finder email verification, and
+neither party's address or private item data appears in content, headers, URLs,
+logs, Events, or media references.
+
+The Stage 4 notification implementation adds no Migration, dependency,
+lock-file, version bump, artifact, deployment, or production configuration.
+Release acceptance must verify the exact Owner subject, local inline CID JPEG,
+text alternative, current-Owner resolution, absence of cross-party headers and
+private identifiers, conditional `queued -> sent|failed` transitions, stale-
+claim fail-closed behavior, and 30-day notified retention. Mailer acceptance is
+recorded as `sent`; provider delivery remains a separate concern.
+
+The containment order is to disable Finder evidence intake, stop new
+processing and notification claims, allow already claimed Workers to converge
+without duplicate delivery, and then use the existing Finder-contact or email-
+dispatch controls if broader containment is required. Rollback must preserve
+Conversation compatibility, audit Events, accepted messages, ownership, Tags,
+and Batch history. Private evidence is removed only by the approved bounded
+retention/hold process; a derivative already delivered to a mailbox cannot be
+recalled.
+
+RT-315 Stage 5 advances Schema `10 -> 11` through additive Migration `0011`
+and adds no dependency or lock-file change. Release configuration must provide
+three independent 32-byte Base64 keys through
+`RETURNTAG_TAGCORE_FINDER_EMAIL_ENCRYPTION_KEY_V1`,
+`RETURNTAG_TAGCORE_FINDER_EMAIL_LOOKUP_KEY_V1`, and
+`RETURNTAG_TAGCORE_FINDER_EMAIL_OTP_PEPPER_V1`. Missing or malformed keys fail
+the optional continuation closed without disabling anonymous Finder Reports.
+
+Release acceptance must cover fresh install, Schema-10 upgrade, retry,
+challenge-ID-only queue payloads, ten-minute/five-attempt OTP behavior,
+same-site and nonce checks, current-Owner resolution, suspended/retired Tag
+blocking, one-report/one-Conversation linkage, and absence of either email in
+HTML, URLs, logs, Events, and cross-party headers. Rollback removes the Stage 5
+form and Worker but preserves Schema 11, consumed challenges, Conversations,
+report links, accepted reports, evidence, and audit history.
+
+## RT-315 Stage 6 release and rollback
+
+Stage 6 advances Schema `11 -> 12` with additive Message dispatch-claim fields.
+Release configuration must provide independent 32-byte Base64 keys through
+`RETURNTAG_TAGCORE_CONVERSATION_MESSAGE_KEY_V1` for Message encryption and
+`RETURNTAG_TAGCORE_CONVERSATION_TOKEN_KEY_V1` for Access Token hashing.
+Acceptance covers Schema-11 upgrade,
+fresh install, Token-prefetch safety, explicit POST exchange, 24-hour links,
+30-minute sessions, current-Owner invalidation, role and Conversation message
+limits, Message-ID-only queues, encrypted bodies, one-attempt delivery
+convergence, generic failures, secure response headers, and absence of either
+email from cross-party headers, HTML, URLs, logs, Events, and queue arguments.
+
+Rollback begins with Finder Contact or Email Dispatch, removes Stage 6 route
+and Worker registration, and preserves Schema 12, access-token hashes,
+encrypted Messages, Conversations, reports, ownership, and Events. Do not run
+a destructive down Migration or automatically resend stale claims.
+
+## RT-316 Stage 7A release and rollback
+
+Stage 7A keeps Schema `12`, TagCore `0.4.0`, and the existing dependency and
+lock files. Release acceptance covers role separation, explicit confirmation,
+same-site and nonce enforcement, current-Owner revalidation, atomic terminal
+status/Token/message/Event convergence, retry idempotency, cookie clearing,
+terminal access denial, generic responses, and absence of cross-party or
+private identifiers from UI, URLs, logs, Events, queues, and email headers.
+
+Rollback removes the participant controls but preserves `closed` and `blocked`
+Conversations, revoked Tokens, failed queued Messages, accepted Messages,
+Reports, evidence, ownership, and Events. Do not reopen, restore, or requeue
+terminal data. Provider calls already started cannot be recalled.

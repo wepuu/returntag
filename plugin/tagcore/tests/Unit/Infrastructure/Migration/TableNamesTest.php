@@ -91,4 +91,22 @@ final class TableNamesTest extends TestCase {
 
 		self::assertSame( 'rt_test_returntag_events', $table_names->events() );
 	}
+
+	/**
+	 * The same non-default prefix must determine the Finder Reports table.
+	 */
+	public function test_finder_reports_table_uses_supplied_wordpress_prefix(): void {
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_finder_reports', $table_names->finder_reports() );
+	}
+
+	/**
+	 * The same non-default prefix must determine the Finder Report media table.
+	 */
+	public function test_finder_report_media_table_uses_supplied_wordpress_prefix(): void {
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_finder_report_media', $table_names->finder_report_media() );
+	}
 }
