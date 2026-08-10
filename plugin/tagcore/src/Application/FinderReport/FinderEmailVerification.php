@@ -43,6 +43,7 @@ final readonly class FinderEmailVerification {
 	 * @param FinderEmailRateLimiter       $limiter Public abuse limiter.
 	 * @param FinderEmailOtpScheduler      $scheduler Background scheduler.
 	 * @param Clock                        $clock UTC clock.
+	 * @param EnsureConversationAccess|null $ensure_conversation_access Secure conversation access provisioner.
 	 */
 	public function __construct(
 		private FeatureFlagReader $flags,
@@ -127,10 +128,10 @@ final readonly class FinderEmailVerification {
 		}
 
 		try {
-			$email     = new EmailAddress( $email_value );
-			$lookup    = $this->protector->email_lookup( $email );
-			$peer      = $this->protector->ip_lookup( $peer_ip );
-			$now       = $this->clock->now();
+			$email  = new EmailAddress( $email_value );
+			$lookup = $this->protector->email_lookup( $email );
+			$peer   = $this->protector->ip_lookup( $peer_ip );
+			$now    = $this->clock->now();
 			if ( ! $this->limiter->reserve_verification( $lookup, $peer, $now ) ) {
 				return FinderEmailVerificationResult::UNAVAILABLE;
 			}
@@ -144,7 +145,7 @@ final readonly class FinderEmailVerification {
 					if ( null !== $this->reports->find_conversation_id( $finder_report_id ) ) {
 						return;
 					}
-					$report = $this->reports->find_by_id( $finder_report_id );
+					$report   = $this->reports->find_by_id( $finder_report_id );
 					$owner_id = $this->reports->find_current_owner_id( $finder_report_id );
 					if ( null === $report || ! in_array( $report->data->report_status, array( FinderReportStatus::RECEIVED, FinderReportStatus::PROCESSING, FinderReportStatus::READY, FinderReportStatus::NOTIFIED ), true ) ) {
 						throw new \RuntimeException( 'Finder Report is unavailable.' );

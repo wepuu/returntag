@@ -16,9 +16,18 @@ use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 
 /** Protects Finder identity and OTP values in a report-bound domain. */
 interface FinderEmailProtector {
-	/** @param EmailAddress $email Canonical email. */
+	/**
+	 * Derive a privacy-safe email lookup digest.
+	 *
+	 * @param EmailAddress $email Canonical email.
+	 */
 	public function email_lookup( EmailAddress $email ): LookupDigest;
-	/** @param string $ip_address Canonical peer IP. */
+
+	/**
+	 * Derive a privacy-safe peer IP lookup digest.
+	 *
+	 * @param string $ip_address Canonical peer IP.
+	 */
 	public function ip_lookup( string $ip_address ): LookupDigest;
 	/**
 	 * Encrypt one report-bound email address.
@@ -36,7 +45,11 @@ interface FinderEmailProtector {
 	public function decrypt_email( EmailCiphertext $ciphertext, int $finder_report_id ): EmailAddress;
 	/** Create an unissuable placeholder hash. */
 	public function placeholder_hash(): OtpHash;
-	/** @param string $code Six-digit code. */
+	/**
+	 * Hash one six-digit verification code.
+	 *
+	 * @param string $code Six-digit code.
+	 */
 	public function hash_code( string $code ): OtpHash;
 	/**
 	 * Compare one six-digit code with a stored hash.

@@ -51,10 +51,10 @@ final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcess
 		try {
 			$image      = $this->decode( $source->bytes );
 			$normalized = $this->orient_and_flatten( $image, $this->jpeg_orientation( $source->bytes, $mime ) );
-			imagedestroy( $image );
+			unset( $image );
 			$review = $this->review_derivative( $normalized );
 			$email  = $this->email_derivative( $normalized );
-			imagedestroy( $normalized );
+			unset( $normalized );
 
 			return new ProcessedFinderEvidence(
 				$mime,
@@ -302,7 +302,7 @@ final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcess
 		imagecopy( $canvas, $oriented, 0, 0, 0, 0, imagesx( $oriented ), imagesy( $oriented ) );
 
 		if ( $oriented !== $image ) {
-			imagedestroy( $oriented );
+			unset( $oriented );
 		}
 
 		return $canvas;
@@ -396,7 +396,7 @@ final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcess
 		ob_start();
 		$encoded = imagejpeg( $derivative, null, $quality );
 		$bytes   = ob_get_clean();
-		imagedestroy( $derivative );
+		unset( $derivative );
 
 		if ( ! $encoded || '' === $bytes ) {
 			throw new FinderEvidenceProcessingException( 'Finder evidence image is invalid.' );
