@@ -88,7 +88,6 @@ final class GdFinderEvidenceImageProcessorTest extends TestCase {
 			default => false,
 		};
 		$bytes = ob_get_clean();
-		imagedestroy( $image );
 		self::assertTrue( $success );
 
 		if ( 'jpeg' === $format ) {
