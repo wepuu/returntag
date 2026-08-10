@@ -11,13 +11,19 @@ namespace ReturnTag\TagCore\Infrastructure\Media;
 
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceDerivative;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyReviewer;
+use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyAvailability;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyUnavailableException;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceSafetyDecision;
 
 /**
  * Ensures missing provider configuration can never approve an image.
  */
-final class UnavailableFinderEvidenceSafetyReviewer implements FinderEvidenceSafetyReviewer {
+final class UnavailableFinderEvidenceSafetyReviewer implements FinderEvidenceSafetyReviewer, FinderEvidenceSafetyAvailability {
+	/** The shipped fallback is never an available approval control. */
+	public function is_available(): bool {
+		return false;
+	}
+
 	/**
 	 * Refuse to issue a safety decision.
 	 *

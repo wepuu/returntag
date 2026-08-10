@@ -17,7 +17,7 @@ use ReturnTag\TagCore\Application\FeatureFlag;
  */
 final class FeatureFlagTest extends TestCase {
 	/**
-	 * Ensure the contract contains exactly the four approved option names.
+	 * Ensure the contract contains exactly the approved option names.
 	 */
 	public function test_defines_only_the_approved_global_flags(): void {
 		$option_names = array_map(
@@ -29,6 +29,7 @@ final class FeatureFlagTest extends TestCase {
 			array(
 				'returntag_global_activation_enabled',
 				'returntag_finder_contact_enabled',
+				'returntag_finder_evidence_enabled',
 				'returntag_email_dispatch_enabled',
 				'returntag_woocommerce_account_enabled',
 			),

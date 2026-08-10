@@ -800,9 +800,9 @@ accessibility, privacy headers, and output escaping. It accepts an optional
 Owner message, exactly one required evidence image, and an optional Finder
 email that is not an initial-notification gate.
 
-Application will later coordinate four independent use cases: accept a one-way
-report, process its evidence, notify the current Owner, and optionally verify a
-Finder email before linking the report to a canonical Conversation. The report
+Application coordinates the independent use cases: accept a one-way report,
+process its evidence, notify the current Owner, and optionally verify Finder
+email before linking the report to a canonical Conversation. The report
 aggregate and its states are separate from Conversation; the existing
 Conversation state vocabulary and required verified-email semantics are not
 changed. Templates never process files, resolve ownership, create a report, or
@@ -812,10 +812,11 @@ Infrastructure Stage 2 provides purpose-bound XChaCha20-Poly1305 filesystem
 storage, separately encrypted opaque references, server-side Fileinfo and GD
 signature/decode validation, JPEG orientation handling, metadata-removing
 re-encoding, controlled derivatives, and a fail-closed content-safety port.
-The default reviewer is unavailable and can never approve evidence; a later
-composition stage must supply an approved provider. Atomic rate limiting,
-bounded retention cleanup, and idempotent queue/email adapters remain future
-work. Public WordPress media
+The default reviewer is unavailable and can never approve evidence; production
+must supply an approved provider. Stage 3 composes atomic rate limiting and
+bounded retention cleanup. Stage 4 adds a unique report-ID-only Action
+Scheduler notification, a current-Owner resolver, a privacy-minimized
+WordPress mail adapter, and stale-claim convergence. Public WordPress media
 URLs and the Media Library are outside this boundary. Owner notification uses
 only a processed inline CID derivative, resolves the current Owner at send
 time, and carries only an internal report ID in queue arguments.
@@ -826,11 +827,28 @@ safety failure blocks notification. Finder email verification is optional for
 the first one-way alert but remains mandatory before the Owner gains a reply
 path or any message is delivered to the Finder.
 
-Stage 2 keeps TagCore `0.4.0` and Schema `10`. It adds no Migration and leaves
-the processor, storage adapter, and safety reviewer unregistered by the
-production bootstrap. Stage 1 advanced Schema `8 -> 10` through contiguous
-expand Migrations `0009` and `0010`. The repositories are deliberately not
-registered by the production bootstrap. Future runtime work must remain split
-into reviewable media-processing,
-submission, notification, verification, and UI tickets; business logic remains
+Stage 5 keeps TagCore `0.4.0` and advances Schema `10 -> 11` with additive
+Migration `0011`; Stages 2 through 4 add no Migration. Runtime work remains
+split into reviewable media-processing,
+submission, notification, verification, and UI stages; business logic remains
 inside `plugin/tagcore` and never moves into the ForgeTag Theme.
+
+Stage 6 advances Schema `11 -> 12` and composes the existing Access Token and
+Message persistence behind Application services. Public `/secure-reply`
+adapters validate request shape, nonce, role-bound session and current
+ownership, then invoke the relay service. Link GET handling may move a Token
+into a transient secure cookie and redirect to a clean URL, but only an
+explicit POST may exchange it. Delivery Workers receive Message IDs only,
+decrypt content in Worker memory, create the recipient's next role-bound link,
+and map provider acceptance separately from confirmed delivery. Theme code
+remains outside this boundary.
+
+RT-316 Stage 7A keeps Schema `12` and adds one Application terminal-action
+service behind the existing Secure Reply adapter. The browser supplies only a
+fixed role-specific intent and explicit confirmation; the service resolves the
+role-bound session and delegates one transaction to Infrastructure. That
+transaction locks the Conversation, rechecks the complete eligibility graph,
+changes `open -> closed|blocked`, revokes all Conversation Tokens, fails queued
+Messages, and appends one metadata-free Event. Templates do not select status,
+Conversation, role, actor, recipient, or audit data. Administrative moderation
+and ownership disputes remain outside this boundary.

@@ -827,6 +827,12 @@ filename, private item name, Tag ID, or cross-party address. Report ID plus
 derivative version provides idempotency. Terminal failures are bounded and do
 not retry forever.
 
+The Stage 4 WordPress mail adapter explicitly clears Reply-To, CC, and BCC,
+provides text and escaped HTML alternatives, and marks `sent` only when the
+configured mailer accepts the message. It never equates that acceptance with
+provider delivery. A 15-minute stale claim is converged to terminal `failed`
+to prevent an automatic duplicate after an ambiguous Worker crash window.
+
 The initial report is one-way. Without verified Finder email, the Owner sees no
 Secure Reply control and cannot create an orphan reply. Optional Finder email
 uses the existing encryption/HMAC and one-time verification requirements before
@@ -847,3 +853,71 @@ hours. Notified evidence expires 30 days after notification unless an approved
 abuse/dispute hold applies. Cleanup is bounded, retry-safe, and auditable. The
 Finder consent must state that ReturnTag cannot recall a derivative already
 received, cached, exported, or forwarded from the Owner's mailbox.
+
+## 28. RT-315 Stage 5 Finder email verification
+
+The optional continuation is available only from a completed, unexpired,
+Tag-bound Finder Report submission claim. The browser receives no internal
+report ID, Conversation ID, email digest, ciphertext, or queue identifier.
+Same-site and nonce checks protect both request and verification POSTs, and all
+failure states remain generic.
+
+Finder email encryption, lookup HMAC, peer-IP HMAC, and OTP hashing use a
+dedicated external three-key set, report-bound authenticated data, and separate
+domains from activation OTP. Plaintext OTP exists only in Worker memory; the
+queue contains only the challenge ID. Request budgets cover keyed email and
+direct-peer IP minute/hour windows, with persistent hourly challenge counts per
+email and report. Codes expire after ten minutes, allow at most five attempts,
+and are consumed exactly once.
+
+Successful verification atomically creates or reuses one `open` Conversation
+and links it to the report. The current active Owner is resolved at verification
+time; suspended or retired Tags cannot create a Conversation. Neither address
+is rendered, logged, placed in URLs, or exposed in mail headers. This stage
+does not add Secure Reply, message delivery, access Tokens, or attachments.
+
+## 29. RT-315 Stage 6 Secure Reply and bounded relay
+
+Owner and Finder email links carry independent 32-byte random Tokens whose
+keyed digests alone are stored. A GET cannot exchange a Token. The public route
+moves a structurally valid Token to an HttpOnly, SameSite=Strict transient
+cookie, redirects to a clean URL, and requires an explicit nonce-protected POST
+before issuing a 30-minute role-bound session. Link lifetime is 24 hours.
+
+Owner requests re-resolve the current active Owner server-side; transferred,
+suspended, retired, closed, blocked, and expired access fails closed. Finder
+authorization comes only from the role-bound link delivered to the verified
+Finder destination. Neither role can select an Owner, actor role, Conversation,
+recipient, or email through browser input.
+
+Human messages are plain text, 10–500 Unicode characters, limited to 10 per
+role and 20 per Conversation, encrypted at rest with an independent external
+key, escaped at render time, and excluded from logs and Events. Attachments and
+precise-location fields are rejected. Request budgets cover session, direct
+peer and Conversation scopes. Queue payloads contain Message IDs only.
+
+The Worker creates the recipient's next role-bound link in memory, sends no
+cross-party address in headers or content, and records provider acceptance as
+`sent`, not delivered. A stale ambiguous claim is terminal `failed` and is not
+resent. Finder Contact and Email Dispatch remain the incident controls.
+
+## 30. RT-316 participant close and report-block controls
+
+Finder termination and Owner report-block are explicit, same-site,
+nonce-protected POST actions from an active role-bound session. Finder can only
+request `closed`; the current active Owner can only request `blocked`. Neither
+request accepts an identifier, role, status, reason, free text, attachment, or
+recipient from the browser.
+
+The terminal transaction rechecks current ownership and all Stage 6
+eligibility, revokes every link and session, fails still-queued Messages, and
+records a metadata-free Event. Responses, Events, logs, URLs, and queue data
+contain no email, private item name, Tag ID, message body, Token, report reason,
+or evidence filename. Both cookies are cleared after success. Closed or blocked
+Conversations cannot be read, exchanged, messaged, linked, or newly claimed.
+
+The Worker rechecks the exact claimed Message and continuation Token immediately
+before delivery. An email provider call that already passed that final check
+and is in progress cannot be recalled. Its result cannot restore access or the
+Conversation. Stage 7A provides no moderation
+outcome, evidence hold, unblock, reopen, appeal, or ownership-dispute path.

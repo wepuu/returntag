@@ -57,11 +57,11 @@ final class CreateMessagesTableMigration implements Migration {
 
 		$state = $this->inspect();
 
-		if ( SchemaTableState::INCOMPATIBLE === $state ) {
+		if ( SchemaTableState::INCOMPATIBLE === $state && ! $this->has_approved_dispatch_extension() ) {
 			throw new MigrationException( 'The existing schema is incompatible with this migration.' );
 		}
 
-		if ( SchemaTableState::EXACT === $state ) {
+		if ( SchemaTableState::EXACT === $state || $this->has_approved_dispatch_extension() ) {
 			return;
 		}
 
@@ -94,7 +94,27 @@ final class CreateMessagesTableMigration implements Migration {
 			return false;
 		}
 
-		return SchemaTableState::EXACT === $this->inspect();
+		return SchemaTableState::EXACT === $this->inspect() || $this->has_approved_dispatch_extension();
+	}
+
+	/** Recognize only the approved additive Schema 12 fields and index. */
+	private function has_approved_dispatch_extension(): bool {
+		$table   = $this->table_names->messages();
+		$columns = $this->database->get_col(
+			$this->database->prepare(
+				'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION',
+				$table
+			)
+		);
+		$indexes = $this->database->get_col(
+			$this->database->prepare(
+				'SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY INDEX_NAME',
+				$table
+			)
+		);
+
+		return array( 'message_id', 'conversation_id', 'sender_role', 'body_ciphertext', 'delivery_status', 'provider_message_id', 'delivered_at', 'dispatch_claimed_at', 'dispatch_attempt_count', 'created_at' ) === $columns
+			&& array( 'conversation_message', 'delivery_status_created_at', 'message_dispatch', 'PRIMARY', 'provider_message_id' ) === $indexes;
 	}
 
 	/**

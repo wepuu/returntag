@@ -1111,6 +1111,41 @@ Message for you:
 - 不在 GET 第一次访问时直接消费；
 - 通过 POST 或 Continue 操作建立安全会话。
 
+RT-315 Stage 6 固定以下运行时边界：
+
+- Owner Secure Reply 与 Finder Continue Conversation 邮件链接有效期为 24 小时；
+- 链接 Token 为 32 字节密码学随机值，数据库只保存独立密钥域的 SHA-256 HMAC；
+- 显式 POST 成功交换后创建 30 分钟的 HttpOnly、SameSite=Strict 安全会话；
+- 同一角色与 Conversation 的旧会话在新会话签发时撤销；
+- Owner 每次交换和操作都必须重新验证当前 active Owner，所有权转移后旧路径立即失效。
+
+### 18.5 消息范围与次数
+
+- Owner 与 Finder 的每条消息均为必填纯文本，长度为 10–500 个 Unicode 字符；
+- 每个角色最多发送 10 条人工消息，每个 Conversation 最多发送 20 条人工消息；
+- `system` 投递记录不计入人工消息限额；
+- 一期 Conversation 不支持附件、图片、音频、视频、HTML 或精确位置字段；
+- 消息正文必须使用独立外部密钥加密存储，队列只允许携带 Message ID；
+- 邮件提供者接受只记录为 `sent`，不得当作确认送达；过期的模糊投递认领必须失败关闭，不得自动重复发送。
+
+### 18.6 Stage 7A 参与者安全操作
+
+- Finder 只能通过其已验证、角色绑定的会话显式结束当前 `open`
+  Conversation，并将其转换为 `closed`；
+- 当前 active Owner 只能通过其角色绑定会话执行 `Report and block`，将
+  当前 `open` Conversation 转换为 `blocked`；
+- 两个操作均要求同站点、Nonce 保护的 POST、显式确认和服务端角色、当前
+  Owner、Tag、Finder Report 及 Conversation 状态复核；
+- 状态转换、全部未撤销 Token/Session 撤销、仍为 `queued` 的 Message
+  终止及无元数据审计 Event 必须在同一事务中完成；
+- Finder 结束记录 `conversation_closed`，Owner 举报并屏蔽记录
+  `conversation_reported`，Event 不得包含原因、邮箱、消息正文、Tag ID、
+  Token 或媒体标识；
+- Stage 7A 不接收举报原因、自由文本、附件或位置，也不实现重新打开、解除
+  屏蔽、审核结果、证据保留、申诉、所有权争议或后台审核界面；
+- 已经进入外部邮件提供商调用的消息无法召回，但关闭或屏蔽不能被该调用
+  恢复，且事务前签发的继续访问 Token 必须失效。
+
 相关页面响应头：
 
 ```text
@@ -1280,6 +1315,8 @@ body_ciphertext
 delivery_status
 provider_message_id
 delivered_at
+dispatch_claimed_at
+dispatch_attempt_count
 created_at
 ```
 
@@ -1336,6 +1373,7 @@ finder_report_blocked
 finder_email_verified
 owner_reply_sent
 conversation_closed
+conversation_reported
 recovery_confirmed
 ownership_dispute_opened
 ownership_dispute_resolved

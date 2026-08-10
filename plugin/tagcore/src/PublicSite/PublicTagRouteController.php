@@ -29,7 +29,8 @@ final class PublicTagRouteController {
 
 	public const REWRITE_PATTERN = '^t/([^/]+)/?$';
 
-	public const STYLE_HANDLE = 'returntag-tagcore-public';
+	public const STYLE_HANDLE  = 'returntag-tagcore-public';
+	public const SCRIPT_HANDLE = 'returntag-tagcore-public';
 
 	/**
 	 * Create the route adapter.
@@ -41,6 +42,8 @@ final class PublicTagRouteController {
 	 * @param SchemaState               $schema_state Current Schema readiness.
 	 * @param PublicTagTemplateRenderer $renderer Standalone page renderer.
 	 * @param ActivationOtpFormHandler  $activation_form Activation OTP form boundary.
+	 * @param FinderReportFormHandler   $finder_report_form Finder Report form boundary.
+	 * @param FinderEmailFormHandler    $finder_email_form Optional Finder email form boundary.
 	 */
 	public function __construct(
 		private readonly string $plugin_dir,
@@ -49,7 +52,9 @@ final class PublicTagRouteController {
 		private readonly ResolvePublicTagPage $pages,
 		private readonly SchemaState $schema_state,
 		private readonly PublicTagTemplateRenderer $renderer,
-		private readonly ActivationOtpFormHandler $activation_form
+		private readonly ActivationOtpFormHandler $activation_form,
+		private readonly ?FinderReportFormHandler $finder_report_form = null,
+		private readonly ?FinderEmailFormHandler $finder_email_form = null
 	) {
 	}
 
@@ -135,15 +140,25 @@ final class PublicTagRouteController {
 			exit;
 		}
 
-		$page            = in_array( $method, array( 'GET', 'HEAD', 'POST' ), true )
+		$page              = in_array( $method, array( 'GET', 'HEAD', 'POST' ), true )
 			? $this->resolve_page()
 			: PublicTagPage::service_unavailable();
-		$tag_id          = $this->normalized_tag_id();
-		$activation_post = 'POST' === $method
+		$tag_id            = $this->normalized_tag_id();
+		$activation_post   = 'POST' === $method
 			&& PublicTagPageState::ACTIVATION_ENTRY === $page->state
 			&& null !== $tag_id;
-		$authenticated   = $this->activation_form->is_authenticated();
-		$form_state      = $authenticated
+		$finder_post       = 'POST' === $method
+			&& PublicTagPageState::FINDER_ENTRY === $page->state
+			&& null !== $tag_id
+			&& null !== $this->finder_report_form
+			&& $this->finder_report_form->is_submission_action();
+		$finder_email_post = 'POST' === $method
+			&& PublicTagPageState::FINDER_ENTRY === $page->state
+			&& null !== $tag_id
+			&& null !== $this->finder_email_form
+			&& $this->finder_email_form->is_action();
+		$authenticated     = $this->activation_form->is_authenticated();
+		$form_state        = $authenticated
 			? ActivationOtpFormState::AUTHENTICATED
 			: ( $activation_post
 				? $this->activation_form->submit( $tag_id )
@@ -177,23 +192,58 @@ final class PublicTagRouteController {
 			);
 			exit;
 		}
-		$form = PublicTagPageState::ACTIVATION_ENTRY === $page->state && null !== $tag_id
+		$form               = PublicTagPageState::ACTIVATION_ENTRY === $page->state && null !== $tag_id
 			? new ActivationOtpFormView(
 				home_url( '/t/' . rawurlencode( $tag_id->value ) ),
 				wp_create_nonce( ActivationOtpFormHandler::NONCE_ACTION ),
 				$form_state
 			)
 			: null;
+		$finder_state       = $finder_post
+			? $this->finder_report_form->submit( $tag_id )
+			: ( $finder_email_post ? FinderReportFormState::ACCEPTED : FinderReportFormState::READY );
+		$continuation_token = ( $finder_post || $finder_email_post ) && null !== $this->finder_email_form
+			? $this->finder_email_form->continuation_token()
+			: '';
+		$email_state        = $finder_email_post
+			? $this->finder_email_form->submit( $tag_id, $continuation_token )
+			: FinderEmailFormState::READY;
+		$finder_token       = '';
+		if ( null !== $this->finder_report_form && null !== $tag_id ) {
+			$finder_token = FinderReportFormState::ACCEPTED === $finder_state && '' !== $continuation_token
+				? $continuation_token
+				: $this->finder_report_form->issue_token( $tag_id );
+		}
+		$finder_form   = PublicTagPageState::FINDER_ENTRY === $page->state
+			&& null !== $tag_id
+			&& null !== $this->finder_report_form
+			&& $this->finder_report_form->is_available()
+			? new FinderReportFormView(
+				home_url( '/t/' . rawurlencode( $tag_id->value ) ),
+				wp_create_nonce( FinderReportFormHandler::NONCE_ACTION ),
+				$finder_token,
+				$finder_state,
+				FinderReportFormState::ACCEPTED === $finder_state && null !== $this->finder_email_form && $this->finder_email_form->is_available()
+					? new FinderEmailFormView(
+						home_url( '/t/' . rawurlencode( $tag_id->value ) ),
+						wp_create_nonce( FinderEmailFormHandler::NONCE_ACTION ),
+						$finder_token,
+						$email_state
+					)
+					: null
+			)
+			: null;
+		$mutation_post = $activation_post || $finder_post || $finder_email_post;
 
-		foreach ( $this->responses->headers_for_method( $method, $activation_post ) as $name => $value ) {
+		foreach ( $this->responses->headers_for_method( $method, $mutation_post ) as $name => $value ) {
 			header( $name . ': ' . $value, true );
 		}
 
-		status_header( $this->responses->status_for( $method, $page->state, $activation_post ) );
-		$this->enqueue_styles();
+		status_header( $this->responses->status_for( $method, $page->state, $mutation_post ) );
+		$this->enqueue_assets();
 
 		try {
-			$this->renderer->render( $page, $form );
+			$this->renderer->render( $page, $form, $finder_form );
 		} catch ( RuntimeException ) {
 			wp_die(
 				esc_html__( 'ReturnTag is temporarily unavailable.', 'tagcore' ),
@@ -293,9 +343,10 @@ final class PublicTagRouteController {
 	/**
 	 * Enqueue only the TagCore public stylesheet for the standalone template.
 	 */
-	private function enqueue_styles(): void {
-		$asset_file = $this->plugin_dir . '/build/public/public.ts.asset.php';
-		$style_file = $this->plugin_dir . '/build/public/public.ts.css';
+	private function enqueue_assets(): void {
+		$asset_file  = $this->plugin_dir . '/build/public/public.ts.asset.php';
+		$style_file  = $this->plugin_dir . '/build/public/public.ts.css';
+		$script_file = $this->plugin_dir . '/build/public/public.ts.js';
 
 		if ( ! is_readable( $asset_file ) || ! is_readable( $style_file ) ) {
 			return;
@@ -317,6 +368,19 @@ final class PublicTagRouteController {
 			array(),
 			$version
 		);
+
+		if ( is_readable( $script_file ) ) {
+			$dependencies = isset( $asset['dependencies'] ) && is_array( $asset['dependencies'] )
+				? $asset['dependencies']
+				: array();
+			wp_enqueue_script(
+				self::SCRIPT_HANDLE,
+				plugins_url( 'build/public/public.ts.js', $this->plugin_dir . '/tagcore.php' ),
+				$dependencies,
+				$version,
+				true
+			);
+		}
 	}
 
 	/**

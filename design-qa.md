@@ -223,3 +223,93 @@ final result: passed
   stricter `320px` viewport rather than claiming a measured toolbar zoom state.
 
 final result: passed
+
+---
+
+# RT-315 Stage 3 Finder Report - Product Design QA
+
+## Evidence
+
+- Source visual truth: `D:\Codex\ForgeTag\docs\design\html\finder-report.html`.
+- Captured reference raster:
+  `C:\Users\admin\.codex\visualizations\2026\08\01\019fbc50-b84a-75b3-9b63-9b1b0fd6ae42\flow-plan-audit\finder-reference.png`
+  at `1018 x 568` pixels.
+- Implementation: `http://localhost:8888/t/A7R2W9` in the local WordPress
+  environment, using an active owned `classic_tag` QA fixture.
+- Final implementation captures:
+  `rt315-stage3c-finder-320-final.png`,
+  `rt315-stage3c-finder-390-final.png`, and
+  `rt315-stage3c-finder-1024-final.png` under the visualization directory above.
+- Completed-flow captures:
+  `rt315-stage3c-finder-review-390.png` and
+  `rt315-stage3c-finder-accepted-390.png` under the same directory.
+- Combined review input:
+  `rt315-stage3c-finder-comparison.png` under the same directory.
+- Chrome viewports: `1024 x 768`, `768 x 1024`, `720 x 900` as the 200-percent
+  equivalent, `390 x 844`, and `320 x 720`, all at device scale factor 1.
+
+## Findings and resolution history
+
+- [Resolved P0] The public composition root checked Action Scheduler before its
+  `plugins_loaded` initialization, so the Finder form remained fail-closed even
+  though the queue became available later. Queue availability is now checked
+  dynamically at the form boundary before rendering or submission.
+- [Resolved P1] The sensitive route CSP used `default-src 'none'` without an
+  explicit script policy, so Chrome blocked the same-origin two-step enhancer.
+  The policy now permits only `script-src 'self'`; it still excludes inline
+  script, `unsafe-eval`, and third-party script origins.
+- [Resolved P2] Initial enhancement focused the step legend and displayed an
+  unintended browser outline on first paint. Initial setup no longer steals
+  focus; transitions still move focus to the destination legend.
+- [Resolved QA environment] The first real POST failed closed because the
+  local wp-env Apache worker runs as `admin` while the private-media root was
+  owned by `www-data` with mode `0700`. The local root was reassigned to the
+  actual worker account without changing application permissions or storage
+  policy. The repeated Chrome POST then completed successfully.
+- No remaining screenshot-based P0, P1, or P2 layout finding was observed in
+  the report-details, review, or accepted states.
+
+## Required fidelity surfaces
+
+- Typography, spacing, rounded cards, progress treatment, Forge red accents,
+  neutral surfaces, and primary/secondary action hierarchy follow the reference
+  language while retaining the current TagCore design system.
+- The approved contract intentionally replaces the reference's Finder identity
+  fields with an optional 10–500 character message and one required evidence
+  photo. Chrome confirmed that no email or name input is rendered.
+- Chrome confirmed one visible step at a time after enhancement, required photo
+  semantics, native invalid-message and invalid-photo feedback, a visible
+  `3px` keyboard focus outline, and no console warnings or errors.
+- Chrome confirmed the approved local image and optional message on the review
+  step, preserved both values after Back, and rendered the privacy-safe
+  `Report received` receipt after a real POST.
+- Document `scrollWidth` equalled `clientWidth` at every reviewed viewport;
+  320-pixel and 200-percent-equivalent layouts had no horizontal overflow.
+
+## Runtime evidence
+
+- The accepted local report reached `report_status=ready` and
+  `evidence_status=ready`; its Action Scheduler processing action completed.
+- The source was detected as a `1000 x 1000` JPEG. Processing produced a
+  `1000 x 1000` review derivative and an `800 x 800` email derivative.
+- Stored private objects were owned by the local web worker with mode `0600`.
+  No owner notification or two-way conversation was started.
+
+final result: passed
+## RT-316 Stage 7A participant safety controls
+
+- Date: 2026-08-10
+- Surface: TagCore `/secure-reply/`
+- Change: added role-specific Finder `End conversation` and Owner `Report and
+  block` controls with an explicit confirmation checkbox and generic terminal
+  feedback.
+- Automated result: PHP template semantics, local-only assets, labels,
+  translatable copy, focus-visible styling, no private form identifiers,
+  Stylelint, TypeScript, Node contracts, and production build passed.
+- Chrome visual result: pending. Chrome automation was unavailable in the
+  current session, and the in-app browser was intentionally not used because
+  the project requires Chrome for visual acceptance.
+- Required manual states: Owner thread, Finder thread, unchecked confirmation,
+  keyboard focus on checkbox and terminal button, generic terminal state,
+  1440px, 390px, 320px, and 200% zoom.
+- Final result: automated checks passed; Chrome visual acceptance pending.

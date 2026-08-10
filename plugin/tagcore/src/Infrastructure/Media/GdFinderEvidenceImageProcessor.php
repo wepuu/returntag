@@ -13,6 +13,8 @@ use ErrorException;
 use GdImage;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceDerivative;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceImageProcessor;
+use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSourceInspector;
+use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSourceMetadata;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceProcessingException;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSource;
 use ReturnTag\TagCore\Application\FinderReport\ProcessedFinderEvidence;
@@ -24,7 +26,7 @@ use Throwable;
 /**
  * Verifies exact containers, decodes one still image, and emits stripped JPEGs.
  */
-final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcessor {
+final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcessor, FinderEvidenceSourceInspector {
 	/**
 	 * Fail closed when required in-memory image functions are unavailable.
 	 *
@@ -43,6 +45,40 @@ final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcess
 	 * @throws FinderEvidenceProcessingException When validation or processing fails.
 	 */
 	public function process( FinderEvidenceSource $source ): ProcessedFinderEvidence {
+		$metadata = $this->inspect( $source );
+		$mime     = $metadata->mime;
+
+		try {
+			$image      = $this->decode( $source->bytes );
+			$normalized = $this->orient_and_flatten( $image, $this->jpeg_orientation( $source->bytes, $mime ) );
+			imagedestroy( $image );
+			$review = $this->review_derivative( $normalized );
+			$email  = $this->email_derivative( $normalized );
+			imagedestroy( $normalized );
+
+			return new ProcessedFinderEvidence(
+				$mime,
+				$metadata->byte_count,
+				$metadata->width,
+				$metadata->height,
+				$metadata->sha256,
+				$review,
+				$email
+			);
+		} catch ( FinderEvidenceProcessingException $exception ) {
+			throw $exception;
+		} catch ( Throwable ) {
+			throw new FinderEvidenceProcessingException( 'Finder evidence image is invalid.' );
+		}
+	}
+
+	/**
+	 * Inspect an exact still container before encrypted quarantine.
+	 *
+	 * @param FinderEvidenceSource $source Bounded untrusted source.
+	 * @throws FinderEvidenceProcessingException When source validation fails.
+	 */
+	public function inspect( FinderEvidenceSource $source ): FinderEvidenceSourceMetadata {
 		$mime = $this->detect_mime( $source->bytes );
 		$this->assert_exact_signature( $source->bytes, $mime );
 
@@ -53,24 +89,16 @@ final class GdFinderEvidenceImageProcessor implements FinderEvidenceImageProcess
 				throw new FinderEvidenceProcessingException( 'Finder evidence image is invalid.' );
 			}
 
-			$source_width  = (int) $size[0];
-			$source_height = (int) $size[1];
-			$this->assert_pixel_budget( $source_width, $source_height );
-			$image      = $this->decode( $source->bytes );
-			$normalized = $this->orient_and_flatten( $image, $this->jpeg_orientation( $source->bytes, $mime ) );
-			imagedestroy( $image );
-			$review = $this->review_derivative( $normalized );
-			$email  = $this->email_derivative( $normalized );
-			imagedestroy( $normalized );
+			$width  = (int) $size[0];
+			$height = (int) $size[1];
+			$this->assert_pixel_budget( $width, $height );
 
-			return new ProcessedFinderEvidence(
+			return new FinderEvidenceSourceMetadata(
 				$mime,
 				strlen( $source->bytes ),
-				$source_width,
-				$source_height,
-				MediaDigest::from_digest( hash( 'sha256', $source->bytes ) ),
-				$review,
-				$email
+				$width,
+				$height,
+				MediaDigest::from_digest( hash( 'sha256', $source->bytes ) )
 			);
 		} catch ( FinderEvidenceProcessingException $exception ) {
 			throw $exception;

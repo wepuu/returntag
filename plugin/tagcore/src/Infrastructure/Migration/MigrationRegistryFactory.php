@@ -40,6 +40,9 @@ final class MigrationRegistryFactory {
 		$events        = new CreateEventsTableMigration( $this->database, $table_names, $inspector, $access_tokens );
 		$reports       = new CreateFinderReportsTableMigration( $this->database, $table_names, $inspector, $events );
 
+		$media = new CreateFinderReportMediaTableMigration( $this->database, $table_names, $inspector, $reports );
+		$link  = new LinkFinderReportsToConversationsMigration( $this->database, $table_names, $media );
+
 		return new MigrationRegistry(
 			array(
 				$batches,
@@ -51,7 +54,9 @@ final class MigrationRegistryFactory {
 				$access_tokens,
 				$events,
 				$reports,
-				new CreateFinderReportMediaTableMigration( $this->database, $table_names, $inspector, $reports ),
+				$media,
+				$link,
+				new AddMessageDispatchClaimsMigration( $this->database, $table_names, $link ),
 			)
 		);
 	}

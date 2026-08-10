@@ -54,7 +54,7 @@ final class PublicTagResponsePolicy {
 			'Referrer-Policy'         => 'no-referrer',
 			'X-Content-Type-Options'  => 'nosniff',
 			'X-Robots-Tag'            => 'noindex, nofollow, noarchive',
-			'Content-Security-Policy' => "default-src 'none'; style-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+			'Content-Security-Policy' => "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
 		);
 
 		if ( ! in_array( strtoupper( $method ), array( 'GET', 'HEAD' ), true ) && ! $activation_post ) {

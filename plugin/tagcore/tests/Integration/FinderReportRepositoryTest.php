@@ -16,7 +16,9 @@ use ReturnTag\TagCore\Application\Persistence\Record\NewFinderReportMediaRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\NewFinderReportRecord;
 use ReturnTag\TagCore\Application\Persistence\Value\FinderReportMessageCiphertext;
 use ReturnTag\TagCore\Application\Persistence\Value\MediaDigest;
+use ReturnTag\TagCore\Application\Persistence\Value\MediaDerivative;
 use ReturnTag\TagCore\Application\Persistence\Value\PrivateMediaReferenceCiphertext;
+use ReturnTag\TagCore\Domain\Conversation\DeliveryStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceMime;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderReportStatus;
@@ -102,6 +104,92 @@ final class FinderReportRepositoryTest extends WP_UnitTestCase {
 		$this->repositories( $wpdb )['media']->insert( $this->new_media( 999 ) );
 	}
 
+	/** Stage 3 claims and approved derivative transitions converge atomically per repository. */
+	public function test_stage_three_processing_transitions_are_conditional_and_idempotent(): void {
+		global $wpdb;
+
+		$repositories = $this->repositories( $wpdb );
+		$report       = $repositories['reports']->insert( $this->new_report( 42 ) );
+		$repositories['media']->insert( $this->new_media( $report->finder_report_id ) );
+		$now   = $this->utc( '2026-08-04 00:10:00' );
+		$stale = $this->utc( '2026-08-03 23:55:00' );
+
+		self::assertTrue( $repositories['reports']->claim_processing( $report->finder_report_id, $now, $stale ) );
+		self::assertTrue( $repositories['media']->claim_processing( $report->finder_report_id, $now, $stale ) );
+
+		$review = MediaDerivative::review(
+			PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'review-reference' ),
+			MediaDigest::from_digest( str_repeat( 'b', 64 ) ),
+			4096,
+			1200,
+			900
+		);
+		$email  = MediaDerivative::email(
+			PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'email-reference' ),
+			MediaDigest::from_digest( str_repeat( 'c', 64 ) ),
+			2048,
+			800,
+			600
+		);
+
+		self::assertTrue( $repositories['media']->mark_ready( $report->finder_report_id, $review, $email, $now ) );
+		self::assertTrue( $repositories['reports']->mark_ready( $report->finder_report_id, $now ) );
+		self::assertFalse( $repositories['media']->mark_ready( $report->finder_report_id, $review, $email, $now ) );
+		self::assertFalse( $repositories['reports']->mark_ready( $report->finder_report_id, $now ) );
+		self::assertSame( FinderEvidenceStatus::READY, $repositories['media']->find_by_report_id( $report->finder_report_id )?->data->media_status );
+		self::assertSame( FinderReportStatus::READY, $repositories['reports']->find_by_id( $report->finder_report_id )?->data->report_status );
+	}
+
+	/** Stage 4 claims one notification and persists mailer acceptance with 30-day retention. */
+	public function test_stage_four_notification_transition_is_conditional_and_idempotent(): void {
+		global $wpdb;
+
+		$repositories = $this->repositories( $wpdb );
+		$report       = $repositories['reports']->insert( $this->new_report( 42 ) );
+		$repositories['media']->insert( $this->new_media( $report->finder_report_id ) );
+		$ready_at = $this->utc( '2026-08-04 00:10:00' );
+		$review   = MediaDerivative::review(
+			PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'review-reference' ),
+			MediaDigest::from_digest( str_repeat( 'b', 64 ) ),
+			4096,
+			1200,
+			900
+		);
+		$email    = MediaDerivative::email(
+			PrivateMediaReferenceCiphertext::from_encrypted_bytes( 'email-reference' ),
+			MediaDigest::from_digest( str_repeat( 'c', 64 ) ),
+			2048,
+			800,
+			600
+		);
+
+		self::assertTrue( $repositories['reports']->claim_processing( $report->finder_report_id, $ready_at, $this->utc( '2026-08-03 23:55:00' ) ) );
+		self::assertTrue( $repositories['media']->claim_processing( $report->finder_report_id, $ready_at, $this->utc( '2026-08-03 23:55:00' ) ) );
+		self::assertTrue( $repositories['media']->mark_ready( $report->finder_report_id, $review, $email, $ready_at ) );
+		self::assertTrue( $repositories['reports']->mark_ready( $report->finder_report_id, $ready_at ) );
+		self::assertSame( array( $report->finder_report_id ), $repositories['reports']->find_notifiable( $ready_at, 50 ) );
+
+		$claimed_at = $this->utc( '2026-08-04 00:11:00' );
+		self::assertTrue( $repositories['reports']->claim_owner_notification( $report->finder_report_id, $claimed_at ) );
+		self::assertFalse( $repositories['reports']->claim_owner_notification( $report->finder_report_id, $claimed_at ) );
+		self::assertSame( array(), $repositories['reports']->find_notifiable( $claimed_at, 50 ) );
+
+		$retention = $this->utc( '2026-09-03 00:11:00' );
+		self::assertTrue( $repositories['reports']->mark_owner_notified( $report->finder_report_id, $retention, $claimed_at ) );
+		self::assertTrue( $repositories['media']->extend_notified_retention( $report->finder_report_id, $retention, $claimed_at ) );
+		self::assertFalse( $repositories['reports']->mark_owner_notified( $report->finder_report_id, $retention, $claimed_at ) );
+
+		$stored_report = $repositories['reports']->find_by_id( $report->finder_report_id );
+		$stored_media  = $repositories['media']->find_by_report_id( $report->finder_report_id );
+		self::assertNotNull( $stored_report );
+		self::assertNotNull( $stored_media );
+		self::assertSame( FinderReportStatus::NOTIFIED, $stored_report->data->report_status );
+		self::assertSame( DeliveryStatus::SENT, $stored_report->data->owner_notification_status );
+		self::assertEquals( $claimed_at, $stored_report->data->owner_notified_at );
+		self::assertEquals( $retention, $stored_report->data->expires_at );
+		self::assertEquals( $retention, $stored_media->data->retention_until );
+	}
+
 	/**
 	 * Build the two RT-315 repositories.
 	 *
@@ -175,7 +263,7 @@ final class FinderReportRepositoryTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 10, $runner->migrate()->ending_version );
+		self::assertSame( 12, $runner->migrate()->ending_version );
 	}
 
 	/**

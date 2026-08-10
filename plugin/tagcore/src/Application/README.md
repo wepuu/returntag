@@ -34,6 +34,44 @@ and private-storage ports, a content-safety reviewer port, and the
 Application type carries Tag ID, item name, email, filename, path, URL, or
 provider credentials into the safety request.
 
+RT-315 Stage 3 composes the one-way intake use case, optional 10–500 character
+plain-text message encryption, atomic rate budgets, report/media state claims,
+metadata-free lifecycle Events, asynchronous safety processing, stale-work
+recovery, and bounded retention cleanup. The queue boundary carries only the
+internal Finder Report identifier. A report can become ready only after its
+source matches persisted inspection facts and an approved reviewer accepts the
+metadata-stripped derivative.
+
+RT-315 Stage 4 adds `NotifyFinderReportOwner` and stale-notification
+convergence. The use case rechecks all three operational controls, claims a
+ready report atomically, resolves the current Owner rather than trusting its
+submission snapshot, decrypts only the optional message, reads only the email
+derivative, and records mailer acceptance with 30-day retention. Duplicate,
+already sent, terminally failed, expired, or stale ambiguous work cannot send
+automatically. No Finder identity, Conversation, reply, public URL, or access
+Token enters the notification contract.
+
+RT-315 Stage 5 adds optional Finder email verification through bounded OTP
+challenges. Verification atomically opens one Conversation only after the
+report is accepted and its evidence is ready, while the anonymous one-way
+Owner notification remains independent. Finder identity stays encrypted and
+is never exposed to the Owner.
+
+RT-315 Stage 6 adds role-bound link exchange, 30-minute Secure Reply sessions,
+encrypted 10–500 character human Messages, per-role and Conversation limits,
+and Message-ID-only dispatch convergence. GET validates and stages a bearer
+link without consuming it; explicit POST creates the session. Authorization
+rechecks the active current Owner, verified Finder, report evidence, and open
+Conversation before every read or write. The contracts add no attachment,
+HTML, location, close, report, block, dispute, or moderation behavior.
+Finder submission and accepted Owner delivery emit only the canonical,
+metadata-free `finder_message_submitted` and `owner_reply_sent` Events.
+
+RT-316 Stage 7A adds one role-specific terminal-action use case. A Finder may
+end an authorized Conversation; the current Owner may report and block it. The
+Application accepts no browser-selected identifier, status, actor, recipient,
+reason, or report content and delegates atomic convergence to the Store.
+
 RT-202 adds the `TagIdGenerator` and `RandomIntegerSource` ports plus the pure
 alphabet-mapping generator. It returns one candidate only and deliberately has
 no Repository, transaction, queue, collision retry, Batch transition, or

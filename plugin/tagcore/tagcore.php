@@ -48,6 +48,14 @@ if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\ActivationOtpBootstrap
 	ReturnTag\TagCore\Infrastructure\Queue\ActivationOtpBootstrap::register();
 }
 
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\FinderReportBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Queue\FinderReportBootstrap::register();
+}
+
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\ConversationRelayBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Queue\ConversationRelayBootstrap::register();
+}
+
 if ( class_exists( ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::class ) ) {
 	ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }

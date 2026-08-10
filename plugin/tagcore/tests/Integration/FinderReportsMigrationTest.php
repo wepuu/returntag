@@ -49,26 +49,26 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 		parent::tearDown();
 	}
 
-	/** Fresh install must create both independent tables through Schema 10. */
-	public function test_fresh_install_creates_schema_ten(): void {
+	/** Fresh install must create both independent tables through Schema 11. */
+	public function test_fresh_install_creates_schema_eleven(): void {
 		global $wpdb;
 
-		$report = $this->runner( $wpdb, 10 )->migrate();
+		$report = $this->runner( $wpdb, 11 )->migrate();
 
-		self::assertSame( 10, $report->ending_version );
-		self::assertSame( range( 1, 10 ), $report->applied_versions );
+		self::assertSame( 11, $report->ending_version );
+		self::assertSame( range( 1, 11 ), $report->applied_versions );
 		self::assertTrue( $this->table_exists( $wpdb, $this->tables->finder_reports() ) );
 		self::assertTrue( $this->table_exists( $wpdb, $this->tables->finder_report_media() ) );
 	}
 
-	/** Schema-8 upgrade must preserve predecessor data and apply only 9 and 10. */
+	/** Schema-8 upgrade must preserve predecessor data and apply 9 through 11. */
 	public function test_schema_eight_upgrade_preserves_predecessor_data(): void {
 		global $wpdb;
 
 		$this->runner( $wpdb, 8 )->migrate();
 		$this->insert_batch( $wpdb, 'RT315-UPGRADE' );
 
-		$report = $this->runner( $wpdb, 10 )->migrate();
+		$report = $this->runner( $wpdb, 11 )->migrate();
 		$count  = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE batch_code = %s',
@@ -77,7 +77,7 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 			)
 		);
 
-		self::assertSame( array( 9, 10 ), $report->applied_versions );
+		self::assertSame( array( 9, 10, 11 ), $report->applied_versions );
 		self::assertSame( '1', (string) $count );
 	}
 
@@ -85,7 +85,7 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 	public function test_complete_schema_retry_is_idempotent(): void {
 		global $wpdb;
 
-		$this->runner( $wpdb, 10 )->migrate();
+		$this->runner( $wpdb, 11 )->migrate();
 		$ddl      = array();
 		$observer = static function ( string $query ) use ( &$ddl ): string {
 			if ( 1 === preg_match( '/^\s*(?:ALTER|CREATE|DROP|RENAME|TRUNCATE)\b/i', $query ) ) {
@@ -97,7 +97,7 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 		add_filter( 'query', $observer );
 
 		try {
-			$report = $this->runner( $wpdb, 10 )->migrate();
+			$report = $this->runner( $wpdb, 11 )->migrate();
 		} finally {
 			remove_filter( 'query', $observer );
 		}
@@ -106,11 +106,65 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 		self::assertSame( array(), $ddl );
 	}
 
+	/** Schema-10 upgrade adds only Migration 0011 and preserves report data. */
+	public function test_schema_ten_upgrade_adds_conversation_link_and_preserves_reports(): void {
+		global $wpdb;
+
+		$this->runner( $wpdb, 10 )->migrate();
+		$report_id = $this->insert_report_fixture( $wpdb );
+		$report    = $this->runner( $wpdb, 11 )->migrate();
+		$stored    = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT finder_report_id FROM %i WHERE finder_report_id = %d',
+				$this->tables->finder_reports(),
+				$report_id
+			)
+		);
+
+		self::assertSame( array( 11 ), $report->applied_versions );
+		self::assertSame( (string) $report_id, (string) $stored );
+	}
+
+	/** Schema 11 enforces one canonical Conversation link across reports. */
+	public function test_conversation_link_is_unique_across_reports(): void {
+		global $wpdb;
+
+		$this->runner( $wpdb, 11 )->migrate();
+		$first_report_id = $this->insert_report_fixture( $wpdb );
+		self::assertSame(
+			1,
+			$wpdb->insert(
+				$this->tables->conversations(),
+				array(
+					'tag_id'                  => 'N7R2W9',
+					'owner_id_snapshot'       => 42,
+					'finder_email_ciphertext' => 'opaque-email',
+					'finder_email_lookup'     => str_repeat( 'a', 64 ),
+					'finder_verified_at'      => '2026-08-04 00:00:00',
+					'conversation_status'     => 'open',
+					'expires_at'              => '2026-09-03 00:00:00',
+					'last_activity_at'        => '2026-08-04 00:00:00',
+					'created_at'              => '2026-08-04 00:00:00',
+				)
+			)
+		);
+		$conversation_id = (int) $wpdb->insert_id;
+		self::assertSame( 1, $wpdb->update( $this->tables->finder_reports(), array( 'conversation_id' => $conversation_id ), array( 'finder_report_id' => $first_report_id ), array( '%d' ), array( '%d' ) ) );
+
+		$second_report_id = $this->insert_duplicate_report( $wpdb, $first_report_id );
+		$wpdb->suppress_errors( true );
+		try {
+			self::assertFalse( $wpdb->update( $this->tables->finder_reports(), array( 'conversation_id' => $conversation_id ), array( 'finder_report_id' => $second_report_id ), array( '%d' ), array( '%d' ) ) );
+		} finally {
+			$wpdb->suppress_errors( false );
+		}
+	}
+
 	/** The media table must enforce exactly one row per Finder Report. */
 	public function test_media_cardinality_is_unique_per_report(): void {
 		global $wpdb;
 
-		$this->runner( $wpdb, 10 )->migrate();
+		$this->runner( $wpdb, 11 )->migrate();
 		$report_id = $this->insert_report_fixture( $wpdb );
 
 		self::assertSame( 1, $this->insert_media_fixture( $wpdb, $report_id, str_repeat( 'a', 64 ) ) );
@@ -126,7 +180,7 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 	public function test_schema_omits_forbidden_private_and_public_fields(): void {
 		global $wpdb;
 
-		$this->runner( $wpdb, 10 )->migrate();
+		$this->runner( $wpdb, 11 )->migrate();
 		$columns = array_merge(
 			$this->column_names( $wpdb, $this->tables->finder_reports() ),
 			$this->column_names( $wpdb, $this->tables->finder_report_media() )
@@ -283,6 +337,25 @@ final class FinderReportsMigrationTest extends WP_UnitTestCase {
 			),
 			array( '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s' )
 		);
+	}
+
+	/**
+	 * Duplicate one non-sensitive report fixture with a new primary key.
+	 *
+	 * @param wpdb $database Database adapter.
+	 * @param int  $source_report_id Source report identifier.
+	 */
+	private function insert_duplicate_report( wpdb $database, int $source_report_id ): int {
+		$query = $database->prepare(
+			'SELECT tag_id, owner_id_at_submission, message_ciphertext, report_status, evidence_status, owner_notification_status, owner_notified_at, expires_at, created_at, updated_at FROM %i WHERE finder_report_id = %d',
+			$this->tables->finder_reports(),
+			$source_report_id
+		);
+		$row   = is_string( $query ) ? $database->get_row( $query, ARRAY_A ) : null;
+		self::assertIsArray( $row );
+		self::assertSame( 1, $database->insert( $this->tables->finder_reports(), $row ) );
+
+		return (int) $database->insert_id;
 	}
 
 	/**

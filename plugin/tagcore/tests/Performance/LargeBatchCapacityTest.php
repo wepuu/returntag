@@ -76,7 +76,7 @@ final class LargeBatchCapacityTest extends WP_UnitTestCase {
 			new WordPressSchemaVersionStore(),
 			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
 		);
-		self::assertSame( 10, $runner->migrate()->ending_version );
+		self::assertSame( 12, $runner->migrate()->ending_version );
 
 		$this->administrator_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $this->administrator_id );

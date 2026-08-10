@@ -15,6 +15,7 @@ namespace ReturnTag\TagCore\Application;
 enum FeatureFlag: string {
 	case GLOBAL_ACTIVATION   = 'returntag_global_activation_enabled';
 	case FINDER_CONTACT      = 'returntag_finder_contact_enabled';
+	case FINDER_EVIDENCE     = 'returntag_finder_evidence_enabled';
 	case EMAIL_DISPATCH      = 'returntag_email_dispatch_enabled';
 	case WOOCOMMERCE_ACCOUNT = 'returntag_woocommerce_account_enabled';
 }

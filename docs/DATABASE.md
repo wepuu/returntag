@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 3 complete at plugin version 0.4.0; Schema remains version 8 with RT-210 million-row capacity evidence
+**Status:** Milestone 3 complete at plugin version 0.4.0; RT-315 persistence baseline advances the current target to Schema 12 while preserving the RT-210 million-row capacity evidence
 
-**Schema created through RT-108:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`; current target version `8`
+**Schema created through RT-315 Stage 6:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`; current target version `12`
 
 ## 1. Purpose
 
@@ -1022,3 +1022,74 @@ storage descriptor maps directly to the Stage 1 encrypted reference, key ID,
 SHA-256 digest, and byte-count fields; Stage 2 does not write those fields or
 add a state-transition Repository. Database/object compensation and durable
 retention orchestration remain requirements for the later submission Worker.
+
+RT-315 Stage 4 also keeps Schema `10`. A conditional update claims only a
+`ready` report with `ready` evidence, no prior notification state, and an
+unexpired retention boundary by setting `owner_notification_status = queued`.
+Mailer acceptance then transitions that exact claim to `report_status =
+notified`, `owner_notification_status = sent`, and `owner_notified_at`, while
+both report and media retention move to 30 days after acceptance. A rejected
+mailer call or stale ambiguous claim moves only `queued -> failed`; recovery
+does not automatically requeue terminal `failed` or `sent` rows. The
+submission-time Owner ID remains audit context only and is never used as
+notification authorization.
+
+RT-315 Stage 5 advances Schema `10 -> 11`. Migration `0011` adds one nullable
+unsigned `conversation_id` column to `returntag_finder_reports` and a unique
+`conversation_id_unique` index. NULL preserves anonymous one-way reports;
+the unique link prevents one Conversation from being attached to multiple
+reports, while the single column gives each report at most one canonical
+Conversation. Verification and Conversation creation run in one transaction,
+so a consumed OTP cannot leave an orphan Conversation or unlinked report.
+
+Finder OTP challenges use purpose `finder_email_otp`, subject type
+`finder_report`, the internal report ID as the opaque subject, encrypted email,
+keyed email/IP lookups, a password-hashed code, a ten-minute expiry, and a
+five-attempt ceiling. Code rollback disables the Stage 5 UI and Worker while
+preserving Schema 11, verified challenges, open Conversations, and report
+links. The previous stable code safely ignores the additive nullable column.
+
+## 22. RT-315 Stage 6 bounded relay dispatch expansion
+
+RT-315 Stage 6 advances Schema `11 -> 12`. Migration `0012` adds nullable UTC
+`dispatch_claimed_at` and required unsigned `dispatch_attempt_count` (default
+zero) to `returntag_messages`, plus an index supporting queued/stale dispatch
+recovery. Existing accepted Messages retain a zero attempt count and NULL
+claim. Fresh installation and Schema-11 upgrade verify the complete additive
+contract before advancing the version.
+
+Human Message bodies are encrypted, 10–500 Unicode characters, and limited to
+10 per actor and 20 per Conversation. System delivery records do not consume
+those limits. A Message-ID-only Worker atomically claims a queued row once;
+mailer rejection becomes `failed`, acceptance becomes `sent`, and a stale
+ambiguous claim becomes terminal `failed` without automatic resend. Access
+links remain hash-only in the existing table and require no new Token column.
+Finder message persistence records the canonical metadata-free
+`finder_message_submitted` Event. An Owner reply records the canonical
+`owner_reply_sent` Event only after mailer acceptance, not when the encrypted
+Message is merely queued.
+
+Rollback disables Finder Contact or Email Dispatch and removes Stage 6 routes
+and Workers while preserving Schema 12, claim metadata, Tokens, encrypted
+Messages, Conversations, Events, Reports, and ownership. No destructive down
+Migration is provided.
+
+## 23. RT-316 Stage 7A terminal Conversation transaction
+
+Stage 7A keeps Schema `12`. No table, column, index, Option, dependency, or
+lock-file change is required. One transaction locks an eligible `open`
+Conversation and its current Tag/Report graph, validates the session role,
+conditionally writes `closed` for Finder or `blocked` for Owner, revokes every
+unrevoked Access Token for the Conversation, marks all still-`queued` Messages
+`failed`, and appends the metadata-free `conversation_closed` or
+`conversation_reported` Event.
+
+The operation is terminal and idempotent: a retry cannot reopen the row,
+restore a Token, requeue a Message, or append a second Event. An already
+accepted Message remains accepted. A Worker performs a final Message/Token
+eligibility check before delivery. A provider call that already passed that
+check and is in progress cannot be recalled, but any link created before the
+terminal transaction is revoked and cannot authorize access.
+
+Code rollback removes the controls while preserving terminal states, revoked
+Tokens, failed and accepted Messages, Reports, evidence, ownership, and Events.

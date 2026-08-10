@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Infrastructure\Persistence;
 
+use DateTimeImmutable;
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceConstraintViolationException;
 use ReturnTag\TagCore\Application\Persistence\Exception\PersistenceMappingException;
@@ -20,6 +21,7 @@ use ReturnTag\TagCore\Application\Persistence\Value\FinderReportMessageCiphertex
 use ReturnTag\TagCore\Domain\Conversation\DeliveryStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderReportStatus;
+use ReturnTag\TagCore\Domain\Tag\TagStatus;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 
 /**
@@ -80,6 +82,316 @@ final class WpdbFinderReportRepository implements FinderReportRepository {
 		);
 
 		return null === $row ? null : $this->hydrate( $row );
+	}
+
+	/**
+	 * Read the canonical Conversation link.
+	 *
+	 * @param int $finder_report_id Internal report identifier.
+	 */
+	public function find_conversation_id( int $finder_report_id ): ?int {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+		$row = $this->gateway->row(
+			'SELECT conversation_id FROM %i WHERE finder_report_id = %d LIMIT 1',
+			array( $this->tables->finder_reports(), $finder_report_id )
+		);
+
+		return null === $row ? null : StoredRow::nullable_positive_int( $row, 'conversation_id' );
+	}
+
+	/**
+	 * Resolve the current Owner at Conversation creation time.
+	 *
+	 * @param int $finder_report_id Internal report identifier.
+	 */
+	public function find_current_owner_id( int $finder_report_id ): ?int {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+		$row = $this->gateway->row(
+			'SELECT tags.owner_id FROM %i reports INNER JOIN %i tags ON tags.tag_id = reports.tag_id WHERE reports.finder_report_id = %d AND tags.tag_status = %s LIMIT 1',
+			array( $this->tables->finder_reports(), $this->tables->tags(), $finder_report_id, TagStatus::ACTIVE->value )
+		);
+
+		return null === $row ? null : StoredRow::nullable_positive_int( $row, 'owner_id' );
+	}
+
+	/**
+	 * Atomically attach the first canonical Conversation.
+	 *
+	 * @param int               $finder_report_id Internal report identifier.
+	 * @param int               $conversation_id Internal Conversation identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function link_conversation( int $finder_report_id, int $conversation_id, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+		RecordValidator::positive_id( $conversation_id, 'conversation_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET conversation_id = %d, updated_at = %s WHERE finder_report_id = %d AND conversation_id IS NULL AND report_status IN (%s, %s, %s, %s)',
+			array(
+				$this->tables->finder_reports(),
+				$conversation_id,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::RECEIVED->value,
+				FinderReportStatus::PROCESSING->value,
+				FinderReportStatus::READY->value,
+				FinderReportStatus::NOTIFIED->value,
+			)
+		);
+	}
+
+	/**
+	 * Claim a received or stale report.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 * @param DateTimeImmutable $stale_before Stale lease cutoff.
+	 */
+	public function claim_processing( int $finder_report_id, DateTimeImmutable $now, DateTimeImmutable $stale_before ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET report_status = %s, evidence_status = %s, updated_at = %s WHERE finder_report_id = %d AND ((report_status = %s AND evidence_status = %s) OR (report_status = %s AND evidence_status = %s AND updated_at <= %s))',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::PROCESSING->value,
+				FinderEvidenceStatus::PROCESSING->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::RECEIVED->value,
+				FinderEvidenceStatus::QUARANTINED->value,
+				FinderReportStatus::PROCESSING->value,
+				FinderEvidenceStatus::PROCESSING->value,
+				$this->dates->format( $stale_before ),
+			)
+		);
+	}
+
+	/**
+	 * Mark a processing report ready.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function mark_ready( int $finder_report_id, DateTimeImmutable $now ): bool {
+		return $this->transition(
+			$finder_report_id,
+			FinderReportStatus::PROCESSING,
+			FinderEvidenceStatus::PROCESSING,
+			FinderReportStatus::READY,
+			FinderEvidenceStatus::READY,
+			$now
+		);
+	}
+
+	/**
+	 * Mark a non-terminal report blocked.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function mark_blocked( int $finder_report_id, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET report_status = %s, evidence_status = %s, updated_at = %s WHERE finder_report_id = %d AND report_status IN (%s, %s) AND evidence_status IN (%s, %s)',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::BLOCKED->value,
+				FinderEvidenceStatus::REJECTED->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::RECEIVED->value,
+				FinderReportStatus::PROCESSING->value,
+				FinderEvidenceStatus::QUARANTINED->value,
+				FinderEvidenceStatus::PROCESSING->value,
+			)
+		);
+	}
+
+	/**
+	 * Claim one ready report for notification.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function claim_owner_notification( int $finder_report_id, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET owner_notification_status = %s, updated_at = %s WHERE finder_report_id = %d AND report_status = %s AND evidence_status = %s AND owner_notification_status IS NULL AND expires_at > %s',
+			array(
+				$this->tables->finder_reports(),
+				DeliveryStatus::QUEUED->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::READY->value,
+				FinderEvidenceStatus::READY->value,
+				$this->dates->format( $now ),
+			)
+		);
+	}
+
+	/**
+	 * Record mailer acceptance and notified retention.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $expires_at Notified evidence retention boundary.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function mark_owner_notified( int $finder_report_id, DateTimeImmutable $expires_at, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET report_status = %s, owner_notification_status = %s, owner_notified_at = %s, expires_at = %s, updated_at = %s WHERE finder_report_id = %d AND report_status = %s AND evidence_status = %s AND owner_notification_status = %s',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::NOTIFIED->value,
+				DeliveryStatus::SENT->value,
+				$this->dates->format( $now ),
+				$this->dates->format( $expires_at ),
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::READY->value,
+				FinderEvidenceStatus::READY->value,
+				DeliveryStatus::QUEUED->value,
+			)
+		);
+	}
+
+	/**
+	 * Mark one claimed notification terminally failed.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function mark_owner_notification_failed( int $finder_report_id, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET owner_notification_status = %s, updated_at = %s WHERE finder_report_id = %d AND report_status = %s AND evidence_status = %s AND owner_notification_status = %s',
+			array(
+				$this->tables->finder_reports(),
+				DeliveryStatus::FAILED->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::READY->value,
+				FinderEvidenceStatus::READY->value,
+				DeliveryStatus::QUEUED->value,
+			)
+		);
+	}
+
+	/**
+	 * Find ready notifications that have never been claimed.
+	 *
+	 * @param DateTimeImmutable $now Current UTC time.
+	 * @param int               $limit Row limit.
+	 * @return list<int>
+	 */
+	public function find_notifiable( DateTimeImmutable $now, int $limit ): array {
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $this->gateway->rows(
+			'SELECT finder_report_id FROM %i WHERE report_status = %s AND evidence_status = %s AND owner_notification_status IS NULL AND expires_at > %s ORDER BY updated_at ASC, finder_report_id ASC LIMIT %d',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::READY->value,
+				FinderEvidenceStatus::READY->value,
+				$this->dates->format( $now ),
+				$limit,
+			)
+		);
+
+		return array_map(
+			static fn( array $row ): int => StoredRow::positive_int( $row, 'finder_report_id' ),
+			$rows
+		);
+	}
+
+	/**
+	 * Find stale queued claims for fail-closed convergence.
+	 *
+	 * @param DateTimeImmutable $stale_before Stale cutoff.
+	 * @param int               $limit Row limit.
+	 * @return list<int>
+	 */
+	public function find_stale_owner_notification_claims( DateTimeImmutable $stale_before, int $limit ): array {
+		$limit = max( 1, min( 100, $limit ) );
+		$rows  = $this->gateway->rows(
+			'SELECT finder_report_id FROM %i WHERE report_status = %s AND evidence_status = %s AND owner_notification_status = %s AND updated_at <= %s ORDER BY updated_at ASC, finder_report_id ASC LIMIT %d',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::READY->value,
+				FinderEvidenceStatus::READY->value,
+				DeliveryStatus::QUEUED->value,
+				$this->dates->format( $stale_before ),
+				$limit,
+			)
+		);
+
+		return array_map(
+			static fn( array $row ): int => StoredRow::positive_int( $row, 'finder_report_id' ),
+			$rows
+		);
+	}
+
+	/**
+	 * Mark a terminal report expired.
+	 *
+	 * @param int               $finder_report_id Internal identifier.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function mark_expired( int $finder_report_id, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET report_status = %s, evidence_status = %s, updated_at = %s WHERE finder_report_id = %d AND report_status IN (%s, %s, %s, %s)',
+			array(
+				$this->tables->finder_reports(),
+				FinderReportStatus::EXPIRED->value,
+				FinderEvidenceStatus::DELETED->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				FinderReportStatus::RECEIVED->value,
+				FinderReportStatus::PROCESSING->value,
+				FinderReportStatus::READY->value,
+				FinderReportStatus::BLOCKED->value,
+			)
+		);
+	}
+
+	/**
+	 * Perform one exact two-column state transition.
+	 *
+	 * @param int                  $finder_report_id Internal identifier.
+	 * @param FinderReportStatus   $from_report Expected report state.
+	 * @param FinderEvidenceStatus $from_evidence Expected evidence state.
+	 * @param FinderReportStatus   $to_report New report state.
+	 * @param FinderEvidenceStatus $to_evidence New evidence state.
+	 * @param DateTimeImmutable    $now Current UTC time.
+	 */
+	private function transition(
+		int $finder_report_id,
+		FinderReportStatus $from_report,
+		FinderEvidenceStatus $from_evidence,
+		FinderReportStatus $to_report,
+		FinderEvidenceStatus $to_evidence,
+		DateTimeImmutable $now
+	): bool {
+		RecordValidator::positive_id( $finder_report_id, 'finder_report_id' );
+
+		return 1 === $this->gateway->execute(
+			'UPDATE %i SET report_status = %s, evidence_status = %s, updated_at = %s WHERE finder_report_id = %d AND report_status = %s AND evidence_status = %s',
+			array(
+				$this->tables->finder_reports(),
+				$to_report->value,
+				$to_evidence->value,
+				$this->dates->format( $now ),
+				$finder_report_id,
+				$from_report->value,
+				$from_evidence->value,
+			)
+		);
 	}
 
 	/**

@@ -111,10 +111,103 @@ function initializeManualTagEntry(): void {
 		.forEach( prepareForm );
 }
 
+function prepareFinderReport( form: HTMLFormElement ): void {
+	if ( form.classList.contains( 'is-enhanced' ) ) {
+		return;
+	}
+
+	const steps = Array.from(
+		form.querySelectorAll< HTMLFieldSetElement >(
+			'[data-returntag-finder-step]'
+		)
+	);
+	const message = form.querySelector< HTMLTextAreaElement >(
+		'#returntag-finder-message'
+	);
+	const photo = form.querySelector< HTMLInputElement >(
+		'#returntag-finder-photo'
+	);
+
+	if ( steps.length !== 2 || ! message || ! photo ) {
+		return;
+	}
+	const progress = Array.from(
+		form.parentElement?.querySelectorAll< HTMLLIElement >(
+			'.returntag-public__finder-progress li'
+		) ?? []
+	);
+
+	form.classList.add( 'is-enhanced' );
+	const showStep = ( index: number, shouldFocus = true ): void => {
+		steps.forEach( ( step, stepIndex ) => {
+			step.hidden = stepIndex !== index;
+		} );
+		progress.forEach( ( item, itemIndex ) => {
+			if ( itemIndex === index ) {
+				item.setAttribute( 'aria-current', 'step' );
+			} else {
+				item.removeAttribute( 'aria-current' );
+			}
+		} );
+		if ( shouldFocus ) {
+			steps[ index ].querySelector< HTMLElement >( 'legend' )?.focus();
+		}
+	};
+
+	form
+		.querySelector< HTMLButtonElement >( '[data-returntag-finder-next]' )
+		?.addEventListener( 'click', () => {
+			const length = Array.from( message.value.trim() ).length;
+
+			message.setCustomValidity(
+				length === 0 || ( length >= 10 && length <= 500 )
+					? ''
+					: form.dataset.messageError ?? ''
+			);
+			if ( ! message.reportValidity() || ! photo.reportValidity() ) {
+				return;
+			}
+
+			const messageReview = form.querySelector< HTMLElement >(
+				'[data-returntag-finder-message-review]'
+			);
+			const photoReview = form.querySelector< HTMLElement >(
+				'[data-returntag-finder-photo-review]'
+			);
+			if ( messageReview ) {
+				if ( message.value.trim() ) {
+					messageReview.textContent = message.value.trim();
+				}
+			}
+			if ( photoReview ) {
+				if ( photo.files?.[ 0 ]?.name ) {
+					photoReview.textContent = photo.files[ 0 ].name;
+				}
+			}
+			showStep( 1 );
+		} );
+
+	form
+		.querySelector< HTMLButtonElement >( '[data-returntag-finder-back]' )
+		?.addEventListener( 'click', () => showStep( 0 ) );
+	message.addEventListener( 'input', () => message.setCustomValidity( '' ) );
+	showStep( 0, false );
+}
+
+function initializeFinderReports(): void {
+	document
+		.querySelectorAll< HTMLFormElement >( '[data-returntag-finder-form]' )
+		.forEach( prepareFinderReport );
+}
+
 if ( document.readyState === 'loading' ) {
 	document.addEventListener( 'DOMContentLoaded', initializeManualTagEntry, {
 		once: true,
 	} );
+	document.addEventListener( 'DOMContentLoaded', initializeFinderReports, {
+		once: true,
+	} );
 } else {
 	initializeManualTagEntry();
+	initializeFinderReports();
 }

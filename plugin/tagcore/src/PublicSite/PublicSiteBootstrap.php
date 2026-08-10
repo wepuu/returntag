@@ -27,6 +27,8 @@ use ReturnTag\TagCore\Application\Tag\RateLimitedTagActivation;
 use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedSession;
 use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedUserEmailReader;
 use ReturnTag\TagCore\Infrastructure\Auth\WordPressPasswordlessAccountProvisioner;
+use ReturnTag\TagCore\Infrastructure\FinderReport\FinderReportRuntimeFactory;
+use ReturnTag\TagCore\Infrastructure\Conversation\ConversationRelayRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -95,6 +97,8 @@ final class PublicSiteBootstrap {
 			$email_policy
 		);
 		$request_guard  = new PublicFormRequestGuard();
+		$finder_runtime = FinderReportRuntimeFactory::create( $wpdb );
+		$finder_ledger  = new WordPressFinderReportSubmissionLedger();
 		$route          = new PublicTagRouteController(
 			$plugin_dir,
 			new PublicTagResponsePolicy(),
@@ -111,7 +115,18 @@ final class PublicSiteBootstrap {
 				new WordPressAuthenticatedUserEmailReader(),
 				$otp_services['protector'],
 				$request_guard
-			)
+			),
+			new FinderReportFormHandler(
+				$finder_runtime?->submit,
+				$finder_runtime?->safety,
+				$finder_runtime?->scheduler,
+				$feature_flags,
+				$request_guard,
+				new WordPressFinderEvidenceUploadReader(),
+				$finder_ledger,
+				new WordPressPublicRequestHasher()
+			),
+			new FinderEmailFormHandler( $finder_runtime?->email_verification, $finder_ledger, $request_guard )
 		);
 		$entry_urls     = new TagEntryUrlProvider();
 		$entry_renderer = new ManualTagEntryTemplateRenderer( $plugin_dir );
@@ -131,11 +146,13 @@ final class PublicSiteBootstrap {
 			$entry_urls
 		);
 		$entry_block    = new TagEntryLinkBlock( $plugin_dir, $entry_urls, $entry_renderer );
+		$reply_route    = new SecureReplyRouteController( $plugin_dir, ConversationRelayRuntimeFactory::create( $wpdb ), $request_guard );
 
 		$route->register_hooks();
 		$entry_route->register_hooks();
 		$entry_block->register_hooks();
-		( new PublicRewriteLifecycle( $plugin_file, $route, $entry_route ) )->register_hooks();
+		$reply_route->register_hooks();
+		( new PublicRewriteLifecycle( $plugin_file, $route, $entry_route, $reply_route ) )->register_hooks();
 	}
 
 	/**

@@ -40,6 +40,9 @@ final class PublicTagResponsePolicyTest extends TestCase {
 		self::assertSame( 'no-referrer', $headers['Referrer-Policy'] );
 		self::assertSame( 'nosniff', $headers['X-Content-Type-Options'] );
 		self::assertSame( 'noindex, nofollow, noarchive', $headers['X-Robots-Tag'] );
+		self::assertStringContainsString( "script-src 'self'", $headers['Content-Security-Policy'] );
+		self::assertStringNotContainsString( "'unsafe-inline'", $headers['Content-Security-Policy'] );
+		self::assertStringNotContainsString( "'unsafe-eval'", $headers['Content-Security-Policy'] );
 		self::assertArrayNotHasKey( 'Allow', $headers );
 	}
 

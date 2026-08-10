@@ -252,9 +252,9 @@ final class PersistenceContractsTest extends TestCase {
 	}
 
 	/**
-	 * Stage 1 repositories expose persistence only, not workflow transitions.
+	 * Finder Report repositories expose only the approved Stage 3 and 4 transitions.
 	 */
-	public function test_finder_report_repositories_expose_only_insert_and_find(): void {
+	public function test_finder_report_repositories_expose_only_approved_workflow_methods(): void {
 		$report_methods = array_map(
 			static fn( \ReflectionMethod $method ): string => $method->getName(),
 			( new ReflectionClass( FinderReportRepository::class ) )->getMethods()
@@ -266,8 +266,14 @@ final class PersistenceContractsTest extends TestCase {
 		sort( $report_methods );
 		sort( $media_methods );
 
-		self::assertSame( array( 'find_by_id', 'insert' ), $report_methods );
-		self::assertSame( array( 'find_by_report_id', 'insert' ), $media_methods );
+		self::assertSame(
+			array( 'claim_owner_notification', 'claim_processing', 'find_by_id', 'find_conversation_id', 'find_current_owner_id', 'find_notifiable', 'find_stale_owner_notification_claims', 'insert', 'link_conversation', 'mark_blocked', 'mark_expired', 'mark_owner_notification_failed', 'mark_owner_notified', 'mark_ready' ),
+			$report_methods
+		);
+		self::assertSame(
+			array( 'claim_processing', 'extend_notified_retention', 'find_by_report_id', 'find_expired', 'find_processable', 'insert', 'mark_deleted', 'mark_ready', 'mark_rejected' ),
+			$media_methods
+		);
 	}
 
 	/**

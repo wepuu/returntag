@@ -57,11 +57,11 @@ final class CreateFinderReportsTableMigration implements Migration {
 
 		$state = $this->inspect();
 
-		if ( SchemaTableState::INCOMPATIBLE === $state ) {
+		if ( SchemaTableState::INCOMPATIBLE === $state && ! $this->has_approved_conversation_extension() ) {
 			throw new MigrationException( 'The existing schema is incompatible with this migration.' );
 		}
 
-		if ( SchemaTableState::EXACT === $state ) {
+		if ( SchemaTableState::EXACT === $state || $this->has_approved_conversation_extension() ) {
 			return;
 		}
 
@@ -94,7 +94,50 @@ final class CreateFinderReportsTableMigration implements Migration {
 	 * Verify the complete version 0009 contract and predecessor.
 	 */
 	public function verify(): bool {
-		return $this->prerequisite->verify() && SchemaTableState::EXACT === $this->inspect();
+		return $this->prerequisite->verify()
+			&& ( SchemaTableState::EXACT === $this->inspect() || $this->has_approved_conversation_extension() );
+	}
+
+	/**
+	 * Recognize only the approved additive Schema 11 column and index.
+	 */
+	private function has_approved_conversation_extension(): bool {
+		$table   = $this->table_names->finder_reports();
+		$columns = $this->database->get_col(
+			$this->database->prepare(
+				'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION',
+				$table
+			)
+		);
+		$indexes = $this->database->get_col(
+			$this->database->prepare(
+				'SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s ORDER BY INDEX_NAME',
+				$table
+			)
+		);
+
+		return array(
+			'finder_report_id',
+			'conversation_id',
+			'tag_id',
+			'owner_id_at_submission',
+			'message_ciphertext',
+			'report_status',
+			'evidence_status',
+			'owner_notification_status',
+			'owner_notified_at',
+			'expires_at',
+			'created_at',
+			'updated_at',
+		) === $columns
+			&& array(
+				'conversation_id_unique',
+				'notification_status_updated_at',
+				'owner_status_created_at',
+				'PRIMARY',
+				'report_status_expires_at',
+				'tag_status_created_at',
+			) === $indexes;
 	}
 
 	/**

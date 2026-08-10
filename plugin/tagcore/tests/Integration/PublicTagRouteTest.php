@@ -42,6 +42,9 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbPublicTagStateReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerActivationOtpScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerFinderReportOwnerNotificationScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerFinderReportProcessingScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerFinderEmailOtpScheduler;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionActivationOtpVerificationRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionTagActivationRateLimiter;
@@ -51,6 +54,10 @@ use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
 use ReturnTag\TagCore\PublicSite\ActivationOtpFormHandler;
 use ReturnTag\TagCore\PublicSite\ActivationOtpFormState;
 use ReturnTag\TagCore\PublicSite\ActivationOtpFormView;
+use ReturnTag\TagCore\PublicSite\FinderReportFormState;
+use ReturnTag\TagCore\PublicSite\FinderReportFormView;
+use ReturnTag\TagCore\PublicSite\FinderEmailFormState;
+use ReturnTag\TagCore\PublicSite\FinderEmailFormView;
 use ReturnTag\TagCore\PublicSite\PublicRewriteLifecycle;
 use ReturnTag\TagCore\PublicSite\PublicTagResponsePolicy;
 use ReturnTag\TagCore\PublicSite\PublicTagRouteController;
@@ -110,7 +117,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			new WordPressSchemaVersionStore(),
 			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
 		);
-		self::assertSame( 10, $runner->migrate()->ending_version );
+		self::assertSame( 12, $runner->migrate()->ending_version );
 
 		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '1', false );
 		update_option( FeatureFlag::FINDER_CONTACT->value, '1', false );
@@ -762,6 +769,132 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringNotContainsString( 'Private RT309 Owner', $html );
 		self::assertStringNotContainsString( 'owner_id', $html );
 		self::assertStringNotContainsString( 'A7R2W9', $html );
+	}
+
+	/** Finder intake renders only the approved optional-message and required-photo contract. */
+	public function test_finder_report_form_uses_private_evidence_contract(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::finder_entry( TagType::CLASSIC_TAG, 'Travel bag', true, 'Please help return this item.' ),
+			null,
+			new FinderReportFormView(
+				home_url( '/t/A7R2W9' ),
+				'nonce-value',
+				'signed-token',
+				FinderReportFormState::READY
+			)
+		);
+
+		self::assertStringContainsString( 'Message for the owner', $html );
+		self::assertStringContainsString( 'optional', $html );
+		self::assertStringContainsString( 'name="returntag_finder_photo"', $html );
+		self::assertStringContainsString( 'type="file"', $html );
+		self::assertStringContainsString( 'required', $html );
+		self::assertStringContainsString( 'Send report for review', $html );
+		self::assertStringNotContainsString( 'finder_email', $html );
+		self::assertStringNotContainsString( 'finder_name', $html );
+	}
+
+	/** Accepted reports offer optional private continuation without exposing identity. */
+	public function test_finder_report_success_offers_private_email_verification(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::finder_entry( TagType::CLASSIC_TAG, 'Travel bag', false, null ),
+			null,
+			new FinderReportFormView(
+				home_url( '/t/A7R2W9' ),
+				'nonce-value',
+				'opaque-continuation',
+				FinderReportFormState::ACCEPTED,
+				new FinderEmailFormView(
+					home_url( '/t/A7R2W9' ),
+					'email-nonce',
+					'opaque-continuation',
+					FinderEmailFormState::READY
+				)
+			)
+		);
+
+		self::assertStringContainsString( 'Continue privately', $html );
+		self::assertStringContainsString( 'name="returntag_finder_email"', $html );
+		self::assertStringContainsString( 'name="returntag_finder_email_code"', $html );
+		self::assertStringContainsString( 'opaque-continuation', $html );
+		self::assertStringNotContainsString( 'finder@example.test', $html );
+		self::assertStringNotContainsString( 'conversation_id', $html );
+	}
+
+	/** Finder email OTP queue payload contains only the internal challenge ID. */
+	public function test_finder_email_otp_queue_carries_only_challenge_id(): void {
+		$scheduler = new ActionSchedulerFinderEmailOtpScheduler();
+		$args      = array( 'challenge_id' => 987656 );
+
+		$scheduler->schedule( 987656 );
+		$action_id = \ActionScheduler::store()->query_action(
+			array(
+				'hook'   => ActionSchedulerFinderEmailOtpScheduler::HOOK,
+				'args'   => $args,
+				'group'  => ActionSchedulerFinderEmailOtpScheduler::GROUP,
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			)
+		);
+
+		self::assertIsInt( $action_id );
+		self::assertSame( $args, \ActionScheduler::store()->fetch_action( $action_id )->get_args() );
+		as_unschedule_action( ActionSchedulerFinderEmailOtpScheduler::HOOK, $args, ActionSchedulerFinderEmailOtpScheduler::GROUP );
+	}
+
+	/** Finder intake preflight requires a working report-ID-only queue. */
+	public function test_finder_report_queue_is_available_and_carries_only_internal_id(): void {
+		$scheduler = new ActionSchedulerFinderReportProcessingScheduler();
+		$args      = array( 'finder_report_id' => 987654 );
+
+		self::assertTrue( $scheduler->is_available() );
+		$scheduler->schedule( 987654, 60 );
+
+		$action_id = \ActionScheduler::store()->query_action(
+			array(
+				'hook'   => ActionSchedulerFinderReportProcessingScheduler::HOOK,
+				'args'   => $args,
+				'group'  => ActionSchedulerFinderReportProcessingScheduler::GROUP,
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			)
+		);
+
+		self::assertIsInt( $action_id );
+		self::assertGreaterThan( 0, $action_id );
+		self::assertSame( $args, \ActionScheduler::store()->fetch_action( $action_id )->get_args() );
+
+		as_unschedule_action(
+			ActionSchedulerFinderReportProcessingScheduler::HOOK,
+			$args,
+			ActionSchedulerFinderReportProcessingScheduler::GROUP
+		);
+	}
+
+	/** Owner notifications use a unique report-ID-only queue contract. */
+	public function test_finder_owner_notification_queue_carries_only_internal_id(): void {
+		$scheduler = new ActionSchedulerFinderReportOwnerNotificationScheduler();
+		$args      = array( 'finder_report_id' => 987655 );
+
+		self::assertTrue( $scheduler->is_available() );
+		$scheduler->schedule( 987655 );
+
+		$action_id = \ActionScheduler::store()->query_action(
+			array(
+				'hook'   => ActionSchedulerFinderReportOwnerNotificationScheduler::HOOK,
+				'args'   => $args,
+				'group'  => ActionSchedulerFinderReportOwnerNotificationScheduler::GROUP,
+				'status' => \ActionScheduler_Store::STATUS_PENDING,
+			)
+		);
+
+		self::assertIsInt( $action_id );
+		self::assertGreaterThan( 0, $action_id );
+		self::assertSame( $args, \ActionScheduler::store()->fetch_action( $action_id )->get_args() );
+
+		as_unschedule_action(
+			ActionSchedulerFinderReportOwnerNotificationScheduler::HOOK,
+			$args,
+			ActionSchedulerFinderReportOwnerNotificationScheduler::GROUP
+		);
 	}
 
 	/**
