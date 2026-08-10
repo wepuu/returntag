@@ -703,3 +703,24 @@ Rollback removes the participant controls but preserves `closed` and `blocked`
 Conversations, revoked Tokens, failed queued Messages, accepted Messages,
 Reports, evidence, ownership, and Events. Do not reopen, restore, or requeue
 terminal data. Provider calls already started cannot be recalled.
+
+## RT-317 Stage 0 release and rollback
+
+RT-317 Stage 0 is documentation-only. It keeps Schema `12`, TagCore `0.4.0`,
+ForgeTag Theme `0.1.0`, and the existing dependency and lock files. It adds no
+route, query, write, Option value, Hook, queue, email, artifact, deployment, or
+production configuration.
+
+Future Account runtime must ship with `returntag_owner_account_enabled`
+default disabled and prove passwordless non-enumeration, server-derived
+ownership, current-Owner query plans, field separation, mutation atomicity,
+metadata-minimal Events, secure Account-to-Conversation continuation, privacy
+headers, responsive accessibility, and generic transferred/unauthorized
+states before enablement.
+
+Stage 0 rollback is a documentation revert. Future runtime containment begins
+by disabling `returntag_owner_account_enabled` and removing Account adapters
+while preserving Tags, ownership, Lost Mode data, Smart Setup acknowledgements,
+Conversations, Tokens, Messages, and Events. Transfer, Retire, Test Email,
+privacy export/deletion, release, and deployment remain separately approved
+work.

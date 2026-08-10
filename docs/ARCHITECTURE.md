@@ -852,3 +852,32 @@ changes `open -> closed|blocked`, revokes all Conversation Tokens, fails queued
 Messages, and appends one metadata-free Event. Templates do not select status,
 Conversation, role, actor, recipient, or audit data. Administrative moderation
 and ownership disputes remain outside this boundary.
+
+## 28. RT-317 Owner Dashboard contract
+
+ADR 0022 freezes a TagCore-owned Account adapter at `/account/sign-in/`,
+`/account/`, `/account/tags/{tag_id}/`, and `/account/conversations/`. Account
+derives the current WordPress user server-side, treats route and form
+identifiers only as candidate selectors, and invokes Application services for
+every ownership decision. The ForgeTag Theme may provide shell and tokens but
+cannot query Tags, authorize an Owner, render private data, or process a form.
+
+Stage 1 composes Account-specific passwordless authentication with read-only
+current-Owner Tag projections. Stage 2 adds narrow Application mutations for
+private name, public label, Lost Mode, Lost Message, and the idempotent Smart
+Setup acknowledgement. Infrastructure performs atomic conditional writes and
+metadata-minimal Event appends; Domain owns value and state eligibility. No
+mutation accepts an Owner ID, status, Event type, or authorization result from
+the browser.
+
+Stage 3 exposes privacy-minimized Conversation summaries. Its explicit
+continuation POST revalidates current active ownership and the Stage 6/7A
+eligibility graph before issuing the existing role-bound 30-minute Owner
+session. Account login is not direct message authorization, and GET cannot
+mint Secure Reply access.
+
+The independent `returntag_owner_account_enabled` option defaults disabled
+and gates Account composition only. It is not authorization and does not gate
+activation, public Tag routing, Finder recovery, emailed Secure Reply links,
+or existing Conversation sessions. RT-317 Stage 0 registers no route, Option,
+service, query, write, Hook, asset, or runtime adapter and keeps Schema `12`.
