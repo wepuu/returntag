@@ -677,3 +677,23 @@ XChaCha20-Poly1305 keys loaded outside WordPress storage. The filesystem adapter
 rejects public roots, traversal, symlinks, key reuse, purpose confusion, and
 tampering, and returns no path or URL. Stage 2 adds no route, Hook, database
 write, queue, email, dependency, production composition, or Schema change.
+
+## RT-317 Owner Dashboard Stage 0
+
+RT-317 Stage 0 freezes the Milestone 4 Account contract through ADR 0022.
+TagCore owns passwordless Account entry, My Tags, Tag Detail, Conversation
+summaries, and the explicit Secure Reply continuation boundary. The current
+WordPress user is the only Owner identity input; route and form identifiers
+never authorize access.
+
+The contract separates private `item_name` from Finder-visible
+`public_label` and Lost Mode content, defines bounded atomic metadata updates,
+keeps Smart Setup acknowledgement distinct from real pairing, and requires
+the existing role-bound 30-minute session before any Conversation message is
+read or sent. Account runtime is independently contained by the default-off
+`returntag_owner_account_enabled` control.
+
+Stage 0 adds no route, form, query, write, Migration, Option value, email,
+queue, dependency, release, or deployment. Schema remains `12`, TagCore
+remains `0.4.0`, and ForgeTag Theme remains `0.1.0`. Transfer, Retire, Test
+Email, privacy export/deletion, and moderation remain separate work.

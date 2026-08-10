@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-316 Stage 7A participant Conversation safety controls implemented locally; Schema target remains `12`
+* Current workstream: RT-317 Stage 0 Owner Dashboard contract freeze; Schema target remains `12`
 
 
 
@@ -1088,3 +1088,26 @@ implementation keeps Schema `12`, revokes all Conversation access, fails
 queued Messages, records metadata-free Events, and renders only generic
 terminal feedback. Administrative moderation outcomes, evidence holds,
 reopening, ownership disputes, release, and deployment remain later work.
+
+## RT-317 Stage 0 Owner Dashboard contract freeze
+
+RT-317 Stage 0 adds ADR 0022 and freezes the Milestone 4 Account boundary:
+
+* TagCore owns passwordless Account entry, My Tags, Tag Detail, Conversation
+  summaries, and the explicit Secure Reply continuation action;
+* the current WordPress user is the only Owner identity input and every read or
+  write rechecks ownership server-side;
+* `item_name` remains Owner-only while `public_label`, product type, and
+  approved Lost Mode content remain the bounded Finder-visible fields;
+* private/public metadata, Lost Mode, Lost Message, and Smart Setup
+  acknowledgement use separate atomic, nonce-protected actions with
+  metadata-minimal Events;
+* Account login cannot authorize Conversation messages directly; an explicit
+  POST must issue the existing role-bound 30-minute Owner session;
+* `returntag_owner_account_enabled` is the independent default-off containment
+  control and does not replace activation, Finder, or email controls.
+
+Stage 0 adds no runtime route, form, query, write, Migration, persisted Option,
+email, queue, dependency, release, or deployment. TagCore remains `0.4.0`,
+ForgeTag Theme remains `0.1.0`, and Schema remains `12`. Transfer, Retire,
+Test Email, privacy export/deletion, and moderation remain separate tickets.

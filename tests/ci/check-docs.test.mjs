@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
 	findMissingFinderEvidenceContract,
+	findMissingOwnerDashboardContract,
 	findUnintendedStructuralEscapes,
 } from '../../scripts/check-docs.mjs';
 
@@ -106,6 +107,66 @@ describe( 'findMissingFinderEvidenceContract', () => {
 
 		assert.deepEqual(
 			findMissingFinderEvidenceContract( contentsByPath ),
+			[]
+		);
+	} );
+} );
+
+describe( 'findMissingOwnerDashboardContract', () => {
+	it( 'reports missing Owner Dashboard contract text', () => {
+		const failures = findMissingOwnerDashboardContract( {
+			'docs/PRD.md': 'Owner account placeholder.',
+		} );
+
+		assert.ok(
+			failures.some( ( failure ) =>
+				failure.includes( 'missing RT-317 contract' )
+			)
+		);
+	} );
+
+	it( 'accepts the frozen Owner Dashboard contract documents', () => {
+		const contentsByPath = {
+			'docs/PRD.md': [
+				'RT-317 Stage 0 Owner Dashboard contract',
+				'returntag_owner_account_enabled',
+			].join( '\n' ),
+			'docs/adr/0022-owner-dashboard-and-tag-management-contract.md': [
+				'Owner Dashboard and tag-management contract',
+				'**Schema before/after:** `12 -> 12`',
+			].join( '\n' ),
+			'docs/ARCHITECTURE.md': [
+				'RT-317 Owner Dashboard contract',
+				'returntag_owner_account_enabled',
+			].join( '\n' ),
+			'docs/DATABASE.md': [
+				'RT-317 Owner Dashboard data contract',
+				'RT-317 Stage 0 keeps Schema `12`',
+			].join( '\n' ),
+			'docs/SECURITY.md': [
+				'RT-317 Owner Dashboard security contract',
+				'WordPress login cannot',
+			].join( '\n' ),
+			'docs/RELEASE.md': [
+				'RT-317 Stage 0 release and rollback',
+				'RT-317 Stage 0 is documentation-only',
+			].join( '\n' ),
+			'README.md': [
+				'RT-317 Owner Dashboard Stage 0',
+				'returntag_owner_account_enabled',
+			].join( '\n' ),
+			'docs/PROJECT_STATUS.md': [
+				'RT-317 Stage 0 Owner Dashboard contract freeze',
+				'ForgeTag Theme remains `0.1.0`, and Schema remains `12`',
+			].join( '\n' ),
+			'plugin/tagcore/src/Account/README.md': [
+				'ADR 0022 freezes',
+				'Account login is not Secure',
+			].join( '\n' ),
+		};
+
+		assert.deepEqual(
+			findMissingOwnerDashboardContract( contentsByPath ),
 			[]
 		);
 	} );

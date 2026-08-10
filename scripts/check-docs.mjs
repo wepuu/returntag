@@ -47,6 +47,44 @@ const finderEvidenceContract = {
 		'Schema is `10`',
 	],
 };
+const ownerDashboardContract = {
+	'docs/PRD.md': [
+		'RT-317 Stage 0 Owner Dashboard contract',
+		'returntag_owner_account_enabled',
+	],
+	'docs/adr/0022-owner-dashboard-and-tag-management-contract.md': [
+		'Owner Dashboard and tag-management contract',
+		'**Schema before/after:** `12 -> 12`',
+	],
+	'docs/ARCHITECTURE.md': [
+		'RT-317 Owner Dashboard contract',
+		'returntag_owner_account_enabled',
+	],
+	'docs/DATABASE.md': [
+		'RT-317 Owner Dashboard data contract',
+		'RT-317 Stage 0 keeps Schema `12`',
+	],
+	'docs/SECURITY.md': [
+		'RT-317 Owner Dashboard security contract',
+		'WordPress login cannot',
+	],
+	'docs/RELEASE.md': [
+		'RT-317 Stage 0 release and rollback',
+		'RT-317 Stage 0 is documentation-only',
+	],
+	'README.md': [
+		'RT-317 Owner Dashboard Stage 0',
+		'returntag_owner_account_enabled',
+	],
+	'docs/PROJECT_STATUS.md': [
+		'RT-317 Stage 0 Owner Dashboard contract freeze',
+		'ForgeTag Theme remains `0.1.0`, and Schema remains `12`',
+	],
+	'plugin/tagcore/src/Account/README.md': [
+		'ADR 0022 freezes',
+		'Account login is not Secure',
+	],
+};
 const supersededFinderStatements = [
 	'Finder email must be verified before the owner is notified.',
 	'Finder email must be verified before owner notification.',
@@ -183,6 +221,26 @@ export const findMissingFinderEvidenceContract = ( contentsByPath ) => {
 	return failures;
 };
 
+export const findMissingOwnerDashboardContract = ( contentsByPath ) => {
+	const failures = [];
+
+	for ( const [ relativePath, requiredText ] of Object.entries(
+		ownerDashboardContract
+	) ) {
+		const contents = contentsByPath[ relativePath ] ?? '';
+
+		for ( const text of requiredText ) {
+			if ( ! contents.includes( text ) ) {
+				failures.push(
+					`${ relativePath }: missing RT-317 contract: ${ text }`
+				);
+			}
+		}
+	}
+
+	return failures;
+};
+
 const checkFinderEvidenceContract = async () => {
 	const contentsByPath = {};
 
@@ -194,6 +252,19 @@ const checkFinderEvidenceContract = async () => {
 	}
 
 	return findMissingFinderEvidenceContract( contentsByPath );
+};
+
+const checkOwnerDashboardContract = async () => {
+	const contentsByPath = {};
+
+	for ( const relativePath of Object.keys( ownerDashboardContract ) ) {
+		contentsByPath[ relativePath ] = await readFile(
+			join( repositoryRoot, relativePath ),
+			'utf8'
+		);
+	}
+
+	return findMissingOwnerDashboardContract( contentsByPath );
 };
 
 const checkRelativeLinks = async ( files ) => {
@@ -419,6 +490,7 @@ export const runDocumentationChecks = async () => {
 		...links.failures,
 		...( await checkStatusMarkdownStructure() ),
 		...( await checkFinderEvidenceContract() ),
+		...( await checkOwnerDashboardContract() ),
 		...( await checkAssetManifest() ),
 		...( await checkExclusions() ),
 		...( await checkSecrets( textFiles ) ),

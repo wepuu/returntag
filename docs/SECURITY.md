@@ -921,3 +921,33 @@ before delivery. An email provider call that already passed that final check
 and is in progress cannot be recalled. Its result cannot restore access or the
 Conversation. Stage 7A provides no moderation
 outcome, evidence hold, unblock, reopen, appeal, or ownership-dispute path.
+
+## 31. RT-317 Owner Dashboard security contract
+
+All Account reads and writes derive the authenticated WordPress user on the
+server and recheck current ownership. Browser-supplied Owner IDs are rejected;
+Tag and Conversation identifiers are selectors only. Account sign-in uses an
+independent passwordless OTP purpose and privacy-safe rate-limit domain,
+returns generic outcomes, reuses existing users, and never creates ownership
+or overwrites passwords.
+
+Account mutations require an active Tag, same-site request, WordPress nonce,
+closed action, complete value validation, atomic conditional write, and
+metadata-minimal Event. `item_name` remains Owner-only. Finder-visible values
+are plain text and bounded; Lost Message rejects HTML, passwords, verification
+codes, financial-account identifiers, identity-document numbers, and complete
+home addresses. Suspended and retired Tags remain read-only, and transfer
+removes prior-Owner access immediately when a later ticket implements it.
+
+Conversation summaries exclude both email addresses, message bodies, Tokens,
+media references, evidence, and evidence filenames. A WordPress login cannot
+read or submit relay messages. Only an explicit Account POST that revalidates
+the current active Owner and complete Conversation state may issue the
+existing role-bound 30-minute Owner session; GET cannot mint access.
+
+`returntag_owner_account_enabled` is a default-disabled containment control,
+not authorization. Missing or malformed values fail closed for Account routes
+without changing public scan, activation, Finder reporting, emailed Secure
+Reply links, ownership, or Conversation state. Account responses are
+no-store, no-referrer, and no-index and load no advertising, session replay,
+remote customer asset, or unnecessary third-party tracker.
