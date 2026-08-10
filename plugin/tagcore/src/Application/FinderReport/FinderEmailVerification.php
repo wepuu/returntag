@@ -34,15 +34,15 @@ final readonly class FinderEmailVerification {
 	/**
 	 * Create the verification workflow.
 	 *
-	 * @param FeatureFlagReader            $flags Operational controls.
-	 * @param FinderReportRepository       $reports Finder Report persistence.
-	 * @param ConversationRepository       $conversations Conversation persistence.
-	 * @param EventRepository              $events Privacy-safe audit persistence.
-	 * @param FinderEmailVerificationStore $store OTP persistence.
-	 * @param FinderEmailProtector         $protector Sensitive-value protection.
-	 * @param FinderEmailRateLimiter       $limiter Public abuse limiter.
-	 * @param FinderEmailOtpScheduler      $scheduler Background scheduler.
-	 * @param Clock                        $clock UTC clock.
+	 * @param FeatureFlagReader             $flags Operational controls.
+	 * @param FinderReportRepository        $reports Finder Report persistence.
+	 * @param ConversationRepository        $conversations Conversation persistence.
+	 * @param EventRepository               $events Privacy-safe audit persistence.
+	 * @param FinderEmailVerificationStore  $store OTP persistence.
+	 * @param FinderEmailProtector          $protector Sensitive-value protection.
+	 * @param FinderEmailRateLimiter        $limiter Public abuse limiter.
+	 * @param FinderEmailOtpScheduler       $scheduler Background scheduler.
+	 * @param Clock                         $clock UTC clock.
 	 * @param EnsureConversationAccess|null $ensure_conversation_access Secure conversation access provisioner.
 	 */
 	public function __construct(
