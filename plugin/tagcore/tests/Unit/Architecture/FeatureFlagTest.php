@@ -32,6 +32,7 @@ final class FeatureFlagTest extends TestCase {
 				'returntag_finder_evidence_enabled',
 				'returntag_email_dispatch_enabled',
 				'returntag_woocommerce_account_enabled',
+				'returntag_owner_account_enabled',
 			),
 			$option_names
 		);

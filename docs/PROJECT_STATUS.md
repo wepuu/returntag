@@ -20,7 +20,7 @@
 
 * Current completed milestone: Milestone 3 - Scan, OTP, and activation
 
-* Current workstream: RT-317 Stage 0 Owner Dashboard contract freeze; Schema target remains `12`
+* Current workstream: RT-317 Stage 3 privacy-minimized Conversation summaries and explicit Secure Reply continuation implemented locally; Schema target remains `12`
 
 
 
@@ -1111,3 +1111,67 @@ Stage 0 adds no runtime route, form, query, write, Migration, persisted Option,
 email, queue, dependency, release, or deployment. TagCore remains `0.4.0`,
 ForgeTag Theme remains `0.1.0`, and Schema remains `12`. Transfer, Retire,
 Test Email, privacy export/deletion, and moderation remain separate tickets.
+
+## RT-317 Stage 1 Owner Account runtime
+
+Stage 1 implements the ADR 0022 read-only Account slice:
+
+* `/account/sign-in/` provides Account-specific passwordless OTP request and
+  verification with non-enumerating feedback;
+* `/account/` lists only Tags selected by the current WordPress User ID;
+* `/account/tags/{tag_id}/` resolves detail with a combined Owner-and-Tag
+  predicate and renders generic unavailable output for stale or foreign IDs;
+* `account_otp` challenges use the existing Schema 12 storage with distinct
+  encryption, lookup, rate-limit, queue, and cleanup domains;
+* `returntag_owner_account_enabled` remains default-off and fail-closed;
+* Account pages are server rendered, translatable, keyboard accessible,
+  mobile first, no-store, no-referrer, no-index, and free of remote assets.
+
+Stage 1 adds no Migration, table, column, dependency, lock-file, Tag mutation,
+Conversation entry, release, or deployment.
+
+## RT-317 Stage 2 current-Owner Tag mutations
+
+Stage 2 implements the ADR 0022 edit slice on active Tag Detail pages:
+
+* separate same-site, Tag-bound nonce POST actions update `item_name` and
+  `public_label`, Lost Mode and Lost Message, or Smart Setup acknowledgement;
+* session-derived Owner ID plus active Tag status are retained in locked,
+  conditional writes, so a browser Tag ID remains a selector only;
+* Lost Messages are bounded plain text and reject credential, financial,
+  identity-document, and complete-home-address classes;
+* Smart Setup acknowledgement is write-once and explicitly does not prove
+  Apple or Google pairing, location, device, or battery state;
+* successful changes append fixed, metadata-free Events in the same database
+  transaction, while unchanged retries remain idempotent;
+* suspended, retired, foreign, and stale Tags remain generic and read-only.
+
+Stage 2 uses only existing Schema 12 columns and remains fail-closed behind
+`returntag_owner_account_enabled`. It adds no Migration, dependency, lock-file,
+Conversation entry, email, queue, Transfer, Retire, release, or deployment.
+
+## RT-317 Stage 3 Conversation browser and Secure Reply continuation
+
+Stage 3 implements the remaining ADR 0022 Conversation entry boundary:
+
+* `/account/conversations/` lists at most twenty current-Owner summaries with
+  only canonical status, created time, last-activity time, and a server-derived
+  continuation eligibility flag;
+* the projection selects no Owner or Finder email, Message body, Access Token,
+  evidence or media reference, or filename;
+* `Continue securely` is an explicit same-site, nonce-protected POST whose
+  Conversation ID remains a selector rather than authorization evidence;
+* the locked write rechecks current active ownership and the existing complete
+  Secure Reply eligibility graph, revokes prior Owner sessions, and stores only
+  a digest for a replacement 30-minute role-bound session;
+* the raw bearer value exists only long enough to set the existing Secure,
+  HttpOnly, SameSite Strict cookie scoped to `/secure-reply/` before a 303
+  redirect without a bearer query parameter;
+* GET cannot mint access, and an Account login alone cannot read or send a
+  Conversation message.
+
+Stage 3 remains contained by `returntag_owner_account_enabled` and uses the
+existing Schema 12 relay tables and external relay keys. It adds no Migration,
+dependency, lock-file, email, queue, Transfer, Retire, moderation, release, or
+deployment. Disabling Account entry does not revoke an already-issued Secure
+Reply session.

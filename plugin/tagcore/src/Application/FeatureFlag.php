@@ -18,4 +18,5 @@ enum FeatureFlag: string {
 	case FINDER_EVIDENCE     = 'returntag_finder_evidence_enabled';
 	case EMAIL_DISPATCH      = 'returntag_email_dispatch_enabled';
 	case WOOCOMMERCE_ACCOUNT = 'returntag_woocommerce_account_enabled';
+	case OWNER_ACCOUNT       = 'returntag_owner_account_enabled';
 }
