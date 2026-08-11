@@ -1521,7 +1521,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 12, $runner->migrate()->ending_version );
+		self::assertSame( 13, $runner->migrate()->ending_version );
 	}
 
 	/**

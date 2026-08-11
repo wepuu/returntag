@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 3 complete at plugin version 0.4.0; RT-315 persistence baseline advances the current target to Schema 12 while preserving the RT-210 million-row capacity evidence
+**Status:** Milestone 4 implementation complete locally at plugin version 0.5.0 and Schema 13; release validation pending
 
-**Schema created through RT-315 Stage 6:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`; current target version `12`
+**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `13`
 
 ## 1. Purpose
 
@@ -1116,3 +1116,13 @@ non-autoloaded, default-disabled WordPress Option, not a Schema field or
 authorization record. Stage 0 does not create or write it. Disabling future
 Account runtime leaves all Tags, ownership, Lost Mode values, acknowledgements,
 Conversations, Messages, Tokens, and Events intact.
+
+## 25. Schema 13 Tag transfer persistence
+
+Migration `0013` creates `returntag_tag_transfers` with an internal transfer
+ID, canonical Tag ID, previous Owner ID, encrypted target email, keyed email
+lookup, nullable hash-only invitation Token, closed transfer and invitation
+states, bounded dispatch claim metadata, expiry, and UTC lifecycle timestamps.
+No plaintext email or Token is persisted. The unique Token hash prevents
+replay; Tag/status and status/expiry indexes support bounded operations.
+Previous `0.4.0` code safely ignores the additive table. Rollback preserves it.

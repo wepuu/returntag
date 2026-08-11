@@ -19,4 +19,5 @@ enum FeatureFlag: string {
 	case EMAIL_DISPATCH      = 'returntag_email_dispatch_enabled';
 	case WOOCOMMERCE_ACCOUNT = 'returntag_woocommerce_account_enabled';
 	case OWNER_ACCOUNT       = 'returntag_owner_account_enabled';
+	case OWNER_LIFECYCLE     = 'returntag_owner_lifecycle_enabled';
 }

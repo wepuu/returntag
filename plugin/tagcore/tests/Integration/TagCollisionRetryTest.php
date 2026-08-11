@@ -81,7 +81,7 @@ final class TagCollisionRetryTest extends WP_UnitTestCase {
 		self::assertSame( 1, $result->collision_count );
 		self::assertSame( 2, $generator->calls );
 		self::assertEquals( $existing, $repositories['tags']->find_by_tag_id( 'N7R2W8' ) );
-		self::assertSame( 12, ( new WordPressSchemaVersionStore() )->current_version() );
+		self::assertSame( 13, ( new WordPressSchemaVersionStore() )->current_version() );
 	}
 
 	/**
@@ -276,7 +276,7 @@ final class TagCollisionRetryTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 12, $runner->migrate()->ending_version );
+		self::assertSame( 13, $runner->migrate()->ending_version );
 	}
 
 	/**

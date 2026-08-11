@@ -16,6 +16,13 @@ use ReturnTag\TagCore\Application\Account\OwnerTagMutationEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Account\ReadOwnerConversations;
 use ReturnTag\TagCore\Application\Account\ReadOwnerTag;
 use ReturnTag\TagCore\Application\Account\ReadOwnerTags;
+use ReturnTag\TagCore\Application\Account\DispatchOwnerTestEmail;
+use ReturnTag\TagCore\Application\Account\OwnerTestEmailEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Account\RequestOwnerTestEmail;
+use ReturnTag\TagCore\Application\Account\ManageOwnerLifecycle;
+use ReturnTag\TagCore\Application\Account\DispatchOwnerTransferInvitation;
+use ReturnTag\TagCore\Application\Account\OwnerLifecycleEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Account\AcceptOwnerTransfer;
 use ReturnTag\TagCore\Application\Auth\CompleteAccountPasswordlessAuthentication;
 use ReturnTag\TagCore\Application\Auth\DispatchAccountOtp;
 use ReturnTag\TagCore\Application\Auth\PasswordlessAccountEventIdentityPolicy;
@@ -24,8 +31,11 @@ use ReturnTag\TagCore\Application\Auth\WordPressAccountEmailPolicy;
 use ReturnTag\TagCore\Application\Conversation\ConversationRelayEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedSession;
+use ReturnTag\TagCore\Infrastructure\Auth\WordPressAuthenticatedUserEmailReader;
 use ReturnTag\TagCore\Infrastructure\Auth\WordPressPasswordlessAccountProvisioner;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressAccountOtpEmailSender;
+use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTestEmailSender;
+use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTransferEmailSender;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAccountOtpStore;
@@ -36,12 +46,19 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerConversationReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerTagReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerTagMutationStore;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerLifecycleStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
+use ReturnTag\TagCore\Infrastructure\Persistence\WordPressOptionOwnerTestEmailDispatchClaimStore;
 use ReturnTag\TagCore\Infrastructure\Queue\AccountOtpActionHandler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerAccountOtpScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerOwnerTestEmailScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\OwnerTestEmailActionHandler;
+use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerOwnerTransferScheduler;
+use ReturnTag\TagCore\Infrastructure\Queue\OwnerTransferActionHandler;
 use ReturnTag\TagCore\Infrastructure\Random\PhpActivationOtpCodeGenerator;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionAccountOtpRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionOwnerTagMutationRateLimiter;
+use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionOwnerTestEmailRateLimiter;
 use ReturnTag\TagCore\Infrastructure\Security\ActivationOtpSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\ConversationRelaySecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumAccountOtpProtector;
@@ -71,33 +88,40 @@ final class AccountBootstrap {
 			return;
 		}
 
-		$plugin_dir    = dirname( $plugin_file );
-		$gateway       = new WpdbGateway( $wpdb );
-		$tables        = new TableNames( $wpdb->prefix );
-		$dates         = new DatabaseDateTimeCodec();
-		$flags         = new WordPressOptionFeatureFlagReader();
-		$session       = new WordPressAuthenticatedSession();
-		$owner_tags    = new WpdbOwnerTagReader( $gateway, $tables, $dates );
-		$conversations = new WpdbOwnerConversationReader( $gateway, $tables, $dates );
-		$urls          = new AccountUrlProvider();
-		$request_guard = new AccountFormRequestGuard();
-		$request       = null;
-		$authenticate  = null;
-		$challenges    = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
-		$store         = new WpdbAccountOtpStore(
+		$plugin_dir      = dirname( $plugin_file );
+		$gateway         = new WpdbGateway( $wpdb );
+		$tables          = new TableNames( $wpdb->prefix );
+		$dates           = new DatabaseDateTimeCodec();
+		$flags           = new WordPressOptionFeatureFlagReader();
+		$session         = new WordPressAuthenticatedSession();
+		$owner_tags      = new WpdbOwnerTagReader( $gateway, $tables, $dates );
+		$conversations   = new WpdbOwnerConversationReader( $gateway, $tables, $dates );
+		$urls            = new AccountUrlProvider();
+		$request_guard   = new AccountFormRequestGuard();
+		$request         = null;
+		$authenticate    = null;
+		$challenges      = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
+		$store           = new WpdbAccountOtpStore(
 			$gateway,
 			$tables,
 			$dates,
 			$challenges,
 			new WpdbTransactionManager( $wpdb )
 		);
-		$limiter       = new WordPressOptionAccountOtpRateLimiter( $wpdb, get_current_blog_id() );
-		$clock         = new SystemClock();
-		$transactions  = new WpdbTransactionManager( $wpdb );
-		$tag_limiter   = new WordPressOptionOwnerTagMutationRateLimiter( $wpdb, get_current_blog_id() );
-		$continuation  = null;
+		$limiter         = new WordPressOptionAccountOtpRateLimiter( $wpdb, get_current_blog_id() );
+		$clock           = new SystemClock();
+		$transactions    = new WpdbTransactionManager( $wpdb );
+		$tag_limiter     = new WordPressOptionOwnerTagMutationRateLimiter( $wpdb, get_current_blog_id() );
+		$continuation    = null;
+		$lifecycle       = null;
+		$accept_transfer = null;
+		$user_emails     = new WordPressAuthenticatedUserEmailReader();
+		$test_events     = new WpdbEventRepository( $gateway, $tables, $dates, new DenyAllEventMetadataPolicy(), new OwnerTestEmailEventIdentityPolicy() );
+		$test_claims     = new WordPressOptionOwnerTestEmailDispatchClaimStore( $wpdb, get_current_blog_id() );
+		$test_email      = new RequestOwnerTestEmail( $session, $flags, new WordPressOptionOwnerTestEmailRateLimiter(), $test_events, new ActionSchedulerOwnerTestEmailScheduler(), $clock );
+		( new OwnerTestEmailActionHandler( new DispatchOwnerTestEmail( $flags, new WordPressAuthenticatedUserEmailReader(), $test_claims, new WordPressOwnerTestEmailSender(), $test_events, $clock ) ) )->register();
 
-		self::register_cleanup( $store, $limiter, $tag_limiter, $clock );
+		self::register_cleanup( $store, $limiter, $tag_limiter, $test_claims, $clock );
 
 		try {
 			$protector = new SodiumAccountOtpProtector( ActivationOtpSecrets::load() );
@@ -143,6 +167,13 @@ final class AccountBootstrap {
 			);
 
 			( new AccountOtpActionHandler( $dispatch ) )->register();
+
+			$lifecycle_events   = new WpdbEventRepository( $gateway, $tables, $dates, new DenyAllEventMetadataPolicy(), new OwnerLifecycleEventIdentityPolicy() );
+			$lifecycle_store    = new WpdbOwnerLifecycleStore( $gateway, $tables, $dates, $transactions, $lifecycle_events );
+			$transfer_scheduler = new ActionSchedulerOwnerTransferScheduler();
+			$lifecycle          = new ManageOwnerLifecycle( $session, $user_emails, $flags, $store, $protector, $limiter, $lifecycle_store, $transfer_scheduler, $clock );
+			$accept_transfer    = new AcceptOwnerTransfer( $session, $user_emails, $protector, $flags, $lifecycle_store, $clock );
+			( new OwnerTransferActionHandler( new DispatchOwnerTransferInvitation( $flags, $lifecycle_store, $protector, new WordPressOwnerTransferEmailSender(), $clock ) ) )->register();
 		}
 
 		try {
@@ -165,7 +196,8 @@ final class AccountBootstrap {
 			$continuation = null;
 		}
 
-		$route = new AccountRouteController(
+		$transfer_cookie = new AccountTransferTokenCookie();
+		$route           = new AccountRouteController(
 			$plugin_dir,
 			$flags,
 			$session,
@@ -191,7 +223,11 @@ final class AccountBootstrap {
 				),
 				$request_guard
 			),
+			new AccountLifecycleFormHandler( $request, $lifecycle, $session, $user_emails, $request_guard ),
 			new AccountConversationFormHandler( $continuation, $request_guard ),
+			new AccountTestEmailFormHandler( $test_email, $request_guard ),
+			new AccountTransferFormHandler( $accept_transfer, $transfer_cookie, $request_guard ),
+			$transfer_cookie,
 			new AccountSecureReplySessionCookie(),
 			new AccountTemplateRenderer( $plugin_dir, $urls ),
 			$urls,
@@ -205,22 +241,25 @@ final class AccountBootstrap {
 	/**
 	 * Register bounded Account challenge and limiter cleanup.
 	 *
-	 * @param WpdbAccountOtpStore                        $store Account challenge Store.
-	 * @param WordPressOptionAccountOtpRateLimiter       $limiter Account rate limiter.
-	 * @param WordPressOptionOwnerTagMutationRateLimiter $tag_limiter Owner Tag mutation limiter.
-	 * @param SystemClock                                $clock UTC clock.
+	 * @param WpdbAccountOtpStore                             $store Account challenge Store.
+	 * @param WordPressOptionAccountOtpRateLimiter            $limiter Account rate limiter.
+	 * @param WordPressOptionOwnerTagMutationRateLimiter      $tag_limiter Owner Tag mutation limiter.
+	 * @param WordPressOptionOwnerTestEmailDispatchClaimStore $test_claims Test Email dispatch claims.
+	 * @param SystemClock                                     $clock UTC clock.
 	 */
 	private static function register_cleanup(
 		WpdbAccountOtpStore $store,
 		WordPressOptionAccountOtpRateLimiter $limiter,
 		WordPressOptionOwnerTagMutationRateLimiter $tag_limiter,
+		WordPressOptionOwnerTestEmailDispatchClaimStore $test_claims,
 		SystemClock $clock
 	): void {
 		add_action(
 			self::CLEANUP_HOOK,
-			static function () use ( $store, $limiter, $tag_limiter, $clock ): void {
+			static function () use ( $store, $limiter, $tag_limiter, $test_claims, $clock ): void {
 				$limiter->cleanup_expired();
 				$tag_limiter->cleanup_expired();
+				$test_claims->cleanup_expired();
 				$before = $clock->now()->sub( new DateInterval( 'P7D' ) );
 
 				for ( $chunk = 0; $chunk < 10; ++$chunk ) {

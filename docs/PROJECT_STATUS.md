@@ -16,11 +16,11 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current baseline version: `0.4.0`
+* Current baseline version: `0.5.0` release candidate
 
-* Current completed milestone: Milestone 3 - Scan, OTP, and activation
+* Current completed milestone: Milestone 4 implementation complete locally; release validation pending
 
-* Current workstream: RT-317 Stage 3 privacy-minimized Conversation summaries and explicit Secure Reply continuation implemented locally; Schema target remains `12`
+* Current workstream: RT-318 through RT-320 Owner Test Email, Transfer, Retire, Schema 13, and v0.5.0 validation
 
 
 
@@ -132,7 +132,7 @@ The project uses Docker and `@wordpress/env`.
 
 
 
-Known environment for Milestone 3 acceptance:
+Known environment for Milestone 4 local acceptance:
 
 
 
@@ -148,7 +148,7 @@ Known environment for Milestone 3 acceptance:
 
 * WooCommerce: `10.9.4`
 
-* TagCore: `0.4.0`
+* TagCore: `0.5.0`
 
 * TagCore status: active
 

@@ -109,4 +109,11 @@ final class TableNamesTest extends TestCase {
 
 		self::assertSame( 'rt_test_returntag_finder_report_media', $table_names->finder_report_media() );
 	}
+
+	/** The same non-default prefix must determine the Tag transfers table. */
+	public function test_tag_transfers_table_uses_supplied_wordpress_prefix(): void {
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_tag_transfers', $table_names->tag_transfers() );
+	}
 }

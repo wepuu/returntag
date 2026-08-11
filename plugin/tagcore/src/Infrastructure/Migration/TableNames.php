@@ -100,4 +100,9 @@ final class TableNames {
 
 		return $this->wordpress_prefix . 'returntag_finder_report_media';
 	}
+
+	/** Return the pending Tag ownership transfers table name. */
+	public function tag_transfers(): string {
+		return $this->wordpress_prefix . 'returntag_tag_transfers';
+	}
 }

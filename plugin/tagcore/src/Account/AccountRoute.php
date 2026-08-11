@@ -14,4 +14,5 @@ enum AccountRoute: string {
 	case OVERVIEW      = 'overview';
 	case TAG           = 'tag';
 	case CONVERSATIONS = 'conversations';
+	case TRANSFER      = 'transfer';
 }

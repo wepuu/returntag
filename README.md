@@ -756,3 +756,18 @@ Stage 3 keeps Schema 12, plugin and Theme versions, dependencies, and lock
 files unchanged. The existing default-off Owner Account flag contains new
 Account entry without invalidating an already-issued Secure Reply session.
 Transfer, Retire, moderation, release, and deployment remain outside scope.
+
+## Milestone 4 completion: Owner lifecycle and email transport
+
+ADR 0023 adds the remaining Owner Account contracts. Test Email persists a
+privacy-minimal request before an Action Scheduler job resolves the current
+WordPress user email and calls `wp_mail()`. WP Mail SMTP is the supported
+operator-configured transport; TagCore neither bundles nor calls its internal
+APIs, and automated tests do not require live SMTP configuration.
+
+Transfer requires current-Owner OTP reauthentication and recipient acceptance
+through a hash-only invitation Token. Acceptance atomically changes ownership,
+closes historic conversations, and revokes their Tokens. Retire requires OTP
+plus exact Tag ID confirmation and permanently preserves the retired Tag ID and
+history while revoking access. Schema advances `12 -> 13`, TagCore advances to
+`0.5.0`, and `returntag_owner_lifecycle_enabled` remains default-disabled.
