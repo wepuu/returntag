@@ -27,9 +27,14 @@ final readonly class AccountTestEmailFormHandler {
 	 */
 	public function __construct( private RequestOwnerTestEmail $request, private AccountFormRequestGuard $guard ) {}
 
+	/** Determine whether the current POST selects the closed Test Email action. */
+	public function supports(): bool {
+		return self::ACTION === $this->guard->post_string( self::ACTION_FIELD, 64 );
+	}
+
 	/** Submit one closed Test Email action. */
 	public function submit(): OwnerTestEmailResult {
-		if ( self::ACTION !== $this->guard->post_string( self::ACTION_FIELD, 64 ) ) {
+		if ( ! $this->supports() ) {
 			return OwnerTestEmailResult::UNAVAILABLE;
 		}
 		if ( ! $this->guard->is_same_site() || ! $this->guard->valid_nonce( self::NONCE_FIELD, self::NONCE_ACTION ) ) {

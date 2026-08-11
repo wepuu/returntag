@@ -85,16 +85,26 @@ test.describe( 'RT-317 Owner Account safety boundary', () => {
 		expect( page.url() ).not.toContain( 'session' );
 	} );
 
-	test( 'rejects mutations outside the sign-in route', async ( {
+	test( 'rejects unsupported Overview mutations before feature evaluation', async ( {
 		request,
 	} ) => {
-		const response = await request.post( '/account/', {
-			maxRedirects: 0,
-		} );
+		for ( const data of [
+			undefined,
+			{ returntag_account_action: 'unknown' },
+		] ) {
+			const response = await request.post( '/account/', {
+				data,
+				maxRedirects: 0,
+			} );
 
-		expect( response.status() ).toBe( 405 );
-		expect( response.headers().location ).toBeUndefined();
-		expect( response.headers()[ 'cache-control' ] ).toContain( 'no-store' );
-		expect( response.headers()[ 'cache-control' ] ).toContain( 'private' );
+			expect( response.status() ).toBe( 405 );
+			expect( response.headers().location ).toBeUndefined();
+			expect( response.headers()[ 'cache-control' ] ).toContain(
+				'no-store'
+			);
+			expect( response.headers()[ 'cache-control' ] ).toContain(
+				'private'
+			);
+		}
 	} );
 } );

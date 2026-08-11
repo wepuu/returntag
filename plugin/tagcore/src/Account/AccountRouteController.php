@@ -159,6 +159,7 @@ final class AccountRouteController {
 		if (
 			! in_array( $method, array( 'GET', 'HEAD', 'POST' ), true )
 			|| ( 'POST' === $method && ! in_array( $route, array( AccountRoute::SIGN_IN, AccountRoute::OVERVIEW, AccountRoute::TAG, AccountRoute::CONVERSATIONS, AccountRoute::TRANSFER ), true ) )
+			|| ( 'POST' === $method && AccountRoute::OVERVIEW === $route && ! $this->test_email_form->supports() )
 		) {
 			status_header( 405 );
 			$this->finish_head_or_die( $method, __( 'This Account action is unavailable.', 'tagcore' ) );
