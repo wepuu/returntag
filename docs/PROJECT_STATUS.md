@@ -16,11 +16,11 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current baseline version: `0.5.0` release candidate
+* Current baseline version: `0.5.0`
 
-* Current completed milestone: Milestone 4 implementation complete locally; release validation pending
+* Current completed milestone: Milestone 4 engineering baseline complete at Schema 13
 
-* Current workstream: RT-318 through RT-320 Owner Test Email, Transfer, Retire, Schema 13, and v0.5.0 validation
+* Current workstream: Milestone 4 baseline closure; immutable artifact publication, WP Mail SMTP production configuration, and deployment remain separately authorized operations
 
 
 

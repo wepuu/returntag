@@ -1,6 +1,6 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 4 implementation complete locally at plugin version 0.5.0 and Schema 13; release validation pending
+**Status:** Milestone 4 engineering baseline complete at plugin version 0.5.0 and Schema 13; immutable release publication and production deployment require separate authorization
 
 **Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `13`
 

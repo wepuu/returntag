@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 4 implementation complete locally at version 0.5.0 and Schema version 13; release validation pending
+**Status:** Milestone 4 engineering baseline complete at version 0.5.0 and Schema version 13; immutable release publication and production deployment require separate authorization
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
