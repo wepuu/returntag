@@ -12,6 +12,16 @@ namespace ReturnTag\TagCore\Tests\Integration;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
+use ReturnTag\TagCore\Application\Account\MutateOwnerTag;
+use ReturnTag\TagCore\Application\Account\OwnerTagLostState;
+use ReturnTag\TagCore\Application\Account\OwnerTagMetadata;
+use ReturnTag\TagCore\Application\Account\OwnerTagMutationEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Account\OwnerTagMutationRateLimiter;
+use ReturnTag\TagCore\Application\Account\OwnerTagMutationResult;
+use ReturnTag\TagCore\Application\Auth\AuthenticatedSession;
+use ReturnTag\TagCore\Application\Clock;
+use ReturnTag\TagCore\Application\FeatureFlag;
+use ReturnTag\TagCore\Application\FeatureFlagReader;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Application\Persistence\EventIdentityPolicy;
@@ -41,6 +51,7 @@ use ReturnTag\TagCore\Domain\Conversation\ConversationStatus;
 use ReturnTag\TagCore\Domain\Conversation\DeliveryStatus;
 use ReturnTag\TagCore\Domain\Conversation\MessageSenderRole;
 use ReturnTag\TagCore\Domain\Tag\SmartNetwork;
+use ReturnTag\TagCore\Domain\Tag\TagId;
 use ReturnTag\TagCore\Domain\Tag\TagStatus;
 use ReturnTag\TagCore\Domain\Tag\TagType;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
@@ -50,6 +61,7 @@ use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAccessTokenRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAccountOtpStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAuthChallengeRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchExportRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
@@ -57,6 +69,8 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbConversationRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbMessageRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerTagReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerTagMutationStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use RuntimeException;
@@ -67,6 +81,84 @@ use wpdb;
  * Verifies typed persistence against the complete Schema version 10.
  */
 final class RepositoryPersistenceTest extends WP_UnitTestCase {
+	/** Stage 2 writes and metadata-free Events share one current-Owner transaction. */
+	public function test_owner_tag_mutations_are_atomic_owner_scoped_and_audited(): void {
+		global $wpdb;
+
+		$repositories = $this->repositories( $wpdb );
+		$batch        = $this->insert_batch( $repositories['batches'], 'RT317-MUTATION' );
+		$tag          = $this->insert_tag( $repositories['tags'], $batch, 'A7R2W9', 42 );
+		$gateway      = new WpdbGateway( $wpdb );
+		$tables       = new TableNames( $wpdb->prefix );
+		$dates        = new DatabaseDateTimeCodec();
+		$events       = new WpdbEventRepository(
+			$gateway,
+			$tables,
+			$dates,
+			new DenyAllEventMetadataPolicy(),
+			new OwnerTagMutationEventIdentityPolicy()
+		);
+		$service      = new MutateOwnerTag(
+			$this->account_session( 42 ),
+			$this->owner_account_flags(),
+			new WpdbOwnerTagMutationStore( $gateway, $tables, $dates ),
+			$this->owner_tag_limiter(),
+			$events,
+			new WpdbTransactionManager( $wpdb ),
+			$this->fixed_clock( '2026-08-10 12:00:00' )
+		);
+
+		self::assertSame(
+			OwnerTagMutationResult::UPDATED,
+			$service->update_metadata( TagId::from_canonical( 'A7R2W9' ), new OwnerTagMetadata( 'Work laptop', 'Silver laptop' ) )
+		);
+		self::assertSame(
+			OwnerTagMutationResult::UPDATED,
+			$service->update_lost_state( TagId::from_canonical( 'A7R2W9' ), new OwnerTagLostState( true, 'Please leave it with airport security.' ) )
+		);
+		$stored = $repositories['tags']->find_by_tag_id( $tag->data->tag_id );
+		self::assertSame( 'Work laptop', $stored?->data->item_name );
+		self::assertSame( 'Silver laptop', $stored?->data->public_label );
+		self::assertTrue( $stored?->data->lost_mode );
+		self::assertSame( 'Please leave it with airport security.', $stored?->data->lost_message );
+
+		$page = $events->list_by_target( 'tag', 'A7R2W9', null, new PageSize() );
+		self::assertCount( 2, $page->items );
+		foreach ( $page->items as $event ) {
+			self::assertNull( $event->data->metadata->json() );
+			self::assertSame( 42, $event->data->actor_id );
+		}
+
+		$unauthorized = new MutateOwnerTag(
+			$this->account_session( 43 ),
+			$this->owner_account_flags(),
+			new WpdbOwnerTagMutationStore( $gateway, $tables, $dates ),
+			$this->owner_tag_limiter(),
+			$events,
+			new WpdbTransactionManager( $wpdb ),
+			$this->fixed_clock( '2026-08-10 12:01:00' )
+		);
+		self::assertSame(
+			OwnerTagMutationResult::UNAVAILABLE,
+			$unauthorized->update_metadata( TagId::from_canonical( 'A7R2W9' ), new OwnerTagMetadata( 'Stolen edit', 'Stolen edit' ) )
+		);
+		self::assertSame( 'Work laptop', $repositories['tags']->find_by_tag_id( 'A7R2W9' )?->data->item_name );
+		self::assertCount( 2, $events->list_by_target( 'tag', 'A7R2W9', null, new PageSize() )->items );
+
+		$smart_batch = $this->insert_batch( $repositories['batches'], 'RT317-SMART', TagType::SMART_TAG );
+		$this->insert_tag( $repositories['tags'], $smart_batch, 'B7R2W9', 42 );
+		self::assertSame( OwnerTagMutationResult::UPDATED, $service->acknowledge_smart_setup( TagId::from_canonical( 'B7R2W9' ) ) );
+		self::assertSame( OwnerTagMutationResult::UNCHANGED, $service->acknowledge_smart_setup( TagId::from_canonical( 'B7R2W9' ) ) );
+		self::assertNotNull( $repositories['tags']->find_by_tag_id( 'B7R2W9' )?->data->owner_pairing_ack_at );
+		self::assertCount( 1, $events->list_by_target( 'tag', 'B7R2W9', null, new PageSize() )->items );
+
+		$this->insert_tag( $repositories['tags'], $batch, 'C7R2W9', 42, TagStatus::SUSPENDED );
+		self::assertSame(
+			OwnerTagMutationResult::UNAVAILABLE,
+			$service->update_lost_state( TagId::from_canonical( 'C7R2W9' ), new OwnerTagLostState( true, 'Please contact me through ForgeTag.' ) )
+		);
+		self::assertCount( 0, $events->list_by_target( 'tag', 'C7R2W9', null, new PageSize() )->items );
+	}
 	/**
 	 * Build a clean Schema version 10 before every test.
 	 */
@@ -102,6 +194,15 @@ final class RepositoryPersistenceTest extends WP_UnitTestCase {
 
 		self::assertSame( $batch->batch_id, $repositories['batches']->find_by_code( 'RT109-ROUNDTRIP' )?->batch_id );
 		self::assertSame( 'N7R2W9', $repositories['tags']->find_by_tag_id( 'N7R2W9' )?->data->tag_id );
+
+		$owner_tags = new WpdbOwnerTagReader(
+			new WpdbGateway( $wpdb ),
+			new TableNames( $wpdb->prefix ),
+			new DatabaseDateTimeCodec()
+		);
+		self::assertSame( 'N7R2W9', $owner_tags->list_for_owner( 42, null, new PageSize() )->items[0]->data->tag_id );
+		self::assertSame( 'N7R2W9', $owner_tags->find_for_owner( 42, TagId::from_canonical( 'N7R2W9' ) )?->data->tag_id );
+		self::assertNull( $owner_tags->find_for_owner( 43, TagId::from_canonical( 'N7R2W9' ) ) );
 
 		$export = $repositories['exports']->append(
 			new NewBatchExportRecord(
@@ -195,6 +296,57 @@ final class RepositoryPersistenceTest extends WP_UnitTestCase {
 			$event->event_id,
 			$repositories['events']->list_by_correlation( 'rt109-roundtrip', null, new PageSize( 10 ) )->items[0]->event_id
 		);
+	}
+
+	/** Account challenges remain purpose-isolated and verify atomically. */
+	public function test_account_otp_store_claims_and_consumes_latest_challenge(): void {
+		global $wpdb;
+
+		$gateway    = new WpdbGateway( $wpdb );
+		$tables     = new TableNames( $wpdb->prefix );
+		$dates      = new DatabaseDateTimeCodec();
+		$challenges = new WpdbAuthChallengeRepository( $gateway, $tables, $dates );
+		$store      = new WpdbAccountOtpStore(
+			$gateway,
+			$tables,
+			$dates,
+			$challenges,
+			new WpdbTransactionManager( $wpdb )
+		);
+		$lookup     = LookupDigest::from_digest( str_repeat( 'c', 64 ) );
+		$created    = $store->create_replacing(
+			new NewAuthChallengeRecord(
+				'account_otp',
+				'account',
+				$lookup->value,
+				EmailCiphertext::from_encrypted_bytes( 'account-email-envelope' ),
+				$lookup,
+				OtpHash::from_password_hash( '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.' ),
+				0,
+				0,
+				null,
+				$this->utc( '2026-07-24 00:10:00' ),
+				null,
+				null,
+				$this->utc( '2026-07-24 00:00:00' )
+			)
+		);
+
+		self::assertSame( 1, $store->count_recent_for_email( $lookup, $this->utc( '2026-07-23 23:59:00' ) ) );
+		self::assertNotNull(
+			$store->claim_for_dispatch(
+				$created->challenge_id,
+				OtpHash::from_password_hash( '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.' ),
+				$this->utc( '2026-07-24 00:11:00' ),
+				$this->utc( '2026-07-24 00:01:00' )
+			)
+		);
+		self::assertTrue( $store->has_verifiable_latest( $lookup, $this->utc( '2026-07-24 00:02:00' ), 5 ) );
+		self::assertSame(
+			\ReturnTag\TagCore\Application\Auth\ActivationOtpVerificationResult::VERIFIED,
+			$store->verify_latest( $lookup, $this->utc( '2026-07-24 00:02:00' ), 5, static fn( OtpHash $hash ): bool => '' !== $hash->value )
+		);
+		self::assertFalse( $store->has_verifiable_latest( $lookup, $this->utc( '2026-07-24 00:02:00' ), 5 ) );
 	}
 
 	/**
@@ -489,12 +641,13 @@ final class RepositoryPersistenceTest extends WP_UnitTestCase {
 	 *
 	 * @param WpdbBatchRepository $repository Batch Repository.
 	 * @param string              $batch_code Unique Batch code.
+	 * @param TagType             $tag_type Product family.
 	 */
-	private function insert_batch( WpdbBatchRepository $repository, string $batch_code ): BatchRecord {
+	private function insert_batch( WpdbBatchRepository $repository, string $batch_code, TagType $tag_type = TagType::CLASSIC_TAG ): BatchRecord {
 		return $repository->insert(
 			new NewBatchRecord(
 				$batch_code,
-				TagType::CLASSIC_TAG,
+				$tag_type,
 				'RT109-MODEL',
 				SmartNetwork::NONE,
 				'Synthetic Manufacturer',
@@ -587,6 +740,91 @@ final class RepositoryPersistenceTest extends WP_UnitTestCase {
 		);
 
 		self::assertSame( 12, $runner->migrate()->ending_version );
+	}
+
+	/**
+	 * Return one fixed authenticated Account session.
+	 *
+	 * @param int $owner_id Synthetic Owner identifier.
+	 */
+	private function account_session( int $owner_id ): AuthenticatedSession {
+		return new class( $owner_id ) implements AuthenticatedSession {
+			/**
+			 * Create the fixed session.
+			 *
+			 * @param int $owner_id Synthetic Owner identifier.
+			 */
+			public function __construct( private readonly int $owner_id ) {
+			}
+
+			/** Return the synthetic Owner. */
+			public function current_user_id(): ?int {
+				return $this->owner_id;
+			}
+
+			/**
+			 * Authentication is outside this fixture.
+			 *
+			 * @param int $user_id Ignored User identifier.
+			 */
+			public function authenticate( int $user_id ): void {
+				unset( $user_id );
+			}
+		};
+	}
+
+	/** Return one enabled Owner Account control. */
+	private function owner_account_flags(): FeatureFlagReader {
+		return new class() implements FeatureFlagReader {
+			/**
+			 * Enable only the Owner Account control.
+			 *
+			 * @param FeatureFlag $feature_flag Requested control.
+			 */
+			public function is_enabled( FeatureFlag $feature_flag ): bool {
+				return FeatureFlag::OWNER_ACCOUNT === $feature_flag;
+			}
+		};
+	}
+
+	/** Return one permissive test-only mutation limiter. */
+	private function owner_tag_limiter(): OwnerTagMutationRateLimiter {
+		return new class() implements OwnerTagMutationRateLimiter {
+			/**
+			 * Allow the synthetic mutation.
+			 *
+			 * @param int               $owner_id Synthetic Owner identifier.
+			 * @param TagId             $tag_id Synthetic Tag identifier.
+			 * @param DateTimeImmutable $now Fixed current time.
+			 */
+			public function reserve( int $owner_id, TagId $tag_id, DateTimeImmutable $now ): bool {
+				unset( $owner_id, $tag_id, $now );
+
+				return true;
+			}
+		};
+	}
+
+	/**
+	 * Return one fixed UTC Clock.
+	 *
+	 * @param string $value Database-shaped UTC time.
+	 */
+	private function fixed_clock( string $value ): Clock {
+		return new class( $this->utc( $value ) ) implements Clock {
+			/**
+			 * Create the fixed Clock.
+			 *
+			 * @param DateTimeImmutable $now Fixed UTC time.
+			 */
+			public function __construct( private readonly DateTimeImmutable $now ) {
+			}
+
+			/** Return the fixed UTC time. */
+			public function now(): DateTimeImmutable {
+				return $this->now;
+			}
+		};
 	}
 
 	/**

@@ -703,3 +703,81 @@ Rollback removes the participant controls but preserves `closed` and `blocked`
 Conversations, revoked Tokens, failed queued Messages, accepted Messages,
 Reports, evidence, ownership, and Events. Do not reopen, restore, or requeue
 terminal data. Provider calls already started cannot be recalled.
+
+## RT-317 Stage 0 release and rollback
+
+RT-317 Stage 0 is documentation-only. It keeps Schema `12`, TagCore `0.4.0`,
+ForgeTag Theme `0.1.0`, and the existing dependency and lock files. It adds no
+route, query, write, Option value, Hook, queue, email, artifact, deployment, or
+production configuration.
+
+Future Account runtime must ship with `returntag_owner_account_enabled`
+default disabled and prove passwordless non-enumeration, server-derived
+ownership, current-Owner query plans, field separation, mutation atomicity,
+metadata-minimal Events, secure Account-to-Conversation continuation, privacy
+headers, responsive accessibility, and generic transferred/unauthorized
+states before enablement.
+
+Stage 0 rollback is a documentation revert. Future runtime containment begins
+by disabling `returntag_owner_account_enabled` and removing Account adapters
+while preserving Tags, ownership, Lost Mode data, Smart Setup acknowledgements,
+Conversations, Tokens, Messages, and Events. Transfer, Retire, Test Email,
+privacy export/deletion, release, and deployment remain separately approved
+work.
+
+### RT-317 Stage 1 operational containment
+
+Stage 1 adds Account runtime without a Schema or dependency change. The
+`returntag_owner_account_enabled` Option remains absent/default-disabled after
+installation and upgrade; enabling it is a separate operational decision made
+only after the Account OTP secrets, Action Scheduler, transactional email, and
+Schema 12 health checks are available.
+
+Containment begins by setting `returntag_owner_account_enabled` to a canonical
+disabled value. This stops Account sign-in and Owner Tag reads without changing
+WordPress users, Tag ownership, activation, Finder recovery, emailed Secure
+Reply links, Conversations, Messages, Tokens, or Events. Code rollback removes
+the Account adapter and rewrite rules while preserving existing Schema 12
+challenge retention and all business data.
+
+### RT-317 Stage 2 operational containment
+
+Stage 2 keeps Schema `12`, TagCore `0.4.0`, ForgeTag Theme `0.1.0`, and the
+existing dependency and lock files. Release acceptance must verify Tag-bound
+nonces, same-site POST checks, session-derived Owner authorization, active-only
+conditional writes, bounded plain-text validation, transactionally paired
+metadata-free Events, Smart Setup idempotency, and read-only suspended and
+retired states.
+
+The mutation limiter stores hashed, non-autoloaded counters under the
+`returntag_owner_tag_rate_` Option prefix; cleanup is registered with the
+existing TagCore cleanup path. No submitted label or Lost Message is stored in
+those counters, Events, queues, or ordinary logs.
+
+Containment begins by disabling `returntag_owner_account_enabled`, which stops
+new Account mutations as well as Account reads and sign-in. Code rollback may
+remove the Stage 2 forms and mutation adapters, but it must preserve accepted
+Tag metadata, Lost Mode values, Smart Setup acknowledgements, ownership and
+Events. No database down Migration or data repair is required.
+
+### RT-317 Stage 3 operational containment
+
+Stage 3 keeps Schema `12`, TagCore `0.4.0`, ForgeTag Theme `0.1.0`, and the
+existing dependency and lock files. Acceptance must verify a bounded
+current-Owner summary projection, absence of cross-party emails and private
+relay payloads, same-site nonce POST continuation, locked current-ownership
+rechecks, complete Secure Reply eligibility, prior Owner-session revocation,
+and an exact 30-minute role-bound replacement session.
+
+Containment begins by disabling `returntag_owner_account_enabled`. This stops
+new Account Conversation reads and continuation POSTs, but intentionally does
+not revoke or disable an existing `/secure-reply/` session. The independent
+Finder contact and email dispatch controls continue to govern their existing
+workflows. If relay keys are unavailable, continuation fails closed while the
+privacy-minimized summaries may remain readable.
+
+Code rollback may remove the Account Conversation route, projection, form, and
+continuation adapter. It must preserve Conversations, Access Token rows,
+Messages, Finder Reports, evidence, ownership, and Events; no down Migration or
+data repair is required. Previously issued Secure Reply sessions retain their
+normal eligibility, expiry, and revocation behavior.

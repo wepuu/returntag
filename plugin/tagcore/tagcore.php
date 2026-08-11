@@ -60,6 +60,10 @@ if ( class_exists( ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::class ) ) {
 	ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }
 
+if ( class_exists( ReturnTag\TagCore\Account\AccountBootstrap::class ) ) {
+	ReturnTag\TagCore\Account\AccountBootstrap::register( RETURNTAG_TAGCORE_FILE );
+}
+
 if ( class_exists( ReturnTag\TagCore\Admin\AdminBootstrap::class ) ) {
 	ReturnTag\TagCore\Admin\AdminBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }

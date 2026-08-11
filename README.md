@@ -677,3 +677,82 @@ XChaCha20-Poly1305 keys loaded outside WordPress storage. The filesystem adapter
 rejects public roots, traversal, symlinks, key reuse, purpose confusion, and
 tampering, and returns no path or URL. Stage 2 adds no route, Hook, database
 write, queue, email, dependency, production composition, or Schema change.
+
+## RT-317 Owner Dashboard Stage 0
+
+RT-317 Stage 0 freezes the Milestone 4 Account contract through ADR 0022.
+TagCore owns passwordless Account entry, My Tags, Tag Detail, Conversation
+summaries, and the explicit Secure Reply continuation boundary. The current
+WordPress user is the only Owner identity input; route and form identifiers
+never authorize access.
+
+The contract separates private `item_name` from Finder-visible
+`public_label` and Lost Mode content, defines bounded atomic metadata updates,
+keeps Smart Setup acknowledgement distinct from real pairing, and requires
+the existing role-bound 30-minute session before any Conversation message is
+read or sent. Account runtime is independently contained by the default-off
+`returntag_owner_account_enabled` control.
+
+Stage 0 adds no route, form, query, write, Migration, Option value, email,
+queue, dependency, release, or deployment. Schema remains `12`, TagCore
+remains `0.4.0`, and ForgeTag Theme remains `0.1.0`. Transfer, Retire, Test
+Email, privacy export/deletion, and moderation remain separate work.
+
+## RT-317 Owner Dashboard Stage 1
+
+Stage 1 implements the default-off, TagCore-owned passwordless Account entry
+and read-only My Tags/Tag Detail surfaces frozen by ADR 0022. Account OTP uses
+the existing Schema 12 challenge table with the distinct `account_otp`
+purpose, Account-specific cryptographic and rate-limit domains, challenge-ID-
+only background dispatch, and generic request feedback.
+
+Every Tag list and detail query includes the current WordPress User ID as the
+Owner predicate. Browser Tag IDs remain selectors only; unknown, transferred,
+and unauthorized candidates converge on generic unavailable output. Templates
+show approved current-Owner fields, send no-store/no-referrer/no-index headers,
+and load only local TagCore CSS.
+
+Runtime remains contained by the missing-or-disabled
+`returntag_owner_account_enabled` Option. Stage 1 adds no Migration or Schema
+change and no Tag edit, Lost Mode mutation, Conversation entry, Transfer,
+Retire, Test Email, privacy workflow, release, or deployment.
+
+## RT-317 Owner Dashboard Stage 2
+
+Stage 2 adds current-Owner edits on active Tag Detail pages. Separate
+nonce-protected POST actions update the private `item_name`, Finder-visible
+`public_label`, canonical Lost Mode state and approved Lost Message. Smart Tags
+also expose a one-time, idempotent static-guide acknowledgement that is never
+represented as verified pairing.
+
+Every mutation derives the Owner from the authenticated WordPress session,
+rechecks `owner_id` and `active` status in the conditional write, runs the
+write and a fixed metadata-free Event in one database transaction, and uses
+bounded per-Owner and per-Tag rate limits. Suspended and retired Tags remain
+read-only, and invalid or unauthorized actions return generic feedback.
+
+Stage 2 reuses the existing Schema 12 Tag columns and the default-off
+`returntag_owner_account_enabled` containment control. It adds no Migration,
+dependency, lock-file change, Conversation entry, Transfer, Retire, release,
+or deployment.
+
+## RT-317 Owner Dashboard Stage 3
+
+Stage 3 adds the privacy-minimized `/account/conversations/` browser. Its
+bounded current-Owner projection contains only canonical status, created and
+last-activity times, plus whether an explicit continuation action is currently
+eligible. It does not select or render either participant email, Message
+content, Access Tokens, Finder Report evidence, media references, or filenames.
+
+`Continue securely` is a same-site, nonce-protected POST. The browser-provided
+Conversation ID is only a selector: TagCore re-resolves current active
+ownership and the complete existing Secure Reply eligibility graph inside the
+transaction, revokes prior Owner sessions for that Conversation, and issues a
+replacement role-bound 30-minute `conversation_session` cookie scoped to
+`/secure-reply/`. GET requests and the WordPress Account session cannot read or
+send Conversation messages directly.
+
+Stage 3 keeps Schema 12, plugin and Theme versions, dependencies, and lock
+files unchanged. The existing default-off Owner Account flag contains new
+Account entry without invalidating an already-issued Secure Reply session.
+Transfer, Retire, moderation, release, and deployment remain outside scope.

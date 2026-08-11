@@ -1093,3 +1093,26 @@ terminal transaction is revoked and cannot authorize access.
 
 Code rollback removes the controls while preserving terminal states, revoked
 Tokens, failed and accepted Messages, Reports, evidence, ownership, and Events.
+
+## 24. RT-317 Owner Dashboard data contract
+
+RT-317 Stage 0 keeps Schema `12` and adds no Migration, table, column, index,
+query, write, lock, or persisted Option. Future read-only Account projections
+use the existing `owner_id_status` Tags index and current-Owner Conversation
+index. A submitted Tag ID or Conversation ID is only a candidate selector;
+the current WordPress user supplies the Owner identity and every query includes
+or rechecks that ownership boundary.
+
+Stage 2 may conditionally update only existing `returntag_tags` fields:
+`item_name`, `public_label`, `lost_mode`, `lost_message`,
+`owner_pairing_ack_at`, and `updated_at`. Writes require the same current
+Owner and `active` Tag in the mutation predicate and append a fixed,
+metadata-minimal Event in the same transaction. Event metadata cannot contain
+the old or new item name, public label, Lost Message, email, location, device,
+or pairing data.
+
+The future `returntag_owner_account_enabled` control is a site-scoped,
+non-autoloaded, default-disabled WordPress Option, not a Schema field or
+authorization record. Stage 0 does not create or write it. Disabling future
+Account runtime leaves all Tags, ownership, Lost Mode values, acknowledgements,
+Conversations, Messages, Tokens, and Events intact.

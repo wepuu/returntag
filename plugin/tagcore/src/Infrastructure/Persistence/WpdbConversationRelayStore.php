@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Infrastructure\Persistence;
 
 use DateTimeImmutable;
+use ReturnTag\TagCore\Application\Account\OwnerConversationContinuationStore;
 use ReturnTag\TagCore\Application\Conversation\ConversationDispatch;
 use ReturnTag\TagCore\Application\Conversation\ConversationRelayIdentity;
 use ReturnTag\TagCore\Application\Conversation\ConversationRelayStore;
@@ -20,6 +21,7 @@ use ReturnTag\TagCore\Application\Persistence\Record\NewAccessTokenRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\NewConversationRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\NewMessageRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\NewEventRecord;
+use ReturnTag\TagCore\Application\Persistence\RecordValidator;
 use ReturnTag\TagCore\Application\Persistence\Repository\EventRepository;
 use ReturnTag\TagCore\Application\Persistence\EventMetadata;
 use ReturnTag\TagCore\Application\Persistence\Value\AccessTokenDigest;
@@ -32,7 +34,7 @@ use ReturnTag\TagCore\Domain\Conversation\MessageSenderRole;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 
 /** Owns all row locks and eligibility checks for the private relay. */
-final readonly class WpdbConversationRelayStore implements ConversationRelayStore {
+final readonly class WpdbConversationRelayStore implements ConversationRelayStore, OwnerConversationContinuationStore {
 	/**
 	 * Create the store.
 	 *
@@ -148,6 +150,48 @@ final readonly class WpdbConversationRelayStore implements ConversationRelayStor
 				$this->gateway->execute( 'UPDATE %i SET revoked_at = %s WHERE conversation_id = %d AND purpose = %s AND actor_role = %s AND revoked_at IS NULL', array( $this->tables->access_tokens(), $this->dates->format( $now ), $conversation_id, 'conversation_session', $role->value ) );
 				$this->issue_session( $conversation_id, $role, $session, $session_expires_at, $now );
 				return new ConversationRelayIdentity( $conversation_id, $role );
+			}
+		);
+	}
+
+	/**
+	 * Issue one Account-authorized Owner session after complete revalidation.
+	 *
+	 * @param int               $conversation_id Conversation candidate.
+	 * @param int               $owner_id Current WordPress Owner identifier.
+	 * @param AccessTokenDigest $session New session digest.
+	 * @param DateTimeImmutable $expires_at Session expiry.
+	 * @param DateTimeImmutable $now Current UTC time.
+	 */
+	public function issue_owner_session( int $conversation_id, int $owner_id, AccessTokenDigest $session, DateTimeImmutable $expires_at, DateTimeImmutable $now ): bool {
+		RecordValidator::positive_id( $conversation_id, 'conversation_id' );
+		RecordValidator::positive_id( $owner_id, 'owner_id' );
+
+		return $this->transactions->transactional(
+			function () use ( $conversation_id, $owner_id, $session, $expires_at, $now ): bool {
+				$row = $this->eligible_conversation( $conversation_id, MessageSenderRole::OWNER, $now, true );
+
+				if (
+					null === $row
+					|| StoredRow::positive_int( $row, 'owner_id_snapshot' ) !== $owner_id
+					|| StoredRow::positive_int( $row, 'current_owner_id' ) !== $owner_id
+				) {
+					return false;
+				}
+
+				$this->gateway->execute(
+					'UPDATE %i SET revoked_at = %s WHERE conversation_id = %d AND purpose = %s AND actor_role = %s AND revoked_at IS NULL',
+					array(
+						$this->tables->access_tokens(),
+						$this->dates->format( $now ),
+						$conversation_id,
+						'conversation_session',
+						MessageSenderRole::OWNER->value,
+					)
+				);
+				$this->issue_session( $conversation_id, MessageSenderRole::OWNER, $session, $expires_at, $now );
+
+				return true;
 			}
 		);
 	}

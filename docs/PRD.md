@@ -978,6 +978,68 @@ Lost Message 不允许填写：
 - 身份证件号码；
 - 完整家庭地址。
 
+### 16.3 RT-317 Stage 0 Owner Dashboard contract
+
+TagCore owns `/account/sign-in/`, `/account/`,
+`/account/tags/{tag_id}/`, and `/account/conversations/`. The authenticated
+WordPress user is the only Owner identity input. A Tag ID or Conversation
+selector supplied by the browser selects a candidate only; every read,
+mutation, and Secure Reply continuation must re-resolve current ownership on
+the server. Unknown, unauthenticated, transferred, or unauthorized candidates
+use a generic non-enumerating response.
+
+Account sign-in uses passwordless email OTP under an Account-specific purpose
+and rate-limit domain. It must not create Tag ownership, overwrite an existing
+password, or expose whether an email or Owner exists. Successful verification
+establishes the approved WordPress session; every later Owner action still
+requires a fresh server-side ownership check.
+
+My Tags and Tag Detail may show the current Owner the Tag ID, product type,
+Tag status, `item_name`, `public_label`, Lost Mode state, and bounded
+presentation timestamps. Suspended and retired Tags are read-only. A
+transferred Tag is removed from the previous Owner projection immediately.
+Conversation summaries show only status and bounded activity metadata; they
+must not show either email address, message bodies, Tokens, evidence, media
+references, or evidence filenames.
+
+Stage 2 mutations are separate same-site, Nonce-protected POST actions and
+require an `active` Tag:
+
+- `item_name`: optional Owner-only plain text, maximum 191 Unicode characters;
+- `public_label`: optional Finder-visible plain text, maximum 191 Unicode
+  characters;
+- `lost_mode`: canonical boolean independent from `tag_status`;
+- `lost_message`: optional Finder-visible plain text, maximum 500 Unicode
+  characters, with HTML and approved high-risk secrets or complete home
+  addresses rejected;
+- Smart Setup acknowledgement: one idempotent UTC write to
+  `owner_pairing_ack_at`, never pairing proof and never location, device,
+  battery, Apple, or Google account data.
+
+Account Conversation entry does not render or authorize messages directly.
+An explicit POST revalidates the current active Owner and the complete
+Conversation eligibility graph, revokes prior Owner sessions for that
+Conversation, and issues the existing role-bound 30-minute Secure Reply
+session. GET cannot mint access, and the WordPress Account session alone
+cannot read or send relay messages.
+
+Account runtime has an independent, non-autoloaded, default-disabled incident
+control:
+
+```text
+returntag_owner_account_enabled
+```
+
+The control is not authorization and must not be replaced with the activation
+flag. Disabling it makes Account routes and mutations unavailable without
+changing ownership, activation, public scan, Finder recovery, emailed Secure
+Reply links, or existing Conversation state.
+
+RT-317 implementation stages are read-only Account, bounded metadata/Lost
+Mode mutations, and Conversation summaries/Secure Reply continuation.
+Transfer, Retire, Test Email, privacy export/deletion, and administrative
+moderation require separate runtime contracts.
+
 ---
 
 ## 17. Finder 扫码体验
@@ -1161,7 +1223,10 @@ X-Robots-Tag: noindex, nofollow, noarchive
 /activate
 /finder-confirm
 /secure-reply
-/account/conversations
+/account/sign-in/
+/account/
+/account/tags/{tag_id}/
+/account/conversations/
 ```
 
 ---
@@ -1652,6 +1717,7 @@ returntag_finder_contact_enabled
 returntag_finder_evidence_enabled
 returntag_email_dispatch_enabled
 returntag_woocommerce_account_enabled
+returntag_owner_account_enabled
 ```
 
 Batch 层另有：
@@ -1670,6 +1736,7 @@ activation_enabled
 | Finder 垃圾消息暴增 | 关闭 Finder Contact |
 | Finder 凭证处理、内容安全或媒体隐私异常 | 关闭 Finder Evidence；未通过处理的报告不得通知 Owner |
 | Woo Hook 异常 | 关闭 Woo Account Provisioning |
+| Owner Account 权限、隐私或写入异常 | 关闭 Owner Account；不得改变已有所有权、Finder 或 Secure Reply 状态 |
 
 Feature Flag 用于快速止损，不替代代码修复和正式发布回滚。
 
@@ -1808,7 +1875,21 @@ Trusted Contact
 28. 即使智能网络不可用，QR Finder 流程仍正常工作。
 29. QR 尚未激活时，不得声称智能网络功能失效。
 
-### 27.4 Finder 与隐私中转
+### 27.4 Owner Account
+
+- Account 只显示当前 WordPress 用户拥有的 Tags，并在每次读取和写入时
+  重新验证所有权；
+- `item_name` 只允许当前 Owner 查看，Finder 页面不得接收该字段；
+- Suspended 和 Retired Tags 在 Account 中只读，转移后的旧 Owner 路径必须
+  泛化失败；
+- Account GET 不得执行写入或签发 Secure Reply 会话；
+- WordPress Account 登录不能直接授权 Conversation 消息读取或发送；
+- `returntag_owner_account_enabled` 缺失、无效或关闭时 Account 失败关闭，
+  但不影响现有所有权、扫码、激活、Finder 或邮件 Secure Reply；
+- Account 页面满足键盘、标签、可见焦点、移动端和 200% 缩放要求，且不
+  加载广告、会话录制或不必要的第三方追踪。
+
+### 27.5 Finder 与隐私中转
 
 30. Finder 无需注册完整账户、提供邮箱或验证邮箱即可提交初次单向 Finder Report。
 31. Message for the owner 为选填且填写时限制为 10–500 字符；Item photo 为必填且恰好一张。
@@ -1822,7 +1903,7 @@ Trusted Contact
 39. 双方可以关闭或举报已验证会话；Owner 可以举报或屏蔽 Finder Report；报告和会话均可以按各自保留策略过期。
 40. Suspended 和 Retired 标签不能创建新报告或会话；安全页面不加载广告追踪或第三方会话录制脚本。
 
-### 27.5 后台与运营
+### 27.6 后台与运营
 
 41. 管理员可以按 ID、Batch、Owner 和状态查询。
 42. 所有权转移必须写入审计日志。

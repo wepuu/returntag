@@ -29,6 +29,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbConversationRelayStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbOwnerConversationReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionConversationMessageRateLimiter;
 use ReturnTag\TagCore\Infrastructure\RateLimit\WordPressOptionFinderEmailRateLimiter;
@@ -92,6 +93,44 @@ final class ConversationRelayStoreTest extends WP_UnitTestCase {
 		self::assertSame( 1, $wpdb->update( $this->tables->conversations(), array( 'conversation_status' => 'open' ), array( 'conversation_id' => 1 ), array( '%s' ), array( '%d' ) ) );
 		self::assertSame( 1, $wpdb->update( $this->tables->tags(), array( 'owner_id' => 77 ), array( 'tag_id' => 'A7R2W9' ), array( '%d' ), array( '%s' ) ) );
 		self::assertNull( $store->resolve_session( $session_two, $now ) );
+	}
+
+	/** Account continuation rotates Owner sessions and reuses the full relay graph. */
+	public function test_account_continuation_is_atomic_and_current_owner_bound(): void {
+		$store       = $this->store();
+		$now         = $this->now();
+		$session_one = $this->digest( '6' );
+		$session_two = $this->digest( '7' );
+
+		self::assertTrue( $store->issue_owner_session( 1, 42, $session_one, $now->modify( '+30 minutes' ), $now ) );
+		self::assertEquals( new ConversationRelayIdentity( 1, MessageSenderRole::OWNER ), $store->resolve_session( $session_one, $now ) );
+		self::assertFalse( $store->issue_owner_session( 1, 43, $session_two, $now->modify( '+30 minutes' ), $now ) );
+		self::assertTrue( $store->issue_owner_session( 1, 42, $session_two, $now->modify( '+30 minutes' ), $now ) );
+		self::assertNull( $store->resolve_session( $session_one, $now ) );
+		self::assertNotNull( $store->resolve_session( $session_two, $now ) );
+
+		global $wpdb;
+		self::assertSame( 1, $wpdb->update( $this->tables->tags(), array( 'owner_id' => 77 ), array( 'tag_id' => 'A7R2W9' ), array( '%d' ), array( '%s' ) ) );
+		self::assertFalse( $store->issue_owner_session( 1, 42, $this->digest( '8' ), $now->modify( '+30 minutes' ), $now ) );
+	}
+
+	/** Account projection contains only bounded status and activity metadata. */
+	public function test_account_projection_is_privacy_minimized_and_current_owner_bound(): void {
+		global $wpdb;
+
+		$reader = new WpdbOwnerConversationReader( new WpdbGateway( $wpdb ), $this->tables, new DatabaseDateTimeCodec() );
+		$items  = $reader->list_for_owner( 42, $this->now() );
+
+		self::assertCount( 1, $items );
+		self::assertSame(
+			array( 'conversation_id', 'status', 'last_activity_at', 'created_at', 'can_continue' ),
+			array_keys( get_object_vars( $items[0] ) )
+		);
+		self::assertTrue( $items[0]->can_continue );
+		self::assertSame( array(), $reader->list_for_owner( 43, $this->now() ) );
+
+		self::assertSame( 1, $wpdb->update( $this->tables->tags(), array( 'owner_id' => 77 ), array( 'tag_id' => 'A7R2W9' ), array( '%d' ), array( '%s' ) ) );
+		self::assertSame( array(), $reader->list_for_owner( 42, $this->now() ) );
 	}
 
 	/** System rows do not consume the strict 10-per-role and 20-total limits. */

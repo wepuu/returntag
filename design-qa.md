@@ -313,3 +313,56 @@ final result: passed
   keyboard focus on checkbox and terminal button, generic terminal state,
   1440px, 390px, 320px, and 200% zoom.
 - Final result: automated checks passed; Chrome visual acceptance pending.
+
+## RT-317 Stage 2 Owner Tag editing
+
+- Date: 2026-08-10
+- Surface: TagCore `/account/tags/{tag_id}/`
+- Change: added active/current-Owner metadata, Lost Mode, Lost Message, and
+  Smart Setup acknowledgement forms.
+- Chrome desktop result: the `1920 × 945` local Classic Tag page rendered one
+  H1, two semantic H2 edit cards, equal desktop columns, labelled controls,
+  visible local actions, no console warnings or errors, and no horizontal
+  overflow.
+- Chrome mobile result: the `390 × 844` viewport collapsed to one `335px`
+  content column; all text inputs and the textarea stayed within their card,
+  help copy remained readable, and document `scrollWidth` equalled
+  `clientWidth`.
+- Runtime result: a local synthetic current Owner successfully enabled Lost
+  Mode with approved guidance and received `Your Tag settings were updated.`;
+  the rendered detail immediately showed the persisted state.
+- Smart Tag result: a local synthetic Smart Tag displayed the non-pairing
+  disclaimer, accepted the acknowledgement once, replaced the action with
+  `Setup guide acknowledged. This is not pairing verification.`, and showed
+  no horizontal overflow.
+- Privacy review: no Owner email, browser-supplied Owner ID, cross-party
+  identifier, remote asset, or pairing/location/device claim appeared in the
+  reviewed Account pages.
+
+final result: passed
+
+## RT-317 Stage 3 Owner Conversation browser
+
+- Date: 2026-08-11
+- Surface: TagCore `/account/conversations/` to `/secure-reply/`
+- Change: added bounded current-Owner status/activity cards and an explicit
+  nonce-protected `Continue securely` POST using the existing Secure Reply
+  session contract.
+- Chrome desktop result: at `1440 × 900`, the page rendered one H1, one
+  `552px` summary card, one explicit POST action, balanced status/activity
+  hierarchy, and no horizontal overflow.
+- Chrome responsive result: `720px` 200%-equivalent, `390 × 844`, and
+  `320 × 720` layouts retained one readable column, full-width mobile action,
+  and `scrollWidth === clientWidth`.
+- Keyboard result: Tab reached ForgeTag, My Tags, Conversations, and Continue
+  securely in order; every target exposed a visible `2px` focus outline.
+- Runtime result: Continue securely redirected to same-site `/secure-reply/`
+  without a bearer query and rendered the existing Owner relay workspace.
+- Privacy result: no participant email, Message body, Access Token, evidence
+  or media reference, filename, console warning, or console error appeared on
+  either reviewed surface.
+- Automated result: Stage 3 unit, WordPress integration, persistence, PHP
+  static analysis, PHP coding standards, documentation, CI Node, Stylelint,
+  and TypeScript checks passed before the final full regression.
+
+final result: passed
