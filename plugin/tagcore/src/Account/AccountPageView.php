@@ -12,6 +12,8 @@ namespace ReturnTag\TagCore\Account;
 use ReturnTag\TagCore\Application\Account\OwnerTagCollection;
 use ReturnTag\TagCore\Application\Account\OwnerTagDetail;
 use ReturnTag\TagCore\Application\Account\OwnerConversationCollection;
+use ReturnTag\TagCore\Application\Account\OwnerTestEmailResult;
+use ReturnTag\TagCore\Application\Account\OwnerLifecycleResult;
 
 /**
  * Immutable presentation data for one Account response.
@@ -34,6 +36,10 @@ final readonly class AccountPageView {
 	 * @param string                           $conversation_nonce Conversation continuation Nonce.
 	 * @param AccountConversationFeedback      $conversation_feedback Safe Conversation feedback.
 	 * @param OwnerConversationCollection|null $conversations Optional current-Owner summaries.
+	 * @param OwnerTestEmailResult|null        $test_email_result Optional Test Email outcome.
+	 * @param string                           $test_email_nonce Test Email Nonce.
+	 * @param OwnerLifecycleResult|null        $lifecycle_result Optional lifecycle outcome.
+	 * @param string                           $transfer_nonce Transfer acceptance Nonce.
 	 */
 	public function __construct(
 		public AccountRoute $route,
@@ -49,7 +55,11 @@ final readonly class AccountPageView {
 		public ?OwnerTagDetail $detail = null,
 		public string $conversation_nonce = '',
 		public AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE,
-		public ?OwnerConversationCollection $conversations = null
+		public ?OwnerConversationCollection $conversations = null,
+		public ?OwnerTestEmailResult $test_email_result = null,
+		public string $test_email_nonce = '',
+		public ?OwnerLifecycleResult $lifecycle_result = null,
+		public string $transfer_nonce = ''
 	) {
 	}
 }

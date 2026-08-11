@@ -58,4 +58,9 @@ final class AccountUrlProvider {
 	public function secure_reply(): string {
 		return home_url( '/secure-reply/' );
 	}
+
+	/** Return the canonical Transfer acceptance URL. */
+	public function transfer(): string {
+		return home_url( '/account/transfer/' );
+	}
 }

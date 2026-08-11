@@ -15,6 +15,8 @@ use ReturnTag\TagCore\Application\Account\OwnerTagAccessState;
 use ReturnTag\TagCore\Application\Account\ReadOwnerConversations;
 use ReturnTag\TagCore\Application\Account\ReadOwnerTag;
 use ReturnTag\TagCore\Application\Account\ReadOwnerTags;
+use ReturnTag\TagCore\Application\Account\OwnerTestEmailResult;
+use ReturnTag\TagCore\Application\Account\OwnerLifecycleResult;
 use ReturnTag\TagCore\Application\Auth\AuthenticatedSession;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\FeatureFlagReader;
@@ -42,6 +44,7 @@ final class AccountRouteController {
 	public const TAG_PATTERN = '^account/tags/([23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6})/?$';
 
 	public const CONVERSATIONS_PATTERN = '^account/conversations/?$';
+	public const TRANSFER_PATTERN      = '^account/transfer/?$';
 
 	/**
 	 * Create the Account route adapter.
@@ -54,7 +57,11 @@ final class AccountRouteController {
 	 * @param ReadOwnerConversations          $read_conversations Current-Owner Conversation reader.
 	 * @param AccountSignInFormHandler        $sign_in Passwordless form boundary.
 	 * @param AccountTagMutationFormHandler   $tag_mutations Owner Tag form boundary.
+	 * @param AccountLifecycleFormHandler     $lifecycle_form High-risk Tag lifecycle boundary.
 	 * @param AccountConversationFormHandler  $conversation_form Conversation continuation boundary.
+	 * @param AccountTestEmailFormHandler     $test_email_form Test Email boundary.
+	 * @param AccountTransferFormHandler      $transfer_form Transfer acceptance boundary.
+	 * @param AccountTransferTokenCookie      $transfer_cookie Transfer bearer cookie.
 	 * @param AccountSecureReplySessionCookie $session_cookie Secure Reply session cookie.
 	 * @param AccountTemplateRenderer         $renderer Standalone renderer.
 	 * @param AccountUrlProvider              $urls Same-site URLs.
@@ -69,7 +76,11 @@ final class AccountRouteController {
 		private readonly ReadOwnerConversations $read_conversations,
 		private readonly AccountSignInFormHandler $sign_in,
 		private readonly AccountTagMutationFormHandler $tag_mutations,
+		private readonly AccountLifecycleFormHandler $lifecycle_form,
 		private readonly AccountConversationFormHandler $conversation_form,
+		private readonly AccountTestEmailFormHandler $test_email_form,
+		private readonly AccountTransferFormHandler $transfer_form,
+		private readonly AccountTransferTokenCookie $transfer_cookie,
 		private readonly AccountSecureReplySessionCookie $session_cookie,
 		private readonly AccountTemplateRenderer $renderer,
 		private readonly AccountUrlProvider $urls,
@@ -90,6 +101,7 @@ final class AccountRouteController {
 		add_rewrite_rule( self::SIGN_IN_PATTERN, 'index.php?' . self::ROUTE_QUERY_VAR . '=sign-in', 'top' );
 		add_rewrite_rule( self::TAG_PATTERN, 'index.php?' . self::ROUTE_QUERY_VAR . '=tag&' . self::TAG_QUERY_VAR . '=$matches[1]', 'top' );
 		add_rewrite_rule( self::CONVERSATIONS_PATTERN, 'index.php?' . self::ROUTE_QUERY_VAR . '=conversations', 'top' );
+		add_rewrite_rule( self::TRANSFER_PATTERN, 'index.php?' . self::ROUTE_QUERY_VAR . '=transfer', 'top' );
 		add_rewrite_rule( self::OVERVIEW_PATTERN, 'index.php?' . self::ROUTE_QUERY_VAR . '=overview', 'top' );
 	}
 
@@ -101,7 +113,7 @@ final class AccountRouteController {
 			return;
 		}
 
-		foreach ( array( self::SIGN_IN_PATTERN, self::TAG_PATTERN, self::CONVERSATIONS_PATTERN, self::OVERVIEW_PATTERN ) as $pattern ) {
+		foreach ( array( self::SIGN_IN_PATTERN, self::TAG_PATTERN, self::CONVERSATIONS_PATTERN, self::TRANSFER_PATTERN, self::OVERVIEW_PATTERN ) as $pattern ) {
 			unset( $wp_rewrite->extra_rules_top[ $pattern ] );
 			unset( $wp_rewrite->extra_rules[ $pattern ] );
 		}
@@ -146,7 +158,8 @@ final class AccountRouteController {
 
 		if (
 			! in_array( $method, array( 'GET', 'HEAD', 'POST' ), true )
-			|| ( 'POST' === $method && ! in_array( $route, array( AccountRoute::SIGN_IN, AccountRoute::TAG, AccountRoute::CONVERSATIONS ), true ) )
+			|| ( 'POST' === $method && ! in_array( $route, array( AccountRoute::SIGN_IN, AccountRoute::OVERVIEW, AccountRoute::TAG, AccountRoute::CONVERSATIONS, AccountRoute::TRANSFER ), true ) )
+			|| ( 'POST' === $method && AccountRoute::OVERVIEW === $route && ! $this->test_email_form->supports() )
 		) {
 			status_header( 405 );
 			$this->finish_head_or_die( $method, __( 'This Account action is unavailable.', 'tagcore' ) );
@@ -159,21 +172,38 @@ final class AccountRouteController {
 
 		if ( AccountRoute::SIGN_IN === $route ) {
 			if ( null !== $this->session->current_user_id() ) {
-				wp_safe_redirect( $this->urls->overview(), 303, 'TagCore' );
+				wp_safe_redirect( null !== $this->transfer_cookie->read() ? $this->urls->transfer() : $this->urls->overview(), 303, 'TagCore' );
 				exit;
 			}
 
 			$form = 'POST' === $method ? $this->sign_in->submit() : new AccountFormResult( AccountFormState::READY );
 
 			if ( AccountFormState::AUTHENTICATED === $form->state ) {
-				wp_safe_redirect( $this->urls->overview(), 303, 'TagCore' );
+				wp_safe_redirect( null !== $this->transfer_cookie->read() ? $this->urls->transfer() : $this->urls->overview(), 303, 'TagCore' );
 				exit;
 			}
 
 			$this->render( $method, $route, $form );
 		}
 
+		if ( AccountRoute::TRANSFER === $route ) {
+			// Read-only GET only moves a structurally valid bearer into an HttpOnly cookie, then cleans the URL.
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- GET cannot accept or mutate ownership.
+			$token = isset( $_GET['transfer_token'] ) && is_string( $_GET['transfer_token'] ) ? wp_unslash( $_GET['transfer_token'] ) : '';
+			if ( '' !== $token ) {
+				if ( $this->transfer_cookie->capture( $token ) ) {
+					wp_safe_redirect( $this->urls->transfer(), 303, 'TagCore' );
+					exit; }
+			}
+			if ( null === $this->session->current_user_id() ) {
+				wp_safe_redirect( $this->urls->sign_in(), 303, 'TagCore' );
+				exit; }
+			$result = 'POST' === $method ? $this->transfer_form->submit() : null;
+			$this->render( $method, $route, new AccountFormResult( AccountFormState::READY ), null, null, null, null, AccountConversationFeedback::NONE, null, $result );
+		}
+
 		if ( AccountRoute::OVERVIEW === $route ) {
+			$test_email_result = 'POST' === $method ? $this->test_email_form->submit() : null;
 			try {
 				$collection = $this->list_tags->execute( $this->cursor() );
 			} catch ( Throwable ) {
@@ -190,7 +220,7 @@ final class AccountRouteController {
 				status_header( 404 );
 			}
 
-			$this->render( $method, $route, new AccountFormResult( AccountFormState::READY ), $collection );
+			$this->render( $method, $route, new AccountFormResult( AccountFormState::READY ), $collection, null, null, null, AccountConversationFeedback::NONE, $test_email_result );
 		}
 
 		if ( AccountRoute::CONVERSATIONS === $route ) {
@@ -243,7 +273,7 @@ final class AccountRouteController {
 		}
 
 		$tag_feedback = 'POST' === $method
-			? $this->tag_mutations->submit( $tag_id )
+			? ( $this->lifecycle_form->supports() ? $this->lifecycle_form->submit( $tag_id ) : $this->tag_mutations->submit( $tag_id ) )
 			: new AccountTagMutationFeedback();
 
 		try {
@@ -269,7 +299,7 @@ final class AccountRouteController {
 	public function route(): ?AccountRoute {
 		global $wp;
 
-		if ( ! $wp instanceof WP || ! in_array( $wp->matched_rule, array( self::SIGN_IN_PATTERN, self::TAG_PATTERN, self::CONVERSATIONS_PATTERN, self::OVERVIEW_PATTERN ), true ) ) {
+		if ( ! $wp instanceof WP || ! in_array( $wp->matched_rule, array( self::SIGN_IN_PATTERN, self::TAG_PATTERN, self::CONVERSATIONS_PATTERN, self::TRANSFER_PATTERN, self::OVERVIEW_PATTERN ), true ) ) {
 			return null;
 		}
 
@@ -328,6 +358,8 @@ final class AccountRouteController {
 	 * @param AccountTagMutationFeedback|null                                $tag_feedback Optional mutation feedback.
 	 * @param OwnerConversationCollection|null                               $conversations Optional current-Owner summaries.
 	 * @param AccountConversationFeedback                                    $conversation_feedback Safe Conversation feedback.
+	 * @param OwnerTestEmailResult|null                                      $test_email_result Optional Test Email outcome.
+	 * @param OwnerLifecycleResult|null                                      $lifecycle_result Optional lifecycle outcome.
 	 */
 	private function render(
 		string $method,
@@ -337,7 +369,9 @@ final class AccountRouteController {
 		?\ReturnTag\TagCore\Application\Account\OwnerTagDetail $detail = null,
 		?AccountTagMutationFeedback $tag_feedback = null,
 		?OwnerConversationCollection $conversations = null,
-		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE
+		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE,
+		?OwnerTestEmailResult $test_email_result = null,
+		?OwnerLifecycleResult $lifecycle_result = null
 	): never {
 		if ( 'HEAD' === $method ) {
 			exit;
@@ -347,7 +381,7 @@ final class AccountRouteController {
 		wp_enqueue_style( TagEntryLinkBlock::STYLE_HANDLE );
 
 		try {
-			$this->renderer->render( $route, $form, $collection, $detail, $tag_feedback, $conversations, $conversation_feedback );
+			$this->renderer->render( $route, $form, $collection, $detail, $tag_feedback, $conversations, $conversation_feedback, $test_email_result, $lifecycle_result );
 		} catch ( RuntimeException ) {
 			wp_die( esc_html__( 'ForgeTag Account is temporarily unavailable.', 'tagcore' ), esc_html__( 'Account unavailable', 'tagcore' ), array( 'response' => 500 ) );
 		}

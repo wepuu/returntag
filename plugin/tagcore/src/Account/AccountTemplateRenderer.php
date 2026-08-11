@@ -12,6 +12,8 @@ namespace ReturnTag\TagCore\Account;
 use ReturnTag\TagCore\Application\Account\OwnerTagCollection;
 use ReturnTag\TagCore\Application\Account\OwnerTagDetail;
 use ReturnTag\TagCore\Application\Account\OwnerConversationCollection;
+use ReturnTag\TagCore\Application\Account\OwnerTestEmailResult;
+use ReturnTag\TagCore\Application\Account\OwnerLifecycleResult;
 use RuntimeException;
 
 /**
@@ -40,6 +42,8 @@ final readonly class AccountTemplateRenderer {
 	 * @param AccountTagMutationFeedback|null  $tag_feedback Optional Tag mutation feedback.
 	 * @param OwnerConversationCollection|null $conversations Optional current-Owner summaries.
 	 * @param AccountConversationFeedback      $conversation_feedback Safe Conversation feedback.
+	 * @param OwnerTestEmailResult|null        $test_email_result Optional Test Email outcome.
+	 * @param OwnerLifecycleResult|null        $lifecycle_result Optional lifecycle outcome.
 	 * @throws RuntimeException When the packaged template is unavailable.
 	 */
 	public function render(
@@ -49,9 +53,11 @@ final readonly class AccountTemplateRenderer {
 		?OwnerTagDetail $detail = null,
 		?AccountTagMutationFeedback $tag_feedback = null,
 		?OwnerConversationCollection $conversations = null,
-		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE
+		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE,
+		?OwnerTestEmailResult $test_email_result = null,
+		?OwnerLifecycleResult $lifecycle_result = null
 	): void {
-		echo $this->render_to_string( $route, $form, $collection, $detail, $tag_feedback, $conversations, $conversation_feedback ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template escapes by output context.
+		echo $this->render_to_string( $route, $form, $collection, $detail, $tag_feedback, $conversations, $conversation_feedback, $test_email_result, $lifecycle_result ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Template escapes by output context.
 	}
 
 	/**
@@ -64,6 +70,8 @@ final readonly class AccountTemplateRenderer {
 	 * @param AccountTagMutationFeedback|null  $tag_feedback Optional Tag mutation feedback.
 	 * @param OwnerConversationCollection|null $conversations Optional current-Owner summaries.
 	 * @param AccountConversationFeedback      $conversation_feedback Safe Conversation feedback.
+	 * @param OwnerTestEmailResult|null        $test_email_result Optional Test Email outcome.
+	 * @param OwnerLifecycleResult|null        $lifecycle_result Optional lifecycle outcome.
 	 * @throws RuntimeException When the packaged template is unavailable.
 	 */
 	public function render_to_string(
@@ -73,7 +81,9 @@ final readonly class AccountTemplateRenderer {
 		?OwnerTagDetail $detail = null,
 		?AccountTagMutationFeedback $tag_feedback = null,
 		?OwnerConversationCollection $conversations = null,
-		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE
+		AccountConversationFeedback $conversation_feedback = AccountConversationFeedback::NONE,
+		?OwnerTestEmailResult $test_email_result = null,
+		?OwnerLifecycleResult $lifecycle_result = null
 	): string {
 		$template = $this->plugin_dir . '/templates/account/account.php';
 
@@ -86,6 +96,7 @@ final readonly class AccountTemplateRenderer {
 			AccountRoute::OVERVIEW => __( 'My Tags', 'tagcore' ),
 			AccountRoute::TAG => __( 'Tag details', 'tagcore' ),
 			AccountRoute::CONVERSATIONS => __( 'Recovery conversations', 'tagcore' ),
+			AccountRoute::TRANSFER => __( 'Accept Tag transfer', 'tagcore' ),
 		};
 		$view = new AccountPageView(
 			$route,
@@ -103,7 +114,11 @@ final readonly class AccountTemplateRenderer {
 			$detail,
 			wp_create_nonce( AccountConversationFormHandler::NONCE_ACTION ),
 			$conversation_feedback,
-			$conversations
+			$conversations,
+			$test_email_result,
+			wp_create_nonce( AccountTestEmailFormHandler::NONCE_ACTION ),
+			$lifecycle_result,
+			wp_create_nonce( AccountTransferFormHandler::NONCE_ACTION )
 		);
 
 		ob_start();

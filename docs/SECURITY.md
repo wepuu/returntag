@@ -951,3 +951,16 @@ without changing public scan, activation, Finder reporting, emailed Secure
 Reply links, ownership, or Conversation state. Account responses are
 no-store, no-referrer, and no-index and load no advertising, session replay,
 remote customer asset, or unnecessary third-party tracker.
+
+## 32. Owner lifecycle and Test Email controls
+
+Test Email derives its recipient from the authenticated WordPress user and
+queues no email address. WP Mail SMTP may transport `wp_mail()` calls but its
+detailed/content logging and tracking remain off. Mailer acceptance is not
+represented as delivery.
+
+Transfer and Retire require a fresh Account OTP, authenticated session,
+same-site checks, nonces, rate limits, and active current ownership. Invitation
+Tokens are 32 random bytes, hash-only at rest, moved off the URL by GET, and
+consumed only by an explicit POST from the matching authenticated email.
+Neither operation logs private fields, reuses a Tag ID, or exposes an email.

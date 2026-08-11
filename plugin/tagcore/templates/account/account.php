@@ -16,8 +16,14 @@ use ReturnTag\TagCore\Account\AccountRoute;
 use ReturnTag\TagCore\Account\AccountSignInFormHandler;
 use ReturnTag\TagCore\Account\AccountTagMutationFormHandler;
 use ReturnTag\TagCore\Account\AccountTagMutationState;
+use ReturnTag\TagCore\Account\AccountTestEmailFormHandler;
+use ReturnTag\TagCore\Account\AccountLifecycleFormHandler;
+use ReturnTag\TagCore\Account\AccountTransferFormHandler;
+use ReturnTag\TagCore\Account\AccountTransferTokenCookie;
 use ReturnTag\TagCore\Application\Account\OwnerConversationAccessState;
 use ReturnTag\TagCore\Application\Account\OwnerTagAccessState;
+use ReturnTag\TagCore\Application\Account\OwnerTestEmailResult;
+use ReturnTag\TagCore\Application\Account\OwnerLifecycleResult;
 use ReturnTag\TagCore\Domain\Conversation\ConversationStatus;
 use ReturnTag\TagCore\Domain\Tag\TagId;
 
@@ -118,11 +124,48 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 					</form>
 				<?php endif; ?>
 			</section>
+		<?php elseif ( AccountRoute::TRANSFER === $view->route ) : ?>
+			<section class="returntag-account__panel" aria-labelledby="returntag-account-title">
+				<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Ownership transfer', 'tagcore' ); ?></p>
+				<h1 id="returntag-account-title"><?php echo esc_html( $view->title ); ?></h1>
+				<?php if ( OwnerLifecycleResult::ACCEPTED === $view->lifecycle_result ) : ?>
+					<div class="returntag-account__feedback" role="status"><p><?php esc_html_e( 'The Tag is now connected to your account. Previous Owner access was revoked.', 'tagcore' ); ?></p></div>
+					<a class="returntag-account__text-link" href="<?php echo esc_url( $view->overview_url ); ?>"><?php esc_html_e( 'View My Tags', 'tagcore' ); ?></a>
+				<?php elseif ( null === $view->lifecycle_result && null !== ( new AccountTransferTokenCookie() )->read() ) : ?>
+					<p class="returntag-entry__introduction"><?php esc_html_e( 'Accepting moves this Tag to your signed-in account and immediately removes the previous Owner’s access. Historical private conversations are not transferred.', 'tagcore' ); ?></p>
+					<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->transfer() ); ?>" method="post">
+						<input type="hidden" name="<?php echo esc_attr( AccountTransferFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->transfer_nonce ); ?>">
+						<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Accept Tag transfer', 'tagcore' ); ?></button>
+					</form>
+				<?php else : ?>
+					<p class="returntag-account__empty"><?php esc_html_e( 'This transfer invitation is unavailable or has expired.', 'tagcore' ); ?></p>
+				<?php endif; ?>
+			</section>
 		<?php elseif ( AccountRoute::OVERVIEW === $view->route ) : ?>
 			<section class="returntag-account__dashboard" aria-labelledby="returntag-account-title">
 				<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Owner account', 'tagcore' ); ?></p>
 				<h1 id="returntag-account-title"><?php echo esc_html( $view->title ); ?></h1>
 				<p class="returntag-entry__introduction"><?php esc_html_e( 'View the ForgeTags currently connected to this account.', 'tagcore' ); ?></p>
+
+				<section class="returntag-account__edit-card returntag-account__test-email" aria-labelledby="returntag-account-test-email-title">
+					<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Notification check', 'tagcore' ); ?></p>
+					<h2 id="returntag-account-test-email-title"><?php esc_html_e( 'Test your email', 'tagcore' ); ?></h2>
+					<p class="returntag-account__test-email-copy"><?php esc_html_e( 'Send a test notification to the email on this account. The address is resolved securely and is never entered in this form.', 'tagcore' ); ?></p>
+					<?php if ( null !== $view->test_email_result ) : ?>
+						<div class="returntag-account__feedback" role="status" aria-live="polite">
+							<?php echo esc_html( match ( $view->test_email_result ) {
+								OwnerTestEmailResult::ACCEPTED => __( 'If email delivery is available, a test message will arrive shortly.', 'tagcore' ),
+								OwnerTestEmailResult::THROTTLED => __( 'Too many test messages were requested. Please try again later.', 'tagcore' ),
+								OwnerTestEmailResult::UNAVAILABLE => __( 'The test email is temporarily unavailable.', 'tagcore' ),
+							} ); ?>
+						</div>
+					<?php endif; ?>
+					<form action="<?php echo esc_url( $view->overview_url ); ?>" method="post">
+						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->test_email_nonce ); ?>">
+						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION ); ?>">
+						<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Send test email', 'tagcore' ); ?></button>
+					</form>
+				</section>
 
 				<?php if ( null === $view->collection || OwnerTagAccessState::READY !== $view->collection->state || null === $view->collection->page ) : ?>
 					<p class="returntag-account__empty"><?php esc_html_e( 'This Tag is unavailable.', 'tagcore' ); ?></p>
@@ -230,6 +273,11 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 									AccountTagMutationState::INVALID_LOST_MESSAGE => __( 'Check the Lost Message. Use approved plain text up to 500 characters and do not include credentials, financial details, identity documents, or a complete home address.', 'tagcore' ),
 									AccountTagMutationState::THROTTLED => __( 'Too many changes were attempted. Please try again later.', 'tagcore' ),
 									AccountTagMutationState::UNAVAILABLE => __( 'This Tag action is unavailable.', 'tagcore' ),
+									AccountTagMutationState::REAUTHENTICATION_SENT => __( 'A verification code was requested for the email on this account.', 'tagcore' ),
+									AccountTagMutationState::TRANSFER_INVITED => __( 'The transfer invitation was queued. Ownership changes only after the recipient signs in and accepts.', 'tagcore' ),
+									AccountTagMutationState::TRANSFER_CANCELLED => __( 'The pending transfer invitation was cancelled.', 'tagcore' ),
+									AccountTagMutationState::RETIRED => __( 'This Tag is permanently retired. Its Tag ID and history are preserved.', 'tagcore' ),
+									AccountTagMutationState::VERIFICATION_INVALID => __( 'The verification code or confirmation could not be accepted.', 'tagcore' ),
 									AccountTagMutationState::NONE => '',
 								};
 								echo esc_html( $message );
@@ -294,6 +342,36 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 								<?php endif; ?>
 							</section>
 						<?php endif; ?>
+
+						<section class="returntag-account__edit-card returntag-account__danger" aria-labelledby="returntag-account-danger-title">
+							<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Danger zone', 'tagcore' ); ?></p>
+							<h2 id="returntag-account-danger-title"><?php esc_html_e( 'Transfer or retire this Tag', 'tagcore' ); ?></h2>
+							<p><?php esc_html_e( 'Both actions require a fresh code sent to the email on this account. Transfer completes only after the recipient signs in and accepts. Retirement is permanent.', 'tagcore' ); ?></p>
+							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
+								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::REQUEST_CODE ); ?>">
+								<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Send verification code', 'tagcore' ); ?></button>
+							</form>
+							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
+								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::CANCEL ); ?>">
+								<button class="returntag-account__secondary" type="submit"><?php esc_html_e( 'Cancel pending transfer', 'tagcore' ); ?></button>
+							</form>
+							<div class="returntag-account__danger-grid">
+								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>"><input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::TRANSFER ); ?>">
+									<label for="returntag-transfer-email"><?php esc_html_e( 'Recipient email', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__email" id="returntag-transfer-email" name="<?php echo esc_attr( AccountLifecycleFormHandler::TARGET_EMAIL ); ?>" type="email" maxlength="254" autocomplete="email" required>
+									<label for="returntag-transfer-code"><?php esc_html_e( 'Verification code', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__code" id="returntag-transfer-code" name="<?php echo esc_attr( AccountLifecycleFormHandler::CODE ); ?>" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+									<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Invite new owner', 'tagcore' ); ?></button>
+								</form>
+								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>"><input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::RETIRE ); ?>">
+									<label for="returntag-retire-id"><?php esc_html_e( 'Type the Tag ID to confirm', 'tagcore' ); ?></label><input class="returntag-entry__input" id="returntag-retire-id" name="<?php echo esc_attr( AccountLifecycleFormHandler::CONFIRM_TAG ); ?>" pattern="[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}" maxlength="6" autocomplete="off" required>
+									<label for="returntag-retire-code"><?php esc_html_e( 'Verification code', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__code" id="returntag-retire-code" name="<?php echo esc_attr( AccountLifecycleFormHandler::CODE ); ?>" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
+									<button class="returntag-entry__submit returntag-account__destructive" type="submit"><?php esc_html_e( 'Permanently retire Tag', 'tagcore' ); ?></button>
+								</form>
+							</div>
+						</section>
 					<?php endif; ?>
 				<?php endif; ?>
 			</section>

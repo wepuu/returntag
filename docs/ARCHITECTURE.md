@@ -1,6 +1,6 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 3 complete at version 0.4.0 and Schema version 8
+**Status:** Milestone 4 engineering baseline complete at version 0.5.0 and Schema version 13; immutable release publication and production deployment require separate authorization
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -881,3 +881,15 @@ and gates Account composition only. It is not authorization and does not gate
 activation, public Tag routing, Finder recovery, emailed Secure Reply links,
 or existing Conversation sessions. RT-317 Stage 0 registers no route, Option,
 service, query, write, Hook, asset, or runtime adapter and keeps Schema `12`.
+
+## 29. Milestone 4 Owner lifecycle and mail transport
+
+ADR 0023 composes Test Email, Transfer, and Retire as Application services
+behind the Account adapter. All mail reaches the provider through WordPress
+`wp_mail()` so WP Mail SMTP remains an operational adapter, not a TagCore code
+dependency. Action Scheduler payloads contain only internal identifiers.
+
+Schema 13 adds an encrypted, hash-addressed pending-transfer table. Transfer
+and Retire use transactions that conditionally update the current active Tag,
+revoke Conversation Tokens, close ineligible conversations, and append
+metadata-free Events. Themes and mail plugins never decide ownership or state.

@@ -1293,6 +1293,55 @@
 	margin-top: 1.25rem;
 }
 
+.returntag-account__test-email {
+	display: grid;
+	gap: 1rem;
+	margin: 2rem 0;
+}
+
+.returntag-account__test-email h2,
+.returntag-account__test-email-copy,
+.returntag-account__test-email form {
+	margin: 0;
+}
+
+.returntag-account__danger {
+	margin-top: 2rem;
+	border-color: #dc1117;
+}
+
+.returntag-account__danger-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1.5rem;
+}
+
+.returntag-account__secondary {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	margin-top: 0.75rem;
+	padding: 0.625rem 1rem;
+	border: 1px solid var(--returntag-entry-line);
+	border-radius: 8px;
+	background: var(--returntag-entry-surface);
+	color: var(--returntag-entry-ink);
+	font: inherit;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.returntag-account__secondary:hover {
+	border-color: var(--returntag-entry-graphite);
+	background: var(--returntag-entry-cloud);
+}
+
+.returntag-account__destructive {
+	background: #7c080c;
+	border-color: #7c080c;
+}
+
 .returntag-account__smart-setup > p:not(.returntag-entry__eyebrow, .returntag-account__notice) {
 	max-width: 48rem;
 	color: var(--returntag-account-muted);
@@ -1304,6 +1353,7 @@
 .returntag-account__next:focus-visible,
 .returntag-account__tag-card:focus-visible,
 .returntag-account__toggle-input:focus-visible,
+.returntag-account__secondary:focus-visible,
 .returntag-account__conversation-submit:focus-visible {
 	outline: 2px solid #fff;
 	outline-offset: 2px;
@@ -1317,6 +1367,10 @@
 	}
 
 	.returntag-account__edit-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.returntag-account__danger-grid {
 		grid-template-columns: 1fr;
 	}
 

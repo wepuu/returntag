@@ -781,3 +781,16 @@ continuation adapter. It must preserve Conversations, Access Token rows,
 Messages, Finder Reports, evidence, ownership, and Events; no down Migration or
 data repair is required. Previously issued Secure Reply sessions retain their
 normal eligibility, expiry, and revocation behavior.
+
+## Milestone 4 v0.5.0 release and rollback
+
+TagCore `0.5.0` advances Schema `12 -> 13` with the additive transfer table.
+Fresh install, Schema-12 upgrade, and retry verification are required before
+enablement. Keep `returntag_owner_lifecycle_enabled` disabled until Schema 13,
+OTP keys, Action Scheduler, and WP Mail SMTP operational configuration are
+healthy. Tests intercept `pre_wp_mail`; they do not use production SMTP.
+
+Containment disables Owner Lifecycle first, then Email Dispatch if queued mail
+must stop. Code rollback to `0.4.0` leaves Schema 13 in place. Do not drop the
+table, reverse accepted transfers, reopen conversations, restore Tokens, or
+reactivate retired Tags.
