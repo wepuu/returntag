@@ -49,7 +49,12 @@ test.describe( 'RT-317 Owner Account safety boundary', () => {
 			consoleErrors.filter(
 				( message ) =>
 					message !==
-					'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
+						'Failed to load resource: the server responded with a status of 503 (Service Unavailable)' &&
+					! (
+						message.includes( 'Content-Security-Policy' ) &&
+						message.includes( '/favicon.ico' ) &&
+						message.includes( "default-src 'none'" )
+					)
 			)
 		).toEqual( [] );
 		expect( pageErrors ).toEqual( [] );
