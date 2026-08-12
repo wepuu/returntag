@@ -1,11 +1,21 @@
-<!-- wp:template-part {"slug":"checkout-header","theme":"woocommerce/woocommerce","tagName":"header"} /-->
+<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
 
 <!-- wp:woocommerce/page-content-wrapper {"page":"checkout"} -->
-	<!-- wp:group {"tagName":"main","className":"forge-commerce forge-commerce--checkout","layout":{"type":"constrained"}} -->
-	<main class="wp-block-group forge-commerce forge-commerce--checkout">
-		<!-- wp:woocommerce/store-notices /-->
+<!-- wp:group {"tagName":"main","className":"forge-commerce forge-commerce--checkout","layout":{"type":"constrained"}} -->
+<main class="wp-block-group forge-commerce forge-commerce--checkout">
+	<!-- wp:woocommerce/store-notices /-->
 
-		<!-- wp:post-content {"align":"wide"} /-->
-	</main>
+	<!-- wp:group {"align":"wide","className":"forge-commerce__intro forge-commerce__intro--transaction","layout":{"type":"constrained"}} -->
+	<div
+		class="wp-block-group alignwide forge-commerce__intro forge-commerce__intro--transaction"
+	>
+		<!-- wp:post-title {"level":1} /-->
+	</div>
 	<!-- /wp:group -->
+
+	<!-- wp:post-content {"align":"wide","className":"forge-commerce__page-content"} /-->
+</main>
+<!-- /wp:group -->
 <!-- /wp:woocommerce/page-content-wrapper -->
+
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->

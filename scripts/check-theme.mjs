@@ -1003,6 +1003,15 @@ const checkCommerceContract = async ( themeRoot, failures ) => {
 		if ( ! contents.includes( 'forge-commerce' ) ) {
 			failures.push( `${ path } must use the Theme commerce wrapper` );
 		}
+		for ( const part of [ 'header', 'footer' ] ) {
+			if (
+				! contents.includes( `wp:template-part {"slug":"${ part }"` )
+			) {
+				failures.push(
+					`${ path } must retain the ForgeTag ${ part } presentation`
+				);
+			}
+		}
 		if ( /<(?:form|iframe|input|script)\b|wp:html\b/i.test( contents ) ) {
 			failures.push( `${ path } contains forbidden custom behavior` );
 		}
@@ -1016,7 +1025,9 @@ const checkCommerceContract = async ( themeRoot, failures ) => {
 		! archive.includes( 'wp:woocommerce/product-collection ' ) ||
 		! archive.includes( '"inherit":true' ) ||
 		! archive.includes( 'wp:woocommerce/product-template' ) ||
-		! archive.includes( 'wp:query-pagination' )
+		! archive.includes( 'wp:query-pagination' ) ||
+		! archive.includes( 'forge-commerce__intro' ) ||
+		! archive.includes( 'forge-commerce__catalog-grid' )
 	) {
 		failures.push(
 			'archive-product.html must keep the inherited WooCommerce catalog contract'
@@ -1036,6 +1047,18 @@ const checkCommerceContract = async ( themeRoot, failures ) => {
 			failures.push( `single-product.html is missing ${ block }` );
 		}
 	}
+	for ( const presentationClass of [
+		'forge-commerce__product-nav',
+		'forge-commerce__product-media',
+		'forge-commerce__product-summary',
+		'forge-commerce__product-details',
+	] ) {
+		if ( ! single.includes( presentationClass ) ) {
+			failures.push(
+				`single-product.html is missing ${ presentationClass }`
+			);
+		}
+	}
 
 	for ( const page of [ 'cart', 'checkout' ] ) {
 		const path = `templates/page-${ page }.html`;
@@ -1044,7 +1067,10 @@ const checkCommerceContract = async ( themeRoot, failures ) => {
 			! contents.includes(
 				`wp:woocommerce/page-content-wrapper {"page":"${ page }"}`
 			) ||
-			! contents.includes( 'wp:post-content ' )
+			! contents.includes( 'wp:post-content ' ) ||
+			! contents.includes( 'wp:post-title ' ) ||
+			! contents.includes( 'forge-commerce__intro--transaction' ) ||
+			! contents.includes( 'forge-commerce__page-content' )
 		) {
 			failures.push(
 				`${ path } must render the assigned WooCommerce page content`
@@ -1071,6 +1097,24 @@ const checkCommerceContract = async ( themeRoot, failures ) => {
 		failures.push(
 			'commerce.css must not depend on WooCommerce internal selectors'
 		);
+	}
+	for ( const contract of [
+		'.forge-commerce__catalog-grid',
+		'.wp-block-woocommerce-product-template',
+		'.forge-commerce__product-media',
+		'.wp-block-woocommerce-cart',
+		'.wp-block-woocommerce-checkout',
+		'box-sizing: border-box',
+		'max-inline-size: 100%',
+		'@media (max-width: 64rem)',
+		'@media (max-width: 47.999rem)',
+		'@media (max-width: 22.5rem)',
+	] ) {
+		if ( ! commerceCss.includes( contract ) ) {
+			failures.push(
+				`commerce.css is missing the RT-321 presentation contract: ${ contract }`
+			);
+		}
 	}
 };
 
