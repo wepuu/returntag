@@ -782,6 +782,32 @@ Messages, Finder Reports, evidence, ownership, and Events; no down Migration or
 data repair is required. Previously issued Secure Reply sessions retain their
 normal eligibility, expiry, and revocation behavior.
 
+## RT-325 Secure Reply accessibility release gate
+
+RT-325 keeps Schema `12`, TagCore `0.4.0`, ForgeTag Theme `0.1.0`, and the
+existing dependency and lock files. It changes only the Secure Reply adapter,
+server-rendered presentation, existing public stylesheet source, contract
+tests, and release documentation. It adds no route, public API, Hook, Option,
+table, Migration, queue payload, email contract, artifact, deployment, or
+production configuration.
+
+Release acceptance must cover clean bearer removal, explicit POST exchange,
+Owner and Finder role separation, successful and failed message feedback,
+confirmed terminal actions, unavailable/expired/consumed-link convergence,
+dependency failure, no-JavaScript submission, keyboard order, visible focus,
+status/alert announcement semantics, and horizontal-overflow checks at 1440,
+1024, 816, 390, 320, and a 200-percent equivalent viewport. Acceptance must
+also confirm that neither participant email, private item name, Tag ID, Token,
+Message queue state, evidence identifier, filename, or provider delivery claim
+appears in HTML, headers, URLs, logs, or cross-party content.
+
+Containment begins with `returntag_finder_contact_enabled`; disable
+`returntag_email_dispatch_enabled` as well when queued outbound delivery must
+stop. Code rollback may remove the RT-325 feedback and presentation refinements
+but must preserve existing Conversations, encrypted Messages, Access Token
+hashes, reports, evidence, ownership, Events, terminal states, and previously
+issued session eligibility. No down Migration or data repair is required.
+
 ## Milestone 4 v0.5.0 release and rollback
 
 TagCore `0.5.0` advances Schema `12 -> 13` with the additive transfer table.

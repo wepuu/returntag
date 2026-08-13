@@ -18,3 +18,20 @@ submit the same bounded, nonce-protected form, and a valid Tag ID receives a
 `303` redirect to the canonical `/t/{tag_id}` authority. Entry templates never
 query Tag or Batch state and never decide the resulting activation or Finder
 experience.
+
+RT-325 closes the Secure Reply presentation and accessibility release gate.
+The controller remains the only adapter that exchanges one-time bearer links,
+creates 30-minute role-bound sessions, submits messages, and performs terminal
+participant safety actions. The template receives only the resolved thread and
+one closed `sent` or `failed` feedback code. It never receives participant
+email addresses, Token values, Owner IDs, Finder IDs, or delivery-provider
+state. Successful submission means the encrypted Message was accepted for
+background delivery; the page does not claim provider delivery.
+
+Secure Reply remains server rendered and usable without JavaScript. GET strips
+the bearer from the address bar, and explicit nonce-protected same-site POSTs
+perform link exchange, message submission, and confirmed role-specific safety
+actions. Unavailable, dependency-failure, and terminal states converge to
+generic recovery copy. Sensitive responses retain no-store, no-referrer,
+no-index, local-only CSP, secure-cookie, output-escaping, and role-separation
+controls.

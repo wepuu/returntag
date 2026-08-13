@@ -22,10 +22,25 @@ final class SecureReplyTemplateContractTest extends TestCase {
 		self::assertStringContainsString( '<form class="returntag-public__form" method="post"', $template );
 		self::assertStringContainsString( 'name="_returntag_nonce"', $template );
 		self::assertStringContainsString( '<label for="returntag-reply-message">', $template );
-		self::assertStringContainsString( 'name="message" minlength="10" maxlength="500" required', $template );
+		self::assertStringContainsString( 'name="message" minlength="10" maxlength="500" aria-describedby="returntag-reply-message-hint" autocomplete="off" required', $template );
+		self::assertStringContainsString( 'id="returntag-reply-message-hint"', $template );
+		self::assertStringContainsString( 'aria-label="<?php esc_attr_e( \'Conversation messages\'', $template );
+		self::assertStringContainsString( 'returntag-public__conversation-item--<?php echo esc_attr( $is_mine ? \'mine\' : \'peer\' ); ?>', $template );
 		self::assertStringContainsString( 'nl2br( esc_html( $message->body ) )', $template );
 		self::assertStringNotContainsString( 'type="file"', $template );
 		self::assertStringNotContainsString( 'type="email"', $template );
+	}
+
+	/** The page must expose generic, assistive-technology-friendly recovery feedback. */
+	public function test_template_has_generic_feedback_and_recovery_contract(): void {
+		$template = $this->contents( 'templates/public/secure-reply.php' );
+
+		self::assertStringContainsString( 'role="status"', $template );
+		self::assertStringContainsString( 'role="alert"', $template );
+		self::assertStringContainsString( "'Message saved. Delivery continues in the background.'", $template );
+		self::assertStringContainsString( "'Message was not sent. Check the 10–500 character limit", $template );
+		self::assertSame( 2, substr_count( $template, "'Return to ForgeTag home'" ) );
+		self::assertStringNotContainsString( 'delivered', strtolower( $template ) );
 	}
 
 	/** Participant safety forms must be role-specific, explicit, and payload-free. */
@@ -62,6 +77,11 @@ final class SecureReplyTemplateContractTest extends TestCase {
 		self::assertSame( 2, substr_count( $controller, "'samesite' => 'Strict'" ) );
 		self::assertStringContainsString( "default-src \'none\'; style-src \'self\'; form-action \'self\'", $controller );
 		self::assertStringContainsString( "wp_safe_redirect( home_url( '/secure-reply/' ), 303", $controller );
+		self::assertStringContainsString( "private const FEEDBACK_COOKIE = 'returntag_reply_feedback';", $controller );
+		self::assertStringContainsString( 'in_array( $value, array( self::FEEDBACK_SENT, self::FEEDBACK_FAILED ), true )', $controller );
+		self::assertStringContainsString( '$sent = $this->runtime->submit_message->execute(', $controller );
+		self::assertStringContainsString( '$sent ? self::FEEDBACK_SENT : self::FEEDBACK_FAILED', $controller );
+		self::assertStringContainsString( 'catch ( \\Throwable )', $controller );
 	}
 
 	/** Controller source must keep terminal mutations inside the guarded POST path. */

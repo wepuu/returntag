@@ -20,6 +20,9 @@ final readonly class SecureReplyRouteController {
 	private const LINK_COOKIE     = 'returntag_reply_link';
 	private const SESSION_COOKIE  = 'returntag_reply_session';
 	private const TERMINAL_COOKIE = 'returntag_reply_terminal';
+	private const FEEDBACK_COOKIE = 'returntag_reply_feedback';
+	private const FEEDBACK_SENT   = 'sent';
+	private const FEEDBACK_FAILED = 'failed';
 	/**
 	 * Create the route adapter.
 	 *
@@ -84,19 +87,29 @@ final readonly class SecureReplyRouteController {
 		$session = $this->cookie_value( self::SESSION_COOKIE );
 		$thread  = null;
 		if ( null !== $session && null !== $this->runtime ) {
-			$thread = $this->runtime->read_thread->execute( $session );}
+			try {
+				$thread = $this->runtime->read_thread->execute( $session );
+			} catch ( \Throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Dependency failures converge to the generic unavailable state.
+				$thread = null;
+			}
+		}
 		$terminal = $this->terminal_cookie();
 		if ( $terminal ) {
 			$this->clear( self::TERMINAL_COOKIE );
+		}
+		$feedback = $this->feedback_cookie();
+		if ( null !== $feedback ) {
+			$this->clear( self::FEEDBACK_COOKIE );
 		}
 		$status = $terminal ? 'terminal' : ( null === $this->runtime || ( null === $link && null === $thread ) ? 'unavailable' : ( null !== $thread ? 'thread' : 'continue' ) );
 		status_header( 'unavailable' === $status ? 404 : 200 );
 		$this->enqueue_assets();
 		$view = array(
-			'status' => $status,
-			'thread' => $thread,
-			'nonce'  => wp_create_nonce( 'returntag_secure_reply' ),
-			'action' => home_url( '/secure-reply/' ),
+			'status'   => $status,
+			'thread'   => $thread,
+			'nonce'    => wp_create_nonce( 'returntag_secure_reply' ),
+			'action'   => home_url( '/secure-reply/' ),
+			'feedback' => $feedback,
 		);
 		if ( 'HEAD' !== $method ) {
 			require $this->plugin_dir . '/templates/public/secure-reply.php';
@@ -116,13 +129,17 @@ final readonly class SecureReplyRouteController {
 			} $this->redirect();}
 		if ( 'message' === $action ) {
 			$session = $this->cookie_value( self::SESSION_COOKIE );
+			$sent    = false;
 			if ( null !== $session ) {
 				try {
-					$this->runtime->submit_message->execute( $session, $this->guard->post_string( 'message', 2000 ), $this->guard->direct_peer_ip() );
+					$sent = $this->runtime->submit_message->execute( $session, $this->guard->post_string( 'message', 2000 ), $this->guard->direct_peer_ip() );
 				} catch ( \Throwable ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch -- Failure is intentionally mapped to a generic redirect.
 					// Privacy-safe redirect.
 				}
-			} $this->redirect();}
+			}
+			$this->cookie( self::FEEDBACK_COOKIE, $sent ? self::FEEDBACK_SENT : self::FEEDBACK_FAILED, time() + 300 );
+			$this->redirect();
+		}
 		$safety_action = ConversationSafetyAction::tryFrom( $action );
 		if ( null !== $safety_action && '1' === $this->guard->post_string( 'confirm_terminal_action', 1 ) ) {
 			$session = $this->cookie_value( self::SESSION_COOKIE );
@@ -167,6 +184,12 @@ final readonly class SecureReplyRouteController {
 	/** Return whether the generic terminal flash is present. */
 	private function terminal_cookie(): bool {
 		return '1' === ( $_COOKIE[ self::TERMINAL_COOKIE ] ?? null );
+	}
+
+	/** Return one closed, non-sensitive message feedback code. */
+	private function feedback_cookie(): ?string {
+		$value = $_COOKIE[ self::FEEDBACK_COOKIE ] ?? null;
+		return is_string( $value ) && in_array( $value, array( self::FEEDBACK_SENT, self::FEEDBACK_FAILED ), true ) ? $value : null;
 	}
 	/**
 	 * Set one scoped secure cookie.
