@@ -134,6 +134,28 @@ No actionable P0, P1, or P2 visual findings remain.
 
 final result: passed
 
+## RT-325 Secure Reply accessibility release gate
+
+- Date: 2026-08-13
+- Surface: TagCore `/secure-reply/`
+- Baseline findings: message submission redirected without visible outcome;
+  Owner/Finder messages had no persistent visual distinction; the terminal
+  action inherited the normal blue submit style; the desktop composition left
+  excessive empty space above a long thread; unavailable and terminal states
+  had no same-site recovery action.
+- Resolution: added one-use generic `sent`/`failed` feedback, role-aware message
+  rails, a bounded session-status strip, a correctly ordered danger-action
+  style, a denser Secure Reply layout, semantic status/alert regions, linked
+  message help, and a ForgeTag home recovery link.
+- Privacy contract: feedback describes local acceptance for background delivery
+  and never claims provider delivery. No participant email, private item name,
+  Tag ID, Token, challenge, Message queue state, media reference, or filename is
+  rendered.
+- Chrome evidence and responsive/accessibility results are frozen in
+  `docs/design/RT-325-SECURE-REPLY-RELEASE-GATE.md`.
+
+final result: passed
+
 ---
 
 # RT-314 Homepage Detail Pass - Chrome QA
