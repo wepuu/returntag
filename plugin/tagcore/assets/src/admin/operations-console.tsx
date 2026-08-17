@@ -1,6 +1,7 @@
 import apiFetch from '@wordpress/api-fetch';
 import {
 	Button,
+	Modal,
 	Notice,
 	RadioControl,
 	SelectControl,
@@ -8,7 +9,7 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import { useEffect, useRef, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 
 export interface OperationsConfig {
 	restPath: string;
@@ -17,6 +18,7 @@ export interface OperationsConfig {
 	usersUrl: string;
 	surface: 'batches' | 'tags' | 'finder_reports' | 'users';
 	canManageTags: boolean;
+	canManageTagLifecycle: boolean;
 	canManageDisputes: boolean;
 	canViewUsers: boolean;
 	canViewAudit: boolean;
@@ -96,7 +98,9 @@ function PageHeader( {
 					<p>{ description }</p>
 				</div>
 				<span className="returntag-read-only">
-					{ __( 'Read only', 'tagcore' ) }
+					{ config.surface === 'tags' && config.canManageTagLifecycle
+						? __( 'Controlled changes', 'tagcore' )
+						: __( 'Read only', 'tagcore' ) }
 				</span>
 			</header>
 			<OperationsNav config={ config } />
@@ -272,6 +276,271 @@ function ResultTable( {
 	);
 }
 
+type TagLifecycleAction =
+	| 'suspend'
+	| 'retire'
+	| 'remove-owner'
+	| 'transfer-owner';
+
+interface LifecycleChoice {
+	action: TagLifecycleAction;
+	title: string;
+	description: string;
+	button: string;
+}
+
+function TagLifecycleDangerZone( {
+	config,
+	tag,
+	onCommitted,
+}: {
+	config: OperationsConfig;
+	tag: OperationRecord;
+	onCommitted: () => Promise< void >;
+} ) {
+	const tagId = String( tag.tag_id );
+	const status = String( tag.tag_status );
+	const ownerId = typeof tag.owner_id === 'number' ? tag.owner_id : null;
+	const [ choice, setChoice ] = useState< LifecycleChoice | null >( null );
+	const [ confirmation, setConfirmation ] = useState( '' );
+	const [ targetUserId, setTargetUserId ] = useState( '' );
+	const [ busy, setBusy ] = useState( false );
+	const [ error, setError ] = useState< string | null >( null );
+	const [ success, setSuccess ] = useState< string | null >( null );
+	const feedbackRef = useRef< HTMLDivElement | null >( null );
+
+	useEffect( () => {
+		if ( error || success ) {
+			feedbackRef.current?.focus();
+		}
+	}, [ error, success ] );
+
+	const choices: LifecycleChoice[] = [
+		{
+			action: 'suspend',
+			title: __( 'Suspend Tag', 'tagcore' ),
+			description: __(
+				'Block activation and new recovery conversations while preserving the current Owner.',
+				'tagcore'
+			),
+			button: __( 'Suspend Tag', 'tagcore' ),
+		},
+		{
+			action: 'retire',
+			title: __( 'Retire Tag permanently', 'tagcore' ),
+			description: __(
+				'Permanently retire this Tag. This action cannot be reversed.',
+				'tagcore'
+			),
+			button: __( 'Retire Tag', 'tagcore' ),
+		},
+		{
+			action: 'remove-owner',
+			title: __( 'Remove Owner and suspend', 'tagcore' ),
+			description: __(
+				'Remove the current Owner and keep the Tag suspended. Public activation will remain unavailable.',
+				'tagcore'
+			),
+			button: __( 'Remove Owner', 'tagcore' ),
+		},
+		{
+			action: 'transfer-owner',
+			title: __( 'Transfer Owner', 'tagcore' ),
+			description: __(
+				'Transfer to an existing exact User ID without changing the current Tag status.',
+				'tagcore'
+			),
+			button: __( 'Transfer Owner', 'tagcore' ),
+		},
+	];
+
+	const eligible = ( action: TagLifecycleAction ) => {
+		if ( action === 'suspend' ) {
+			return status === 'unregistered' || status === 'active';
+		}
+		if ( action === 'retire' ) {
+			return status !== 'retired';
+		}
+		return (
+			ownerId !== null &&
+			( status === 'active' || status === 'suspended' )
+		);
+	};
+
+	const close = () => {
+		setChoice( null );
+		setConfirmation( '' );
+		setTargetUserId( '' );
+		setError( null );
+	};
+
+	const submit = async () => {
+		if ( ! choice ) {
+			return;
+		}
+		setBusy( true );
+		setError( null );
+		setSuccess( null );
+		try {
+			await apiFetch( {
+				path: `${ config.restPath }/admin/tags/${ encodeURIComponent(
+					tagId
+				) }/${ choice.action }`,
+				method: 'POST',
+				data: {
+					confirmation,
+					expected_status: status,
+					expected_owner_id: ownerId,
+					...( choice.action === 'transfer-owner'
+						? { target_user_id: targetUserId }
+						: {} ),
+				},
+			} );
+			await onCommitted();
+			setSuccess(
+				sprintf(
+					/* translators: %s: Tag ID. */
+					__(
+						'Tag %s was updated from committed server state.',
+						'tagcore'
+					),
+					tagId
+				)
+			);
+			close();
+		} catch ( reason ) {
+			setError(
+				( reason as ApiError ).message ??
+					__(
+						'This Tag could not be changed. Reload and try again.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+
+	return (
+		<section
+			className="returntag-danger-zone"
+			aria-labelledby="returntag-danger-title"
+		>
+			<h2 id="returntag-danger-title">
+				{ __( 'Danger Zone', 'tagcore' ) }
+			</h2>
+			<p>
+				{ __(
+					'Every action is atomic, closes active recovery conversations, revokes secure access, cancels pending transfers, and records an audit event.',
+					'tagcore'
+				) }
+			</p>
+			{ success && (
+				<div ref={ feedbackRef } tabIndex={ -1 } aria-live="polite">
+					<Notice status="success" isDismissible={ false }>
+						{ success }
+					</Notice>
+				</div>
+			) }
+			<div className="returntag-danger-actions">
+				{ choices.map( ( item ) => (
+					<Button
+						key={ item.action }
+						variant="secondary"
+						isDestructive
+						disabled={ ! eligible( item.action ) }
+						onClick={ () => {
+							setChoice( item );
+							setError( null );
+							setSuccess( null );
+						} }
+					>
+						{ item.button }
+					</Button>
+				) ) }
+			</div>
+			{ choice && (
+				<Modal title={ choice.title } onRequestClose={ close }>
+					{ error && (
+						<div
+							ref={ feedbackRef }
+							tabIndex={ -1 }
+							aria-live="assertive"
+						>
+							<ErrorNotice message={ error } />
+						</div>
+					) }
+					<p>{ choice.description }</p>
+					<dl className="returntag-confirm-facts">
+						<div>
+							<dt>{ __( 'Current status', 'tagcore' ) }</dt>
+							<dd>{ status }</dd>
+						</div>
+						<div>
+							<dt>
+								{ __( 'Current Owner User ID', 'tagcore' ) }
+							</dt>
+							<dd>{ ownerId ?? __( 'None', 'tagcore' ) }</dd>
+						</div>
+						<div>
+							<dt>{ __( 'Access revocation', 'tagcore' ) }</dt>
+							<dd>
+								{ __(
+									'Conversations, secure links, queued delivery, notifications, and pending transfers',
+									'tagcore'
+								) }
+							</dd>
+						</div>
+					</dl>
+					{ choice.action === 'transfer-owner' && (
+						<TextControl
+							__next40pxDefaultSize
+							__nextHasNoMarginBottom
+							label={ __( 'Target User ID', 'tagcore' ) }
+							value={ targetUserId }
+							onChange={ setTargetUserId }
+						/>
+					) }
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ sprintf(
+							/* translators: %s: exact Tag ID. */
+							__( 'Type %s to confirm', 'tagcore' ),
+							tagId
+						) }
+						value={ confirmation }
+						onChange={ setConfirmation }
+					/>
+					<div className="returntag-modal-actions">
+						<Button
+							variant="tertiary"
+							onClick={ close }
+							disabled={ busy }
+						>
+							{ __( 'Cancel', 'tagcore' ) }
+						</Button>
+						<Button
+							variant="primary"
+							isDestructive
+							isBusy={ busy }
+							disabled={
+								busy ||
+								confirmation !== tagId ||
+								( choice.action === 'transfer-owner' &&
+									! /^[1-9][0-9]*$/.test( targetUserId ) )
+							}
+							onClick={ () => void submit() }
+						>
+							{ choice.button }
+						</Button>
+					</div>
+				</Modal>
+			) }
+		</section>
+	);
+}
+
 function TagsConsole( { config }: { config: OperationsConfig } ) {
 	const [ mode, setMode ] = useState( 'tag_id' );
 	const [ value, setValue ] = useState( '' );
@@ -346,19 +615,21 @@ function TagsConsole( { config }: { config: OperationsConfig } ) {
 		void search();
 	};
 
+	const loadDetail = async ( tagId: string ) => {
+		setDetail(
+			await apiFetch< OperationRecord >( {
+				path: `${ config.restPath }/admin/tags/${ encodeURIComponent(
+					tagId
+				) }`,
+			} )
+		);
+	};
+
 	const open = async ( item: OperationRecord ) => {
 		setLoading( true );
 		setError( null );
 		try {
-			setDetail(
-				await apiFetch< OperationRecord >( {
-					path: `${
-						config.restPath
-					}/admin/tags/${ encodeURIComponent(
-						String( item.tag_id )
-					) }`,
-				} )
-			);
+			await loadDetail( String( item.tag_id ) );
 		} catch ( reason ) {
 			setError(
 				( reason as ApiError ).message ??
@@ -512,6 +783,15 @@ function TagsConsole( { config }: { config: OperationsConfig } ) {
 						{ __( 'Back to results', 'tagcore' ) }
 					</Button>
 					<SafeDetail record={ detail } />
+					{ config.canManageTagLifecycle && (
+						<TagLifecycleDangerZone
+							config={ config }
+							tag={ detail }
+							onCommitted={ () =>
+								loadDetail( String( detail.tag_id ) )
+							}
+						/>
+					) }
 					{ config.canViewUsers &&
 						typeof detail.owner_id === 'number' && (
 							<div className="returntag-cross-links">

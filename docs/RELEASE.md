@@ -407,6 +407,36 @@ RT-326 keeps TagCore `0.5.0` and Schema `13`, and advances only `returntag_capab
 Release acceptance must verify Administrator and least-privilege combinations for Tag Operator, Dispute Operator, User Support, audit viewer, and an unprivileged account. Confirm exact-anchor requirements, POST-only email lookup, duplicate-email failure, 50/100 keyset limits, old-Schema refusal, REST nonce refusal, projection allowlists, and all private response headers. Confirm the existing `/tagcore/v1/tags` contract remains unchanged. With safe development fixtures and preview explicitly enabled, verify one message reveal and one processed Review derivative reveal each append one metadata-free Event; expired, deleted, disabled, or dependency-error paths reveal nothing.
 
 Chrome acceptance covers 1440, 1024, 816, 390, 320 and 200% equivalent layouts, keyboard order, visible focus, error announcements, responsive result tables, Object URL revocation, and console/resource errors. Production preview remains disabled unless separately authorized after external key and private-storage verification.
+
+### RT-327 administrator Tag lifecycle acceptance
+
+RT-327 keeps TagCore `0.5.0` and Schema `13`, and advances only
+`returntag_capability_schema_version` from `3` to `4`. Activation or authorized
+administrative reconciliation grants `manage_returntag_tag_lifecycle` to
+Administrators. `returntag_admin_tag_lifecycle_enabled` remains disabled by
+default and must not be enabled in production by the code release.
+
+Acceptance must verify Administrator, read-only Tag Operator, lifecycle-only
+Operator, and unprivileged accounts. For all four actions verify REST nonce,
+capability, current Schema, exact Tag ID confirmation, submitted state/Owner
+snapshot, target User uniqueness where applicable, private response headers,
+committed-state reload, and one bounded audit Event. Confirm Suspend preserves
+Owner, Retire is terminal, Remove Owner commits suspended without reopening
+activation, and Transfer preserves active or suspended status.
+
+Verify in the same transaction that active conversations close, queued or
+in-flight messages fail, access tokens are revoked, queued or deferred
+prior-Owner notifications fail, and pending transfers are cancelled. Confirm
+old Owner account and secure-link requests fail immediately after ownership
+change. Chrome acceptance covers 1440, 1024, 816, 390, 320, and 200% equivalent
+layouts, keyboard order, modal focus containment and return, visible focus,
+error announcements, and console/resource errors.
+
+Rollback first disables `returntag_admin_tag_lifecycle_enabled`, then restores
+the previous code only after verifying no action is in progress. Capability
+version `4` and completed Events may remain. No Schema rollback, Tag deletion,
+Owner restoration, unsuspension, or retirement reversal is performed
+automatically.
 RT-202 adds the canonical secure in-memory candidate ID generator without
 changing the administration interface, release version, or Schema.
 RT-203 adds bounded insert-first collision retry without changing the

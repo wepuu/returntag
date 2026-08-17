@@ -72,6 +72,16 @@ The internal route set is:
 
 The pre-existing `GET /tagcore/v1/tags` route remains unchanged. Theme code has no role in these queries or decisions.
 
+RT-327 adds four write-only internal Admin routes beneath the RT-326 Tag detail:
+`suspend`, `retire`, `remove-owner`, and `transfer-owner`. The Admin adapter owns
+nonce, capability, Schema, and input validation only. `ManageAdminTagLifecycle`
+owns the feature gate and exact confirmation contract; the pure lifecycle
+policy owns the state matrix; `WpdbAdminTagLifecycleStore` owns the single
+transaction that locks the Tag, checks the submitted snapshot, commits state,
+revokes prior access paths, cancels pending transfers, and appends the Event.
+The React Danger Zone never decides or predicts committed state and reloads the
+Tag projection after success. Theme code is not involved.
+
 ### PublicSite
 
 Owns public scan, activation, finder, and secure-link HTTP presentation. It must

@@ -10,6 +10,10 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Admin;
 
 use ReturnTag\TagCore\Application\Batch\BatchEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Admin\AdminTagLifecycleEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Admin\AdminTagLifecycleEventMetadataPolicy;
+use ReturnTag\TagCore\Application\Admin\AdminTagLifecyclePolicy;
+use ReturnTag\TagCore\Application\Admin\ManageAdminTagLifecycle;
 use ReturnTag\TagCore\Application\Batch\ChangeBatchLifecycle;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
@@ -49,6 +53,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminOperationsReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminTagLifecycleStore;
 use ReturnTag\TagCore\Infrastructure\FinderReport\AdminSensitivePreviewFactory;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
@@ -176,6 +181,35 @@ final class AdminBootstrap {
 		add_action( 'rest_api_init', array( $operations_controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $operations_controller, 'apply_security_headers' ), 10, 3 );
 		add_filter( 'rest_pre_serve_request', array( $operations_controller, 'serve_evidence' ), 10, 4 );
+
+		$lifecycle_metadata         = new AdminTagLifecycleEventMetadataPolicy();
+		$admin_lifecycle            = new ManageAdminTagLifecycle(
+			new WpdbAdminTagLifecycleStore(
+				$gateway,
+				$tables,
+				$wpdb->users,
+				$dates,
+				$transactions,
+				new WpdbEventRepository(
+					$gateway,
+					$tables,
+					$dates,
+					$lifecycle_metadata,
+					new AdminTagLifecycleEventIdentityPolicy()
+				),
+				$lifecycle_metadata,
+				new AdminTagLifecyclePolicy()
+			),
+			$feature_flags,
+			new SystemClock()
+		);
+		$admin_lifecycle_controller = new AdminTagLifecycleRestController(
+			$admin_lifecycle,
+			new TagIdInputNormalizer(),
+			$schema_state
+		);
+		add_action( 'rest_api_init', array( $admin_lifecycle_controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $admin_lifecycle_controller, 'apply_security_headers' ), 10, 3 );
 
 		$lifecycle_controller = new BatchLifecycleRestController(
 			new GetBatchLifecycle( $lifecycle_repository, $feature_flags ),

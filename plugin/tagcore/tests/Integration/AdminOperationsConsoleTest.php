@@ -89,6 +89,7 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 					Capability::MANAGE_RETURNTAG,
 					Capability::MANAGE_BATCHES,
 					Capability::MANAGE_TAGS,
+					Capability::MANAGE_TAG_LIFECYCLE,
 					Capability::MANAGE_DISPUTES,
 					Capability::VIEW_USERS,
 					Capability::VIEW_AUDIT_LOGS,

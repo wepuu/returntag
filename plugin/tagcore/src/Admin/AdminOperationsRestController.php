@@ -158,7 +158,7 @@ final readonly class AdminOperationsRestController {
 					return $this->not_found();
 				}
 				$data = $this->prepare_tag( $tag );
-				if ( ! current_user_can( Capability::VIEW_USERS ) ) {
+				if ( ! current_user_can( Capability::VIEW_USERS ) && ! current_user_can( Capability::MANAGE_TAG_LIFECYCLE ) ) {
 					unset( $data['owner_id'] );
 				}
 				if ( current_user_can( Capability::VIEW_AUDIT_LOGS ) ) {

@@ -1597,6 +1597,29 @@ TagCore 为内部客服、运营和争议处理人员提供相互独立的 Tags�
 
 敏感预览由默认关闭的 `returntag_admin_sensitive_preview_enabled` 独立控制。具备争议处理权限的人员可通过显式 POST 查看未过期的 Finder 留言或仍在保留期内的 processed Review derivative。每次成功查看必须写入无元数据审计事件；原图、Email derivative、公共 URL 与下载文件名始终不可用。RT-326 不提供 Tag 状态变更、Owner 转移、用户或角色修改及争议裁决。
 
+### 20.5 RT-327 后台 Tag 生命周期控制
+
+后台 Tag Detail 可向具备独立 `manage_returntag_tag_lifecycle` 权限的人员显示
+Danger Zone。该权限默认只授予 Administrator，不因拥有 Tag 查询权限而自动
+获得。四项操作必须通过显式 POST、WordPress REST Nonce、当前 Schema、默认
+关闭的 `returntag_admin_tag_lifecycle_enabled`、完整 Tag ID 二次输入以及当前
+Tag Status/Owner 快照核对后执行：
+
+- Suspend：仅允许 `unregistered` 或 `active` 进入 `suspended`，保留 Owner；
+- Retire：任何非 `retired` Tag 永久进入 `retired`，保留已有 Owner 供审计；
+- Remove Owner：仅允许有 Owner 的 `active`/`suspended` Tag，清空 Owner 并
+  强制保持 `suspended`，不得恢复为可公开激活；
+- Transfer Owner：目标必须是具有唯一有效邮箱身份的现有 WordPress User
+  ID；`active` 保持 `active`，`suspended` 保持 `suspended`，不得隐式解除暂停、
+  创建账户或发送通知。
+
+每次成功操作必须在同一事务中撤销旧访问：关闭活动会话、撤销安全 Token、
+使排队或执行中的消息与旧 Owner 通知失败、取消 Pending Transfer，并写入
+`tag_suspended`、`tag_retired`、`tag_owner_removed` 或 `tag_transferred` 审计事件。
+事件只允许记录操作员、时间、前后状态和前后 Owner User ID；不得记录邮箱、
+自由文本原因、消息、Token、IP、位置或私有物品名称。RT-327 不提供解除暂停、
+批量操作、争议裁决、用户删除、角色修改、密码重置或通知邮件。
+
 ---
 
 ## 21. WooCommerce 集成要求
