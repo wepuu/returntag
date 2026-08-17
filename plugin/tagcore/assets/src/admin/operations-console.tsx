@@ -302,6 +302,7 @@ function TagsConsole( { config }: { config: OperationsConfig } ) {
 		setError( null );
 		if ( ! cursor ) {
 			setDetail( null );
+			setItems( [] );
 		}
 		const key = mode === 'batch' ? 'batch_code' : mode;
 		try {
