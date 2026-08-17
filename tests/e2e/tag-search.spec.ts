@@ -4,7 +4,7 @@ test( 'an authorized operator performs a read-only exact Tag search', async ( {
 	page,
 } ) => {
 	await page.route(
-		'**/wp-json/tagcore/v1/admin/tags/search',
+		'**/wp-json/tagcore/v1/admin/tags/search*',
 		async ( route ) => {
 			expect( route.request().method() ).toBe( 'POST' );
 			expect( route.request().postDataJSON() ).toMatchObject( {
@@ -68,7 +68,7 @@ test( 'a new search clears stale results while the request is pending', async ( 
 	let requestCount = 0;
 
 	await page.route(
-		'**/wp-json/tagcore/v1/admin/tags/search',
+		'**/wp-json/tagcore/v1/admin/tags/search*',
 		async ( route ) => {
 			requestCount += 1;
 			expect( route.request().method() ).toBe( 'POST' );
