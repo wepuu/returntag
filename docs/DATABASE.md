@@ -1126,3 +1126,9 @@ states, bounded dispatch claim metadata, expiry, and UTC lifecycle timestamps.
 No plaintext email or Token is persisted. The unique Token hash prevents
 replay; Tag/status and status/expiry indexes support bounded operations.
 Previous `0.4.0` code safely ignores the additive table. Rollback preserves it.
+
+## 26. RT-326 operations query projections
+
+RT-326 introduces no DDL and keeps Schema version `13`. Exact Tag ID uses the Tag primary key; Batch searches use the unique Batch Code followed by `batch_id_status`; Owner Tag queries use `owner_id_status`. Finder Report ID uses the primary key, Tag queries use `tag_status_created_at`, and Owner queries use `owner_status_created_at`. User email resolution uses the WordPress-configured users table and reads at most two exact rows so duplicate identities fail closed.
+
+Operations pages use criteria-bound keyset pagination with a default of 50 and a maximum of 100. Query projections exclude private item text, Finder email, message ciphertext, private-media object references, tokens, OTP data and message bodies. Sensitive preview uses the existing encrypted values and storage objects without adding columns or Media Library records. A successful message or Review derivative view appends a metadata-free row to `returntag_events` with event type `finder_report_message_viewed` or `finder_report_evidence_viewed`, actor type `user`, the operator User ID, target type `finder_report`, and the report ID. No sensitive value is stored in Event metadata.

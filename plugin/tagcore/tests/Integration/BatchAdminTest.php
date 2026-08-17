@@ -91,7 +91,10 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertTrue( current_user_can( Capability::MANAGE_RETURNTAG ) );
 		self::assertTrue( current_user_can( Capability::MANAGE_BATCHES ) );
 		self::assertTrue( current_user_can( Capability::MANAGE_TAGS ) );
-		self::assertSame( 2, get_option( CapabilityInstaller::OPTION_NAME ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_DISPUTES ) );
+		self::assertTrue( current_user_can( Capability::VIEW_USERS ) );
+		self::assertTrue( current_user_can( Capability::VIEW_AUDIT_LOGS ) );
+		self::assertSame( 3, get_option( CapabilityInstaller::OPTION_NAME ) );
 		self::assertArrayNotHasKey( CapabilityInstaller::OPTION_NAME, wp_load_alloptions() );
 
 		$query = $wpdb->prepare(

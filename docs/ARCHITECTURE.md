@@ -62,6 +62,16 @@ Adapts WordPress administration requests and responses. Admin controllers must
 perform capability and nonce checks, validate input, invoke application use
 cases, and escape output. They must not contain SQL or business state machines.
 
+RT-326 composes a read-only operations console across three capability-separated Admin surfaces. Internal REST adapters accept exact anchors and map only approved query projections. `WpdbAdminOperationsReader` owns prepared, bounded SQL and keyset access; it does not return private item fields, Finder identity data, message ciphertext, or media references. Sensitive Finder Report access is an Application use case backed by the existing message protector and private-media storage ports. The use case reads only the processed Review derivative and records a metadata-free Event after successful access. The Admin bundle keeps evidence in a temporary browser Object URL and revokes it when the detail state changes.
+
+The internal route set is:
+
+- `POST /tagcore/v1/admin/tags/search` and `GET /tagcore/v1/admin/tags/{tag_id}`;
+- `POST /tagcore/v1/admin/finder-reports/search`, `GET /tagcore/v1/admin/finder-reports/{id}`, and the two explicit reveal POST routes;
+- `POST /tagcore/v1/admin/users/search` and `GET /tagcore/v1/admin/users/{id}`.
+
+The pre-existing `GET /tagcore/v1/tags` route remains unchanged. Theme code has no role in these queries or decisions.
+
 ### PublicSite
 
 Owns public scan, activation, finder, and secure-link HTTP presentation. It must

@@ -68,6 +68,12 @@ authentication and the `wp_rest` nonce; route permission callbacks enforce the
 capability server-side. Responses are marked `no-store, private`, and failures
 do not expose SQL or raw exception text.
 
+RT-326 advances the capability contract to version `3`. Tag queries require `manage_returntag_tags`, Finder Report metadata and sensitive preview require `manage_returntag_disputes`, User support queries require `view_returntag_users`, and audit timelines require `view_returntag_audit_logs`. New capabilities are reconciled only to Administrators by default. A link to the native WordPress user editor additionally requires `edit_users`.
+
+All operations routes require a valid REST nonce and current Schema, and return `no-store, private`, `no-cache`, `no-referrer`, and `nosniff` controls. Exact email values exist only in POST bodies and process memory; cursors bind to resolved User IDs and never contain an email. Duplicate WordPress email identities fail closed.
+
+`returntag_admin_sensitive_preview_enabled` defaults disabled. When enabled, message and evidence reveal remain explicit POST actions. Only a non-terminal, non-expired message or retained, `ready` Review derivative can be decrypted. No original or Email derivative, public URL, filename, Finder Email, object reference, encryption key, or token crosses the response boundary. Every successful reveal creates one metadata-free Event; errors use a uniform failure and must not include the sensitive value or dependency details.
+
 ## 6. Private finder relay
 
 An initial one-way Finder Report may notify the current Owner without Finder
