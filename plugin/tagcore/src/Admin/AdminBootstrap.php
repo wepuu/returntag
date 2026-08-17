@@ -48,6 +48,8 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminOperationsReader;
+use ReturnTag\TagCore\Infrastructure\FinderReport\AdminSensitivePreviewFactory;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
@@ -132,6 +134,7 @@ final class AdminBootstrap {
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 		( new TagAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
+		( new OperationsAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 
 		$controller = new BatchRestController(
 			$create,
@@ -160,6 +163,19 @@ final class AdminBootstrap {
 		);
 		add_action( 'rest_api_init', array( $tag_search_controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $tag_search_controller, 'apply_no_store_headers' ), 10, 3 );
+
+		$operations_controller = new AdminOperationsRestController(
+			new WpdbAdminOperationsReader( $gateway, $tables, $wpdb->users ),
+			new TagSearchInputNormalizer( new TagIdInputNormalizer() ),
+			new AdminOperationsCursorCodec(),
+			$schema_state,
+			AdminSensitivePreviewFactory::create( $wpdb ),
+			$feature_flags,
+			new TagActivationAvailabilityPolicy()
+		);
+		add_action( 'rest_api_init', array( $operations_controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $operations_controller, 'apply_security_headers' ), 10, 3 );
+		add_filter( 'rest_pre_serve_request', array( $operations_controller, 'serve_evidence' ), 10, 4 );
 
 		$lifecycle_controller = new BatchLifecycleRestController(
 			new GetBatchLifecycle( $lifecycle_repository, $feature_flags ),

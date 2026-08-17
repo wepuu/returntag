@@ -18,7 +18,7 @@ use WP_Role;
 final class CapabilityInstaller {
 	public const OPTION_NAME = 'returntag_capability_schema_version';
 
-	private const TARGET_VERSION = 2;
+	private const TARGET_VERSION = 3;
 
 	/**
 	 * Create the installer.
@@ -48,7 +48,7 @@ final class CapabilityInstaller {
 	}
 
 	/**
-	 * Add the approved RT-201 capabilities to administrators.
+	 * Add the current approved TagCore capabilities to administrators.
 	 */
 	public function install(): void {
 		$role = get_role( 'administrator' );
@@ -60,6 +60,9 @@ final class CapabilityInstaller {
 		$role->add_cap( Capability::MANAGE_RETURNTAG );
 		$role->add_cap( Capability::MANAGE_BATCHES );
 		$role->add_cap( Capability::MANAGE_TAGS );
+		$role->add_cap( Capability::MANAGE_DISPUTES );
+		$role->add_cap( Capability::VIEW_USERS );
+		$role->add_cap( Capability::VIEW_AUDIT_LOGS );
 
 		$current_user = wp_get_current_user();
 

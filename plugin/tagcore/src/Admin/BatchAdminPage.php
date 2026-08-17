@@ -51,11 +51,11 @@ final class BatchAdminPage {
 	 */
 	public function register_menu(): void {
 		$top_level_hook = add_menu_page(
-			__( 'TagCore Batches', 'tagcore' ),
+			__( 'TagCore Operations', 'tagcore' ),
 			__( 'TagCore', 'tagcore' ),
-			Capability::MANAGE_BATCHES,
+			Capability::MANAGE_RETURNTAG,
 			self::PAGE_SLUG,
-			array( $this, 'render' ),
+			array( $this, 'render_entrypoint' ),
 			'dashicons-tag',
 			58
 		);
@@ -74,6 +74,38 @@ final class BatchAdminPage {
 				$this->page_hooks[] = $page_hook;
 			}
 		}
+	}
+
+	/**
+	 * Render Batches for Batch operators or a safe operations entrypoint for
+	 * other least-privilege TagCore roles.
+	 */
+	public function render_entrypoint(): void {
+		if ( current_user_can( Capability::MANAGE_BATCHES ) ) {
+			$this->render();
+			return;
+		}
+
+		if ( ! current_user_can( Capability::MANAGE_RETURNTAG ) ) {
+			wp_die(
+				esc_html__( 'You are not allowed to use TagCore operations.', 'tagcore' ),
+				esc_html__( 'Access denied', 'tagcore' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'TagCore Operations', 'tagcore' ) . '</h1>';
+		echo '<p>' . esc_html__( 'Choose an operations view available to your role.', 'tagcore' ) . '</p><ul>';
+		if ( current_user_can( Capability::MANAGE_TAGS ) ) {
+			echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=' . TagAdminPage::PAGE_SLUG ) ) . '">' . esc_html__( 'Tags', 'tagcore' ) . '</a></li>';
+		}
+		if ( current_user_can( Capability::MANAGE_DISPUTES ) ) {
+			echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=' . OperationsAdminPage::FINDER_REPORTS_SLUG ) ) . '">' . esc_html__( 'Finder Reports', 'tagcore' ) . '</a></li>';
+		}
+		if ( current_user_can( Capability::VIEW_USERS ) ) {
+			echo '<li><a href="' . esc_url( admin_url( 'admin.php?page=' . OperationsAdminPage::USERS_SLUG ) ) . '">' . esc_html__( 'Users', 'tagcore' ) . '</a></li>';
+		}
+		echo '</ul></div>';
 	}
 
 	/**
@@ -106,7 +138,7 @@ final class BatchAdminPage {
 	 * @param string $hook_suffix Current WordPress administration page hook.
 	 */
 	public function enqueue_assets( string $hook_suffix ): void {
-		if ( ! in_array( $hook_suffix, $this->page_hooks, true ) || ! $this->schema_state->is_current() ) {
+		if ( ! in_array( $hook_suffix, $this->page_hooks, true ) || ! current_user_can( Capability::MANAGE_BATCHES ) || ! $this->schema_state->is_current() ) {
 			return;
 		}
 
@@ -145,14 +177,21 @@ final class BatchAdminPage {
 			self::SCRIPT_HANDLE,
 			'returntagTagCoreAdmin',
 			array(
-				'nonce'       => wp_create_nonce( 'wp_rest' ),
-				'restPath'    => '/tagcore/v1',
-				'currentUser' => $user->display_name,
-				'currentTime' => gmdate( DATE_ATOM ),
-				'listUrl'     => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
-				'createUrl'   => admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&view=create' ),
-				'tagsUrl'     => admin_url( 'admin.php?page=' . TagAdminPage::PAGE_SLUG ),
-				'surface'     => 'batches',
+				'nonce'             => wp_create_nonce( 'wp_rest' ),
+				'restPath'          => '/tagcore/v1',
+				'currentUser'       => $user->display_name,
+				'currentTime'       => gmdate( DATE_ATOM ),
+				'listUrl'           => admin_url( 'admin.php?page=' . self::PAGE_SLUG ),
+				'createUrl'         => admin_url( 'admin.php?page=' . self::PAGE_SLUG . '&view=create' ),
+				'tagsUrl'           => admin_url( 'admin.php?page=' . TagAdminPage::PAGE_SLUG ),
+				'finderReportsUrl'  => admin_url( 'admin.php?page=' . OperationsAdminPage::FINDER_REPORTS_SLUG ),
+				'usersUrl'          => admin_url( 'admin.php?page=' . OperationsAdminPage::USERS_SLUG ),
+				'canManageTags'     => current_user_can( Capability::MANAGE_TAGS ),
+				'canManageDisputes' => current_user_can( Capability::MANAGE_DISPUTES ),
+				'canViewUsers'      => current_user_can( Capability::VIEW_USERS ),
+				'canViewAudit'      => current_user_can( Capability::VIEW_AUDIT_LOGS ),
+				'canEditUsers'      => current_user_can( 'edit_users' ),
+				'surface'           => 'batches',
 			)
 		);
 	}

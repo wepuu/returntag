@@ -34,6 +34,7 @@ final class FeatureFlagTest extends TestCase {
 				'returntag_woocommerce_account_enabled',
 				'returntag_owner_account_enabled',
 				'returntag_owner_lifecycle_enabled',
+				'returntag_admin_sensitive_preview_enabled',
 			),
 			$option_names
 		);

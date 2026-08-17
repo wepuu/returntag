@@ -1589,6 +1589,14 @@ suspend_pending_review
 retire_tag
 ```
 
+### 20.4 RT-326 后台运营查询工作台
+
+TagCore 为内部客服、运营和争议处理人员提供相互独立的 Tags、Finder Reports 和 Users 查询入口。所有列表查询必须至少包含一个精确锚点；不提供无锚点浏览、通配、模糊搜索或批量导出。Owner Email 与 User Email 仅允许通过 POST 请求体进行完整匹配，不得进入 URL、Cursor、日志或错误文本；重复邮箱身份必须失败关闭并要求使用 User ID。
+
+后台返回值采用字段白名单。Tag 查询不得返回 `item_name`、Lost Message、位置或扫描历史；Finder Report 查询不得返回 Finder Email、留言、原图、对象引用、文件名或 Token；User 查询不得返回密码、Session、OTP、订单、配送地址或 Finder Email。
+
+敏感预览由默认关闭的 `returntag_admin_sensitive_preview_enabled` 独立控制。具备争议处理权限的人员可通过显式 POST 查看未过期的 Finder 留言或仍在保留期内的 processed Review derivative。每次成功查看必须写入无元数据审计事件；原图、Email derivative、公共 URL 与下载文件名始终不可用。RT-326 不提供 Tag 状态变更、Owner 转移、用户或角色修改及争议裁决。
+
 ---
 
 ## 21. WooCommerce 集成要求

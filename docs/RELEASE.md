@@ -399,6 +399,14 @@ those tables without registering a production consumer. RT-110 verifies the
 production Migration composition and closes the data milestone at `0.2.0`.
 RT-201 adds the first capability-protected Batch create/list/detail
 administrative workflow without changing the release version or Schema.
+
+### RT-326 operations-console acceptance
+
+RT-326 keeps TagCore `0.5.0` and Schema `13`, and advances only `returntag_capability_schema_version` from `2` to `3`. Activation or an authorized `admin_init` reconciliation grants the new dispute, user-view, and audit-view capabilities to Administrators. Rollback does not remove capabilities or audit Events; the previous stable build ignores the additive capabilities and view Events. Disable `returntag_admin_sensitive_preview_enabled` before code rollback or whenever private runtime dependencies are unavailable.
+
+Release acceptance must verify Administrator and least-privilege combinations for Tag Operator, Dispute Operator, User Support, audit viewer, and an unprivileged account. Confirm exact-anchor requirements, POST-only email lookup, duplicate-email failure, 50/100 keyset limits, old-Schema refusal, REST nonce refusal, projection allowlists, and all private response headers. Confirm the existing `/tagcore/v1/tags` contract remains unchanged. With safe development fixtures and preview explicitly enabled, verify one message reveal and one processed Review derivative reveal each append one metadata-free Event; expired, deleted, disabled, or dependency-error paths reveal nothing.
+
+Chrome acceptance covers 1440, 1024, 816, 390, 320 and 200% equivalent layouts, keyboard order, visible focus, error announcements, responsive result tables, Object URL revocation, and console/resource errors. Production preview remains disabled unless separately authorized after external key and private-storage verification.
 RT-202 adds the canonical secure in-memory candidate ID generator without
 changing the administration interface, release version, or Schema.
 RT-203 adds bounded insert-first collision retry without changing the
