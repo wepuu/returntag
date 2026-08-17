@@ -69,6 +69,10 @@ final class BatchAdminTest extends WP_UnitTestCase {
 			$role->remove_cap( Capability::MANAGE_BATCHES );
 			$role->remove_cap( Capability::MANAGE_TAGS );
 			$role->remove_cap( Capability::MANAGE_TAG_LIFECYCLE );
+			$role->remove_cap( Capability::MANAGE_DISPUTES );
+			$role->remove_cap( Capability::MANAGE_FINDER_REPORT_DECISIONS );
+			$role->remove_cap( Capability::VIEW_USERS );
+			$role->remove_cap( Capability::VIEW_AUDIT_LOGS );
 		}
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
@@ -94,9 +98,10 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertTrue( current_user_can( Capability::MANAGE_TAGS ) );
 		self::assertTrue( current_user_can( Capability::MANAGE_TAG_LIFECYCLE ) );
 		self::assertTrue( current_user_can( Capability::MANAGE_DISPUTES ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_FINDER_REPORT_DECISIONS ) );
 		self::assertTrue( current_user_can( Capability::VIEW_USERS ) );
 		self::assertTrue( current_user_can( Capability::VIEW_AUDIT_LOGS ) );
-		self::assertSame( 4, get_option( CapabilityInstaller::OPTION_NAME ) );
+		self::assertSame( 5, get_option( CapabilityInstaller::OPTION_NAME ) );
 		self::assertArrayNotHasKey( CapabilityInstaller::OPTION_NAME, wp_load_alloptions() );
 
 		$query = $wpdb->prepare(
@@ -1526,7 +1531,7 @@ final class BatchAdminTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 13, $runner->migrate()->ending_version );
+		self::assertSame( 14, $runner->migrate()->ending_version );
 	}
 
 	/**

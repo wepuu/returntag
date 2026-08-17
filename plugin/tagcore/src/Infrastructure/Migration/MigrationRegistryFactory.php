@@ -45,6 +45,7 @@ final class MigrationRegistryFactory {
 
 		$dispatch_claims = new AddMessageDispatchClaimsMigration( $this->database, $table_names, $link );
 
+		$transfers = new CreateTagTransfersTableMigration( $this->database, $table_names, $inspector, $dispatch_claims );
 		return new MigrationRegistry(
 			array(
 				$batches,
@@ -59,7 +60,8 @@ final class MigrationRegistryFactory {
 				$media,
 				$link,
 				$dispatch_claims,
-				new CreateTagTransfersTableMigration( $this->database, $table_names, $inspector, $dispatch_claims ),
+				$transfers,
+				new AddFinderEvidenceHoldMigration( $this->database, $table_names, $transfers ),
 			)
 		);
 	}

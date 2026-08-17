@@ -52,6 +52,9 @@ final class CreateFinderReportMediaTableMigration implements Migration {
 		}
 
 		$state = $this->inspect();
+		if ( SchemaTableState::EXACT === $this->inspect( true ) ) {
+			return;
+		}
 
 		if ( SchemaTableState::INCOMPATIBLE === $state ) {
 			throw new MigrationException( 'The existing schema is incompatible with this migration.' );
@@ -98,54 +101,72 @@ final class CreateFinderReportMediaTableMigration implements Migration {
 
 	/** Verify the complete version 0010 contract and predecessor. */
 	public function verify(): bool {
-		return $this->prerequisite->verify() && SchemaTableState::EXACT === $this->inspect();
+		return $this->prerequisite->verify() && ( SchemaTableState::EXACT === $this->inspect() || SchemaTableState::EXACT === $this->inspect( true ) );
 	}
 
-	/** Inspect the complete table contract before mutation. */
-	private function inspect(): SchemaTableState {
+	/**
+	 * Inspect the complete table contract before mutation.
+	 *
+	 * @param bool $with_hold Whether to verify the approved Schema 14 extension.
+	 */
+	private function inspect( bool $with_hold = false ): SchemaTableState {
+		$columns = array(
+			'finder_report_media_id'      => $this->integer_requirement( 'bigint', false, true ),
+			'finder_report_id'            => $this->integer_requirement( 'bigint' ),
+			'object_reference_ciphertext' => $this->plain_requirement( 'longblob' ),
+			'encryption_key_id'           => $this->ascii_requirement( 'varchar', 64 ),
+			'content_sha256'              => $this->ascii_requirement( 'char', 64 ),
+			'source_mime'                 => $this->ascii_requirement( 'varchar', 32 ),
+			'source_byte_count'           => $this->integer_requirement( 'bigint' ),
+			'source_width'                => $this->integer_requirement( 'int' ),
+			'source_height'               => $this->integer_requirement( 'int' ),
+			'review_reference_ciphertext' => $this->plain_requirement( 'longblob', true ),
+			'review_sha256'               => $this->ascii_requirement( 'char', 64, true ),
+			'review_byte_count'           => $this->integer_requirement( 'bigint', true ),
+			'review_width'                => $this->integer_requirement( 'int', true ),
+			'review_height'               => $this->integer_requirement( 'int', true ),
+			'email_reference_ciphertext'  => $this->plain_requirement( 'longblob', true ),
+			'email_sha256'                => $this->ascii_requirement( 'char', 64, true ),
+			'email_byte_count'            => $this->integer_requirement( 'bigint', true ),
+			'email_width'                 => $this->integer_requirement( 'int', true ),
+			'email_height'                => $this->integer_requirement( 'int', true ),
+			'media_status'                => $this->ascii_requirement( 'varchar', 32 ),
+			'retention_until'             => $this->datetime_requirement(),
+		);
+		if ( $with_hold ) {
+			$columns['hold_until']     = $this->nullable_datetime_requirement();
+			$columns['hold_placed_at'] = $this->nullable_datetime_requirement();
+			$columns['hold_placed_by'] = $this->integer_requirement( 'bigint', true );
+		}
+		$columns['created_at'] = $this->datetime_requirement();
+		$columns['updated_at'] = $this->datetime_requirement();
+		$indexes               = array(
+			'PRIMARY'                      => array(
+				'unique'  => true,
+				'columns' => array( 'finder_report_media_id' ),
+			),
+			'finder_report_id'             => array(
+				'unique'  => true,
+				'columns' => array( 'finder_report_id' ),
+			),
+			'media_status_retention_until' => array(
+				'unique'  => false,
+				'columns' => array( 'media_status', 'retention_until' ),
+			),
+		);
+		if ( $with_hold ) {
+			$indexes['media_retention_hold'] = array(
+				'unique'  => false,
+				'columns' => array( 'media_status', 'retention_until', 'hold_until' ),
+			);
+		}
+		ksort( $indexes );
 		return $this->inspector->inspect_table(
 			$this->table_names->finder_report_media(),
 			'InnoDB',
 			strtolower( (string) $this->database->collate ),
-			array(
-				'finder_report_media_id'      => $this->integer_requirement( 'bigint', false, true ),
-				'finder_report_id'            => $this->integer_requirement( 'bigint' ),
-				'object_reference_ciphertext' => $this->plain_requirement( 'longblob' ),
-				'encryption_key_id'           => $this->ascii_requirement( 'varchar', 64 ),
-				'content_sha256'              => $this->ascii_requirement( 'char', 64 ),
-				'source_mime'                 => $this->ascii_requirement( 'varchar', 32 ),
-				'source_byte_count'           => $this->integer_requirement( 'bigint' ),
-				'source_width'                => $this->integer_requirement( 'int' ),
-				'source_height'               => $this->integer_requirement( 'int' ),
-				'review_reference_ciphertext' => $this->plain_requirement( 'longblob', true ),
-				'review_sha256'               => $this->ascii_requirement( 'char', 64, true ),
-				'review_byte_count'           => $this->integer_requirement( 'bigint', true ),
-				'review_width'                => $this->integer_requirement( 'int', true ),
-				'review_height'               => $this->integer_requirement( 'int', true ),
-				'email_reference_ciphertext'  => $this->plain_requirement( 'longblob', true ),
-				'email_sha256'                => $this->ascii_requirement( 'char', 64, true ),
-				'email_byte_count'            => $this->integer_requirement( 'bigint', true ),
-				'email_width'                 => $this->integer_requirement( 'int', true ),
-				'email_height'                => $this->integer_requirement( 'int', true ),
-				'media_status'                => $this->ascii_requirement( 'varchar', 32 ),
-				'retention_until'             => $this->datetime_requirement(),
-				'created_at'                  => $this->datetime_requirement(),
-				'updated_at'                  => $this->datetime_requirement(),
-			),
-			array(
-				'PRIMARY'                      => array(
-					'unique'  => true,
-					'columns' => array( 'finder_report_media_id' ),
-				),
-				'finder_report_id'             => array(
-					'unique'  => true,
-					'columns' => array( 'finder_report_id' ),
-				),
-				'media_status_retention_until' => array(
-					'unique'  => false,
-					'columns' => array( 'media_status', 'retention_until' ),
-				),
-			)
+			$columns,
+			$indexes
 		);
 	}
 
@@ -213,6 +234,20 @@ final class CreateFinderReportMediaTableMigration implements Migration {
 			'data_type' => 'datetime',
 			'unsigned'  => false,
 			'nullable'  => false,
+			'default'   => null,
+		);
+	}
+
+	/**
+	 * Build a nullable UTC datetime requirement.
+	 *
+	 * @return array{data_type: 'datetime', unsigned: false, nullable: true, default: null}
+	 */
+	private function nullable_datetime_requirement(): array {
+		return array(
+			'data_type' => 'datetime',
+			'unsigned'  => false,
+			'nullable'  => true,
 			'default'   => null,
 		);
 	}

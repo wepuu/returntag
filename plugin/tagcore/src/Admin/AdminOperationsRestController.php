@@ -249,7 +249,7 @@ final readonly class AdminOperationsRestController {
 				if ( null === $this->preview ) {
 					throw new \RuntimeException( 'Preview is unavailable.' );
 				}
-				$message = $this->preview->reveal_message( $this->positive_id( $request->get_param( 'id' ) ), get_current_user_id() );
+				$message = $this->preview->reveal_message( $this->positive_id( $request->get_param( 'id' ) ), get_current_user_id(), current_user_can( Capability::MANAGE_FINDER_REPORT_DECISIONS ) );
 				return $this->response( array( 'message' => $message ) );
 			}
 		);
@@ -266,7 +266,7 @@ final readonly class AdminOperationsRestController {
 				if ( null === $this->preview ) {
 					throw new \RuntimeException( 'Preview is unavailable.' );
 				}
-				$bytes    = $this->preview->reveal_evidence( $this->positive_id( $request->get_param( 'id' ) ), get_current_user_id() );
+				$bytes    = $this->preview->reveal_evidence( $this->positive_id( $request->get_param( 'id' ) ), get_current_user_id(), current_user_can( Capability::MANAGE_FINDER_REPORT_DECISIONS ) );
 				$response = $this->response( new AdminEvidencePreview( $bytes ) );
 				$response->header( 'Content-Type', 'image/jpeg' );
 				$response->header( 'Content-Disposition', 'inline' );
@@ -588,6 +588,8 @@ final readonly class AdminOperationsRestController {
 			'owner_notified_at'   => $row['owner_notified_at'],
 			'expires_at'          => $row['expires_at'],
 			'retention_until'     => $row['retention_until'],
+			'hold_until'          => $row['hold_until'],
+			'hold_active'         => null !== $row['hold_until'] && strtotime( (string) $row['hold_until'] . ' UTC' ) > time(),
 			'created_at'          => $row['created_at'],
 			'updated_at'          => $row['updated_at'],
 			'has_message'         => (bool) $row['has_message'],

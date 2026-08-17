@@ -2247,6 +2247,24 @@ ForgeTag QR 找回系统独立运行
 
 ---
 
+### 29.7 RT-328 Finder Report administrator decisions
+
+RT-328 adds a separate administrator decision permission to Finder Report
+detail. Only a `ready` or `notified` Report with `ready` processed evidence is
+eligible for a server-calculated 90-day evidence Hold, release of an active
+Hold, resolution with no action, or irreversible Block. Block also blocks the
+linked Conversation, revokes access Tokens, fails unsent messages and Owner
+notifications, and starts a new 90-day Hold. Delivered email cannot be recalled.
+
+Decision permission is `manage_returntag_finder_report_decisions`; query and
+preview permission does not imply it. The default-off
+`returntag_admin_finder_report_decisions_enabled` control fails every mutation
+closed. Successful decisions append metadata-free Events. Blocked processed
+evidence is previewable only with an active Hold, the sensitive-preview flag,
+and both dispute and decision permissions. Custom duration, free-text reason,
+original or Email evidence, Finder Email, download, bulk action, notification,
+appeal, unblock, and reopen remain out of scope.
+
 ## 31. 结论
 
 ForgeTag 一期采用以下最终产品模型：

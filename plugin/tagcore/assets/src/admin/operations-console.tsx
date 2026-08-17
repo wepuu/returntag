@@ -20,6 +20,7 @@ export interface OperationsConfig {
 	canManageTags: boolean;
 	canManageTagLifecycle: boolean;
 	canManageDisputes: boolean;
+	canManageFinderReportDecisions: boolean;
 	canViewUsers: boolean;
 	canViewAudit: boolean;
 }
@@ -98,7 +99,10 @@ function PageHeader( {
 					<p>{ description }</p>
 				</div>
 				<span className="returntag-read-only">
-					{ config.surface === 'tags' && config.canManageTagLifecycle
+					{ ( config.surface === 'tags' &&
+						config.canManageTagLifecycle ) ||
+					( config.surface === 'finder_reports' &&
+						config.canManageFinderReportDecisions )
 						? __( 'Controlled changes', 'tagcore' )
 						: __( 'Read only', 'tagcore' ) }
 				</span>
@@ -837,6 +841,230 @@ function TagsConsole( { config }: { config: OperationsConfig } ) {
 	);
 }
 
+type FinderDecisionAction =
+	| 'place-hold'
+	| 'release-hold'
+	| 'resolve-no-action'
+	| 'block';
+
+function FinderReportReviewPanel( {
+	config,
+	report,
+	onCommitted,
+}: {
+	config: OperationsConfig;
+	report: OperationRecord;
+	onCommitted: () => Promise< void >;
+} ) {
+	const reportId = Number( report.finder_report_id );
+	const [ action, setAction ] = useState< FinderDecisionAction | null >(
+		null
+	);
+	const [ confirmation, setConfirmation ] = useState( '' );
+	const [ busy, setBusy ] = useState( false );
+	const [ error, setError ] = useState< string | null >( null );
+	const [ success, setSuccess ] = useState< string | null >( null );
+	const feedbackRef = useRef< HTMLDivElement | null >( null );
+	const activeHold = Boolean( report.hold_active );
+	const eligible =
+		[ 'ready', 'notified' ].includes( String( report.report_status ) ) &&
+		report.evidence_status === 'ready';
+
+	useEffect( () => {
+		if ( error || success ) {
+			feedbackRef.current?.focus();
+		}
+	}, [ error, success ] );
+
+	const labels: Record< FinderDecisionAction, string > = {
+		'place-hold': __( 'Place 90-day hold', 'tagcore' ),
+		'release-hold': __( 'Release evidence hold', 'tagcore' ),
+		'resolve-no-action': __( 'Resolve with no action', 'tagcore' ),
+		block: __( 'Block Finder Report', 'tagcore' ),
+	};
+	const submit = async () => {
+		if ( ! action ) {
+			return;
+		}
+		setBusy( true );
+		setError( null );
+		setSuccess( null );
+		try {
+			await apiFetch( {
+				path: `${ config.restPath }/admin/finder-reports/${ reportId }/${ action }`,
+				method: 'POST',
+				data: {
+					confirmation,
+					expected_report_status: report.report_status,
+					expected_evidence_status: report.evidence_status,
+					expected_notification_status: report.notification_status,
+					expected_has_conversation: report.has_conversation,
+					expected_expires_at: report.expires_at,
+					expected_retention_until: report.retention_until,
+					expected_hold_until: report.hold_until,
+					expected_has_review_evidence: report.has_review_evidence,
+				},
+			} );
+			setConfirmation( '' );
+			setAction( null );
+			await onCommitted();
+			setSuccess(
+				__(
+					'The committed Finder Report state was reloaded.',
+					'tagcore'
+				)
+			);
+		} catch ( reason ) {
+			setError(
+				( reason as ApiError ).message ??
+					__(
+						'The secure decision could not be completed.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+
+	return (
+		<section
+			className="returntag-review-panel"
+			aria-labelledby="returntag-review-title"
+		>
+			<h3 id="returntag-review-title">
+				{ __( 'Evidence custody and review', 'tagcore' ) }
+			</h3>
+			<div
+				className={ `returntag-custody-strip ${
+					activeHold ? 'has-hold' : ''
+				}` }
+			>
+				<strong>
+					{ activeHold
+						? __( 'Evidence hold active', 'tagcore' )
+						: __( 'Standard retention', 'tagcore' ) }
+				</strong>
+				<span>
+					{ activeHold
+						? sprintf(
+								/* translators: %s: UTC evidence-hold expiry. */
+								__( 'Held until %s', 'tagcore' ),
+								String( report.hold_until )
+						  )
+						: sprintf(
+								/* translators: %s: UTC ordinary evidence-retention expiry. */
+								__( 'Retained until %s', 'tagcore' ),
+								String( report.retention_until )
+						  ) }
+				</span>
+			</div>
+			<div ref={ feedbackRef } tabIndex={ -1 } aria-live="polite">
+				<ErrorNotice message={ error } />
+				{ success && (
+					<Notice status="success" isDismissible={ false }>
+						{ success }
+					</Notice>
+				) }
+			</div>
+			<p>
+				{ __(
+					'Every decision is audited. Hold duration is fixed by policy; no finder identity or original file is exposed.',
+					'tagcore'
+				) }
+			</p>
+			<div className="returntag-review-actions">
+				<Button
+					variant="secondary"
+					disabled={ ! eligible || activeHold || busy }
+					onClick={ () => setAction( 'place-hold' ) }
+				>
+					{ labels[ 'place-hold' ] }
+				</Button>
+				<Button
+					variant="secondary"
+					disabled={ ! eligible || ! activeHold || busy }
+					onClick={ () => setAction( 'release-hold' ) }
+				>
+					{ labels[ 'release-hold' ] }
+				</Button>
+				<Button
+					variant="secondary"
+					disabled={ ! eligible || ! activeHold || busy }
+					onClick={ () => setAction( 'resolve-no-action' ) }
+				>
+					{ labels[ 'resolve-no-action' ] }
+				</Button>
+				<Button
+					variant="secondary"
+					isDestructive
+					disabled={ ! eligible || busy }
+					onClick={ () => setAction( 'block' ) }
+				>
+					{ labels.block }
+				</Button>
+			</div>
+			{ action && (
+				<Modal
+					title={ labels[ action ] }
+					onRequestClose={ () => {
+						setAction( null );
+						setConfirmation( '' );
+					} }
+				>
+					<Notice
+						status={ action === 'block' ? 'error' : 'warning' }
+						isDismissible={ false }
+					>
+						{ action === 'block'
+							? __(
+									'Blocking is irreversible. It blocks the linked conversation, revokes access tokens, fails queued messages and applies a 90-day evidence hold.',
+									'tagcore'
+							  )
+							: __(
+									'This changes evidence custody state and creates a permanent audit event.',
+									'tagcore'
+							  ) }
+					</Notice>
+					<TextControl
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						label={ sprintf(
+							/* translators: %s: numeric Finder Report ID that the operator must retype. */
+							__( 'Type Report ID %s to confirm', 'tagcore' ),
+							String( reportId )
+						) }
+						value={ confirmation }
+						onChange={ setConfirmation }
+					/>
+					<div className="returntag-modal-actions">
+						<Button
+							variant="tertiary"
+							onClick={ () => {
+								setAction( null );
+								setConfirmation( '' );
+							} }
+						>
+							{ __( 'Cancel', 'tagcore' ) }
+						</Button>
+						<Button
+							variant="primary"
+							isDestructive={ action === 'block' }
+							isBusy={ busy }
+							disabled={
+								busy || confirmation !== String( reportId )
+							}
+							onClick={ () => void submit() }
+						>
+							{ labels[ action ] }
+						</Button>
+					</div>
+				</Modal>
+			) }
+		</section>
+	);
+}
+
 function FinderReportsConsole( { config }: { config: OperationsConfig } ) {
 	const [ mode, setMode ] = useState( 'report_id' );
 	const [ value, setValue ] = useState( '' );
@@ -869,6 +1097,13 @@ function FinderReportsConsole( { config }: { config: OperationsConfig } ) {
 			}
 			return null;
 		} );
+	};
+	const loadDetail = async ( reportId: number ) => {
+		setDetail(
+			await apiFetch< OperationRecord >( {
+				path: `${ config.restPath }/admin/finder-reports/${ reportId }`,
+			} )
+		);
 	};
 	const search = async ( cursor: string | null = null ) => {
 		setLoading( true );
@@ -923,11 +1158,7 @@ function FinderReportsConsole( { config }: { config: OperationsConfig } ) {
 		setError( null );
 		clearSensitive();
 		try {
-			setDetail(
-				await apiFetch< OperationRecord >( {
-					path: `${ config.restPath }/admin/finder-reports/${ item.finder_report_id }`,
-				} )
-			);
+			await loadDetail( Number( item.finder_report_id ) );
 		} catch ( reason ) {
 			setError(
 				( reason as ApiError ).message ??
@@ -1142,6 +1373,18 @@ function FinderReportsConsole( { config }: { config: OperationsConfig } ) {
 						{ __( 'Back to results', 'tagcore' ) }
 					</Button>
 					<SafeDetail record={ detail } />
+					{ config.canManageFinderReportDecisions && (
+						<FinderReportReviewPanel
+							config={ config }
+							report={ detail }
+							onCommitted={ () => {
+								clearSensitive();
+								return loadDetail(
+									Number( detail.finder_report_id )
+								);
+							} }
+						/>
+					) }
 					<div className="returntag-sensitive-actions">
 						<Notice status="warning" isDismissible={ false }>
 							{ __(

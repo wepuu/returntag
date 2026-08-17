@@ -18,6 +18,7 @@ use ReturnTag\TagCore\Application\Persistence\Record\NewFinderReportMediaRecord;
 use ReturnTag\TagCore\Application\Persistence\RecordValidator;
 use ReturnTag\TagCore\Application\Persistence\Repository\FinderReportMediaRepository;
 use ReturnTag\TagCore\Application\Persistence\Value\MediaDerivative;
+use ReturnTag\TagCore\Application\Persistence\Value\FinderEvidenceHold;
 use ReturnTag\TagCore\Application\Persistence\Value\MediaDigest;
 use ReturnTag\TagCore\Application\Persistence\Value\PrivateMediaReferenceCiphertext;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceMime;
@@ -216,10 +217,11 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 	public function find_expired( DateTimeImmutable $now, int $limit ): array {
 		$limit = max( 1, min( 100, $limit ) );
 		$rows  = $this->gateway->rows(
-			' SELECT * FROM %i WHERE media_status <> %s AND retention_until <= %s ORDER BY retention_until ASC, finder_report_media_id ASC LIMIT %d',
+			' SELECT * FROM %i WHERE media_status <> %s AND retention_until <= %s AND (hold_until IS NULL OR hold_until <= %s) ORDER BY retention_until ASC, finder_report_media_id ASC LIMIT %d',
 			array(
 				$this->tables->finder_report_media(),
 				FinderEvidenceStatus::DELETED->value,
+				$this->dates->format( $now ),
 				$this->dates->format( $now ),
 				$limit,
 			)
@@ -267,7 +269,7 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 		$tombstone = random_bytes( 32 );
 
 		return 1 === $this->gateway->execute(
-			'UPDATE %i SET object_reference_ciphertext = %s, encryption_key_id = %s, review_reference_ciphertext = NULL, review_sha256 = NULL, review_byte_count = NULL, review_width = NULL, review_height = NULL, email_reference_ciphertext = NULL, email_sha256 = NULL, email_byte_count = NULL, email_width = NULL, email_height = NULL, media_status = %s, updated_at = %s WHERE finder_report_id = %d AND media_status <> %s',
+			'UPDATE %i SET object_reference_ciphertext = %s, encryption_key_id = %s, review_reference_ciphertext = NULL, review_sha256 = NULL, review_byte_count = NULL, review_width = NULL, review_height = NULL, email_reference_ciphertext = NULL, email_sha256 = NULL, email_byte_count = NULL, email_width = NULL, email_height = NULL, media_status = %s, updated_at = %s WHERE finder_report_id = %d AND media_status <> %s AND (hold_until IS NULL OR hold_until <= %s)',
 			array(
 				$this->tables->finder_report_media(),
 				$tombstone,
@@ -276,6 +278,7 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 				$this->dates->format( $now ),
 				$finder_report_id,
 				FinderEvidenceStatus::DELETED->value,
+				$this->dates->format( $now ),
 			)
 		);
 	}
@@ -305,6 +308,13 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 	 */
 	private function hydrate( array $row ): FinderReportMediaRecord {
 		try {
+			$hold_until  = StoredRow::nullable_string( $row, 'hold_until' );
+			$hold_at     = StoredRow::nullable_string( $row, 'hold_placed_at' );
+			$hold_by     = $this->nullable_positive_int( $row, 'hold_placed_by' );
+			$hold_values = array( $hold_until, $hold_at, $hold_by );
+			if ( 0 !== count( array_filter( $hold_values, static fn( mixed $value ): bool => null !== $value ) ) && 3 !== count( array_filter( $hold_values, static fn( mixed $value ): bool => null !== $value ) ) ) {
+				throw new PersistenceMappingException( 'Stored Finder Report media hold is invalid.' );
+			}
 			return new FinderReportMediaRecord(
 				StoredRow::positive_int( $row, 'finder_report_media_id' ),
 				new NewFinderReportMediaRecord(
@@ -322,7 +332,8 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 					$this->dates->parse( StoredRow::string( $row, 'retention_until' ) ),
 					$this->dates->parse( StoredRow::string( $row, 'created_at' ) ),
 					$this->dates->parse( StoredRow::string( $row, 'updated_at' ) )
-				)
+				),
+				null === $hold_until ? null : new FinderEvidenceHold( $this->dates->parse( $hold_until ), $this->dates->parse( (string) $hold_at ), (int) $hold_by )
 			);
 		} catch ( InvalidArgumentException ) {
 			throw new PersistenceMappingException( 'Stored Finder Report media record is invalid.' );
