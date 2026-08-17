@@ -276,9 +276,9 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 				'deleted',
 				FinderEvidenceStatus::DELETED->value,
 				$this->dates->format( $now ),
-				$this->dates->format( $now ),
 				$finder_report_id,
 				FinderEvidenceStatus::DELETED->value,
+				$this->dates->format( $now ),
 			)
 		);
 	}
