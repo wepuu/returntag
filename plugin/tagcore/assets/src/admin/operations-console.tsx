@@ -124,7 +124,8 @@ function Busy() {
 function formatKey( key: string ): string {
 	return key
 		.replace( /_/g, ' ' )
-		.replace( /^./, ( value ) => value.toUpperCase() );
+		.replace( /^./, ( value ) => value.toUpperCase() )
+		.replace( /\bid\b/gi, 'ID' );
 }
 
 function formatValue( value: RecordValue | AuditEntry[] | undefined ): string {
@@ -496,7 +497,7 @@ function TagsConsole( { config }: { config: OperationsConfig } ) {
 					isBusy={ loading }
 					disabled={ loading || value.trim() === '' }
 				>
-					{ __( 'Search Tags', 'tagcore' ) }
+					{ __( 'Search tags', 'tagcore' ) }
 				</Button>
 			</form>
 			<ErrorNotice message={ error } />
