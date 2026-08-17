@@ -21,4 +21,5 @@ enum FeatureFlag: string {
 	case OWNER_ACCOUNT           = 'returntag_owner_account_enabled';
 	case OWNER_LIFECYCLE         = 'returntag_owner_lifecycle_enabled';
 	case ADMIN_SENSITIVE_PREVIEW = 'returntag_admin_sensitive_preview_enabled';
+	case ADMIN_TAG_LIFECYCLE     = 'returntag_admin_tag_lifecycle_enabled';
 }

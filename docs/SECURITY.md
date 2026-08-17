@@ -74,6 +74,22 @@ All operations routes require a valid REST nonce and current Schema, and return 
 
 `returntag_admin_sensitive_preview_enabled` defaults disabled. When enabled, message and evidence reveal remain explicit POST actions. Only a non-terminal, non-expired message or retained, `ready` Review derivative can be decrypted. No original or Email derivative, public URL, filename, Finder Email, object reference, encryption key, or token crosses the response boundary. Every successful reveal creates one metadata-free Event; errors use a uniform failure and must not include the sensitive value or dependency details.
 
+RT-327 advances the capability contract to version `4` and adds
+`manage_returntag_tag_lifecycle`, granted only to Administrators by default.
+The capability is independent of read-only Tag query permission. Every lifecycle
+POST additionally requires the current Schema, a REST nonce, exact Tag ID
+confirmation, the submitted status and Owner snapshot, and the default-disabled
+`returntag_admin_tag_lifecycle_enabled` kill switch. Responses remain
+`no-store, private`, `no-cache`, `no-referrer`, and `nosniff`.
+
+Each successful lifecycle transaction closes active recovery conversations,
+fails queued or in-flight relay delivery, revokes secure access tokens, fails
+queued or deferred prior-Owner notifications, cancels pending Transfers, and
+records one audit Event. Event metadata is limited to before/after status and
+internal Owner User IDs. Emails, free-text reasons, messages, Tokens, OTPs, IP
+addresses, location, and private item names are prohibited. Remove Owner always
+commits `suspended`; Transfer never unsuspends a Tag; Retire is permanent.
+
 ## 6. Private finder relay
 
 An initial one-way Finder Report may notify the current Owner without Finder
