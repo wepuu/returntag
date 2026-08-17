@@ -36,6 +36,7 @@ final class FeatureFlagTest extends TestCase {
 				'returntag_owner_lifecycle_enabled',
 				'returntag_admin_sensitive_preview_enabled',
 				'returntag_admin_tag_lifecycle_enabled',
+				'returntag_admin_finder_report_decisions_enabled',
 			),
 			$option_names
 		);

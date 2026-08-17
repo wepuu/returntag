@@ -1151,3 +1151,19 @@ accepted message, completed ownership record, or audit Event is deleted.
 Disabling `returntag_admin_tag_lifecycle_enabled` is the operational rollback;
 the previous stable code ignores capability version `4` and the additive Event
 types.
+
+## 27. Schema 14 Finder evidence hold
+
+RT-328 additively extends `returntag_finder_report_media` with nullable
+`hold_until`, `hold_placed_at`, and unsigned `hold_placed_by`, plus
+`media_retention_hold (media_status, retention_until, hold_until)`. All three
+values are null when no Hold exists and complete when a Hold is placed. The
+server calculates a 90-day UTC boundary; release clears the tuple while
+metadata-free Events preserve history.
+
+Cleanup selects rows only when ordinary retention has expired and no unexpired
+Hold exists. `mark_deleted` repeats that condition defensively. Migration 14
+verifies Schema 13 first, is safe to retry, and performs no data rewrite.
+Rollback disables `returntag_admin_finder_report_decisions_enabled`; columns
+and Events remain. Do not run an older cleanup worker while an active Hold
+depends on Schema 14 semantics.

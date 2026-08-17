@@ -171,7 +171,7 @@ final readonly class WpdbAdminOperationsReader {
 		$args[] = $limit;
 
 		return $this->gateway->rows(
-			'SELECT reports.finder_report_id, reports.conversation_id, reports.tag_id, reports.owner_id_at_submission, reports.report_status, reports.evidence_status, reports.owner_notification_status, reports.owner_notified_at, reports.expires_at, reports.created_at, reports.updated_at, media.media_status, media.retention_until, CASE WHEN reports.message_ciphertext IS NULL THEN 0 ELSE 1 END has_message, CASE WHEN media.review_reference_ciphertext IS NULL THEN 0 ELSE 1 END has_review_evidence FROM %i reports LEFT JOIN %i media ON media.finder_report_id = reports.finder_report_id WHERE ' . implode( ' AND ', $where ) . ' ORDER BY reports.finder_report_id DESC LIMIT %d',
+			'SELECT reports.finder_report_id, reports.conversation_id, reports.tag_id, reports.owner_id_at_submission, reports.report_status, reports.evidence_status, reports.owner_notification_status, reports.owner_notified_at, reports.expires_at, reports.created_at, reports.updated_at, media.media_status, media.retention_until, media.hold_until, CASE WHEN reports.message_ciphertext IS NULL THEN 0 ELSE 1 END has_message, CASE WHEN media.review_reference_ciphertext IS NULL THEN 0 ELSE 1 END has_review_evidence FROM %i reports LEFT JOIN %i media ON media.finder_report_id = reports.finder_report_id WHERE ' . implode( ' AND ', $where ) . ' ORDER BY reports.finder_report_id DESC LIMIT %d',
 			$args
 		);
 	}

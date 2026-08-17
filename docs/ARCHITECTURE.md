@@ -913,3 +913,14 @@ Schema 13 adds an encrypted, hash-addressed pending-transfer table. Transfer
 and Retire use transactions that conditionally update the current active Tag,
 revoke Conversation Tokens, close ineligible conversations, and append
 metadata-free Events. Themes and mail plugins never decide ownership or state.
+
+### RT-328 Finder Report decisions
+
+`ManageAdminFinderReportDecision` enforces the operational flag and exact
+confirmation, `AdminFinderReportDecisionPolicy` owns eligibility and the fixed
+90-day boundary, and `WpdbAdminFinderReportDecisionStore` locks Report and
+media state before applying Hold or Block effects and one metadata-free Event
+in a transaction. The Admin adapter owns only Nonce, capability, Schema, and
+strict snapshot validation. Cleanup treats an active Hold as ineligible for
+deletion. The Admin view exposes committed custody state without object
+references, original evidence, or Finder identity data.

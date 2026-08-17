@@ -170,6 +170,49 @@
 	color: var(--returntag-color-text-subtle);
 }
 
+.returntag-review-panel {
+	margin-top: 20px;
+	padding: 20px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.returntag-custody-strip {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 12px 0;
+	padding: 12px 14px;
+	border-left: 4px solid #646970;
+	background: #f6f7f7;
+}
+
+.returntag-custody-strip.has-hold {
+	border-left-color: #dba617;
+	background: #fcf9e8;
+}
+
+.returntag-review-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+@media (max-width: 600px) {
+
+	.returntag-custody-strip {
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.returntag-review-actions .components-button {
+		width: 100%;
+		justify-content: center;
+	}
+}
+
 .returntag-cross-links {
 	display: flex;
 	flex-wrap: wrap;

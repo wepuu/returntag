@@ -986,3 +986,22 @@ same-site checks, nonces, rate limits, and active current ownership. Invitation
 Tokens are 32 random bytes, hash-only at rest, moved off the URL by GET, and
 consumed only by an explicit POST from the matching authenticated email.
 Neither operation logs private fields, reuses a Tag ID, or exposes an email.
+
+## RT-328 administrator Finder Report decisions
+
+The capability contract advances to version `5` and adds
+`manage_returntag_finder_report_decisions`, granted only to Administrators by
+default. It is independent from `manage_returntag_disputes`. Mutation routes
+require a valid REST Nonce, current Schema, exact Report identity and state
+confirmation, and the default-off
+`returntag_admin_finder_report_decisions_enabled` flag. Successful decisions
+write metadata-free Events. Blocked evidence preview additionally requires
+both capabilities, an active Hold, a ready Review derivative, and the
+sensitive-preview flag.
+
+Blocking transactionally revokes Conversation access tokens, blocks active
+Conversation state, fails queued or in-flight messages, and fails queued or
+deferred Owner notification state. It cannot recall delivered mail. Cleanup
+rejects deletion while `hold_until` is in the future. No route returns original
+evidence, Email derivatives, object references, Finder Email, filenames,
+public URLs, or download metadata.

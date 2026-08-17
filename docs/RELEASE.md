@@ -858,3 +858,22 @@ Containment disables Owner Lifecycle first, then Email Dispatch if queued mail
 must stop. Code rollback to `0.4.0` leaves Schema 13 in place. Do not drop the
 table, reverse accepted transfers, reopen conversations, restore Tokens, or
 reactivate retired Tags.
+
+## RT-328 Finder Report decisions
+
+RT-328 keeps TagCore `0.5.0`, advances Schema `13` to `14`, and advances
+`returntag_capability_schema_version` from `4` to `5`. Keep
+`returntag_admin_finder_report_decisions_enabled` disabled until Migration and
+least-privilege role review complete. Rollback first disables the flag and
+stops evidence cleanup; Schema 14 columns and Events are preserved. Do not run
+an older cleanup worker while an active Hold exists.
+
+Acceptance covers Administrator, Dispute Operator, a Finder Decision Operator
+with composed read permission, and unprivileged users. Verify Nonce,
+capability, old-Schema, flag, exact-confirmation, and stale-snapshot failures;
+the fixed 90-day boundary; Hold-aware cleanup; release/no-action preconditions;
+irreversible Block revocation; metadata-free Events; and private response
+headers. Chrome review covers 1440, 1024, 816, 390, 320, and 200% equivalent
+layouts, keyboard and focus behavior, modal confirmation, error announcement,
+temporary Object URL revocation, and console/resource errors. Production
+enablement, deployment, and Release Tag require separate approval.

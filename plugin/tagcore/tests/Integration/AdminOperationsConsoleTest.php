@@ -17,6 +17,11 @@ use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressAdvisoryMigrationLock;
 use ReturnTag\TagCore\Infrastructure\Migration\WordPressSchemaVersionStore;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
+use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbFinderReportMediaRepository;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
+use DateTimeImmutable;
+use DateTimeZone;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_UnitTestCase;
@@ -51,6 +56,13 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 	 * @var int
 	 */
 	private int $finder_report_id;
+
+	/**
+	 * Linked Conversation fixture identifier.
+	 *
+	 * @var int
+	 */
+	private int $conversation_id;
 
 	/** Prepare a current Schema and privacy-boundary fixtures. */
 	protected function setUp(): void {
@@ -91,6 +103,7 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 					Capability::MANAGE_TAGS,
 					Capability::MANAGE_TAG_LIFECYCLE,
 					Capability::MANAGE_DISPUTES,
+					Capability::MANAGE_FINDER_REPORT_DECISIONS,
 					Capability::VIEW_USERS,
 					Capability::VIEW_AUDIT_LOGS,
 				) as $capability
@@ -101,6 +114,7 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
 		delete_option( FeatureFlag::ADMIN_SENSITIVE_PREVIEW->value );
+		delete_option( FeatureFlag::ADMIN_FINDER_REPORT_DECISIONS->value );
 		$this->clear_schema( $wpdb );
 		wp_set_current_user( 0 );
 
@@ -131,6 +145,23 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 		self::assertIsString( $json );
 		self::assertStringNotContainsString( 'PRIVATE', $json );
 		$this->assert_private_headers( $response, $request );
+	}
+
+	/** TagCore-only operators bypass WooCommerce's blanket wp-admin redirect. */
+	public function test_tagcore_operator_can_enter_admin_without_woocommerce_capabilities(): void {
+		$operator_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$customer_id = self::factory()->user->create( array( 'role' => 'subscriber' ) );
+		$operator    = get_user_by( 'id', $operator_id );
+
+		self::assertNotFalse( $operator );
+		$operator->add_cap( Capability::MANAGE_DISPUTES );
+		wp_set_current_user( $operator_id );
+
+		self::assertFalse( apply_filters( 'woocommerce_prevent_admin_access', true ) );
+
+		wp_set_current_user( $customer_id );
+		self::assertTrue( apply_filters( 'woocommerce_prevent_admin_access', true ) );
+		wp_set_current_user( $this->administrator_id );
 	}
 
 	/** User support returns approved summaries without authentication material. */
@@ -233,6 +264,59 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 		);
 
 		self::assertSame( 400, rest_do_request( $request )->get_status() );
+	}
+
+	/** Decision routes require the flag, exact state, fixed Hold, and audit. */
+	public function test_finder_report_hold_release_and_block_are_audited(): void {
+		$route = '/tagcore/v1/admin/finder-reports/' . $this->finder_report_id;
+		$body  = array(
+			'confirmation'                 => (string) $this->finder_report_id,
+			'expected_report_status'       => 'ready',
+			'expected_evidence_status'     => 'ready',
+			'expected_notification_status' => 'queued',
+			'expected_has_conversation'    => true,
+			'expected_expires_at'          => '2026-09-13 08:00:00',
+			'expected_retention_until'     => '2026-09-13 08:00:00',
+			'expected_hold_until'          => null,
+			'expected_has_review_evidence' => true,
+		);
+		self::assertSame( 409, rest_do_request( $this->post( $route . '/place-hold', $body ) )->get_status() );
+		update_option( FeatureFlag::ADMIN_FINDER_REPORT_DECISIONS->value, true, false );
+		$held = rest_do_request( $this->post( $route . '/place-hold', $body ) );
+		self::assertSame( 200, $held->get_status() );
+		$held_data = $held->get_data();
+		self::assertIsArray( $held_data );
+		self::assertTrue( $held_data['hold_active'] );
+		self::assertIsString( $held_data['hold_until'] );
+		global $wpdb;
+		$tables = new TableNames( $wpdb->prefix );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated Hold-aware cleanup assertion.
+		$wpdb->update( $tables->finder_report_media(), array( 'retention_until' => '2026-08-01 00:00:00' ), array( 'finder_report_id' => $this->finder_report_id ) );
+		$media = new WpdbFinderReportMediaRepository( new WpdbGateway( $wpdb ), $tables, new DatabaseDateTimeCodec() );
+		self::assertSame( array(), $media->find_expired( new DateTimeImmutable( '2026-08-17 12:00:00', new DateTimeZone( 'UTC' ) ), 50 ) );
+		self::assertFalse( $media->mark_deleted( $this->finder_report_id, new DateTimeImmutable( '2026-08-17 12:00:00', new DateTimeZone( 'UTC' ) ) ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Restore the submitted concurrency snapshot.
+		$wpdb->update( $tables->finder_report_media(), array( 'retention_until' => '2026-09-13 08:00:00' ), array( 'finder_report_id' => $this->finder_report_id ) );
+
+		$body['expected_hold_until'] = $held_data['hold_until'];
+		$released                    = rest_do_request( $this->post( $route . '/release-hold', $body ) );
+		self::assertSame( 200, $released->get_status() );
+		$body['expected_hold_until'] = null;
+		$blocked                     = rest_do_request( $this->post( $route . '/block', $body ) );
+		self::assertSame( 200, $blocked->get_status() );
+		self::assertSame( 'blocked', $blocked->get_data()['report_status'] );
+		$conversation = $wpdb->get_row( $wpdb->prepare( 'SELECT conversation_status FROM %i WHERE conversation_id=%d', $tables->conversations(), $this->conversation_id ), ARRAY_A );
+		$message      = $wpdb->get_row( $wpdb->prepare( 'SELECT delivery_status FROM %i WHERE conversation_id=%d', $tables->messages(), $this->conversation_id ), ARRAY_A );
+		$token        = $wpdb->get_row( $wpdb->prepare( 'SELECT revoked_at FROM %i WHERE conversation_id=%d', $tables->access_tokens(), $this->conversation_id ), ARRAY_A );
+		self::assertSame( 'blocked', $conversation['conversation_status'] );
+		self::assertSame( 'failed', $message['delivery_status'] );
+		self::assertNotNull( $token['revoked_at'] );
+
+		$query = $wpdb->prepare( 'SELECT event_type,metadata_json FROM %i WHERE target_type=%s AND target_id=%s ORDER BY event_id ASC', $tables->events(), 'finder_report', (string) $this->finder_report_id );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Prepared isolated assertion.
+		$events = $wpdb->get_results( $query, ARRAY_A );
+		self::assertSame( array( 'finder_evidence_hold_placed', 'finder_evidence_hold_released', 'finder_report_blocked' ), array_column( $events, 'event_type' ) );
+		self::assertSame( array( null, null, null ), array_column( $events, 'metadata_json' ) );
 	}
 
 	/** Existing indexes remain candidates for the new exact-anchor queries. */
@@ -354,8 +438,57 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 		self::assertSame(
 			1,
 			$database->insert(
+				$tables->conversations(),
+				array(
+					'tag_id'                  => '234567',
+					'owner_id_snapshot'       => $this->owner_id,
+					'finder_email_ciphertext' => str_repeat( 'e', 32 ),
+					'finder_email_lookup'     => str_repeat( 'f', 64 ),
+					'finder_verified_at'      => $time,
+					'conversation_status'     => 'open',
+					'expires_at'              => '2026-09-13 08:00:00',
+					'last_activity_at'        => $time,
+					'created_at'              => $time,
+				)
+			)
+		);
+		$this->conversation_id = (int) $database->insert_id;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated queued-message fixture.
+		self::assertSame(
+			1,
+			$database->insert(
+				$tables->messages(),
+				array(
+					'conversation_id' => $this->conversation_id,
+					'sender_role'     => 'finder',
+					'body_ciphertext' => str_repeat( 'm', 32 ),
+					'delivery_status' => 'queued',
+					'created_at'      => $time,
+				)
+			)
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated access-token fixture.
+		self::assertSame(
+			1,
+			$database->insert(
+				$tables->access_tokens(),
+				array(
+					'conversation_id' => $this->conversation_id,
+					'purpose'         => 'secure_reply',
+					'actor_role'      => 'finder',
+					'token_hash'      => str_repeat( 'c', 64 ),
+					'expires_at'      => '2026-09-13 08:00:00',
+					'created_at'      => $time,
+				)
+			)
+		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated fixture insert.
+		self::assertSame(
+			1,
+			$database->insert(
 				$tables->finder_reports(),
 				array(
+					'conversation_id'           => $this->conversation_id,
 					'tag_id'                    => '234567',
 					'owner_id_at_submission'    => $this->owner_id,
 					'message_ciphertext'        => 'PRIVATE MESSAGE CIPHERTEXT',
@@ -369,6 +502,32 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 			)
 		);
 		$this->finder_report_id = (int) $database->insert_id;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Isolated processed-media fixture.
+		self::assertSame(
+			1,
+			$database->insert(
+				$tables->finder_report_media(),
+				array(
+					'finder_report_id'            => $this->finder_report_id,
+					'object_reference_ciphertext' => str_repeat( 'q', 32 ),
+					'encryption_key_id'           => 'test-key',
+					'content_sha256'              => str_repeat( 'a', 64 ),
+					'source_mime'                 => 'image/jpeg',
+					'source_byte_count'           => 100,
+					'source_width'                => 10,
+					'source_height'               => 10,
+					'review_reference_ciphertext' => str_repeat( 'r', 32 ),
+					'review_sha256'               => str_repeat( 'b', 64 ),
+					'review_byte_count'           => 90,
+					'review_width'                => 10,
+					'review_height'               => 10,
+					'media_status'                => 'ready',
+					'retention_until'             => '2026-09-13 08:00:00',
+					'created_at'                  => $time,
+					'updated_at'                  => $time,
+				)
+			)
+		);
 	}
 
 	/**
@@ -382,7 +541,7 @@ final class AdminOperationsConsoleTest extends WP_UnitTestCase {
 			new WordPressSchemaVersionStore(),
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
-		self::assertSame( 13, $runner->migrate()->ending_version );
+		self::assertSame( 14, $runner->migrate()->ending_version );
 	}
 
 	/**

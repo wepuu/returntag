@@ -18,7 +18,7 @@ use WP_Role;
 final class CapabilityInstaller {
 	public const OPTION_NAME = 'returntag_capability_schema_version';
 
-	private const TARGET_VERSION = 4;
+	private const TARGET_VERSION = 5;
 
 	/**
 	 * Create the installer.
@@ -62,6 +62,7 @@ final class CapabilityInstaller {
 		$role->add_cap( Capability::MANAGE_TAGS );
 		$role->add_cap( Capability::MANAGE_TAG_LIFECYCLE );
 		$role->add_cap( Capability::MANAGE_DISPUTES );
+		$role->add_cap( Capability::MANAGE_FINDER_REPORT_DECISIONS );
 		$role->add_cap( Capability::VIEW_USERS );
 		$role->add_cap( Capability::VIEW_AUDIT_LOGS );
 

@@ -50,19 +50,21 @@ final readonly class AdminSensitivePreview {
 	/**
 	 * Reveal one optional message after every policy check succeeds.
 	 *
-	 * @param int $finder_report_id Finder Report identifier.
-	 * @param int $operator_id WordPress operator User ID.
+	 * @param int  $finder_report_id Finder Report identifier.
+	 * @param int  $operator_id WordPress operator User ID.
+	 * @param bool $can_review_blocked Whether the operator also has decision permission.
 	 * @throws RuntimeException When preview is disabled or unavailable.
 	 */
-	public function reveal_message( int $finder_report_id, int $operator_id ): string {
+	public function reveal_message( int $finder_report_id, int $operator_id, bool $can_review_blocked = false ): string {
 		$this->assert_enabled();
 		$report = $this->reports->find_by_id( $finder_report_id );
 		$now    = $this->clock->now();
 
 		if (
 			null === $report
-			|| ! $this->is_previewable( $report->data->report_status )
-			|| $report->data->expires_at <= $now
+			|| ! $this->is_previewable( $report->data->report_status, $can_review_blocked )
+			|| ( FinderReportStatus::BLOCKED === $report->data->report_status && ! $this->has_active_hold( $finder_report_id, $now ) )
+			|| ( FinderReportStatus::BLOCKED !== $report->data->report_status && $report->data->expires_at <= $now )
 			|| null === $report->data->message_ciphertext
 		) {
 			throw new RuntimeException( 'Sensitive preview is unavailable.' );
@@ -77,11 +79,12 @@ final readonly class AdminSensitivePreview {
 	/**
 	 * Reveal only the retained, processed review derivative.
 	 *
-	 * @param int $finder_report_id Finder Report identifier.
-	 * @param int $operator_id WordPress operator User ID.
+	 * @param int  $finder_report_id Finder Report identifier.
+	 * @param int  $operator_id WordPress operator User ID.
+	 * @param bool $can_review_blocked Whether the operator also has decision permission.
 	 * @throws RuntimeException When preview is disabled or unavailable.
 	 */
-	public function reveal_evidence( int $finder_report_id, int $operator_id ): string {
+	public function reveal_evidence( int $finder_report_id, int $operator_id, bool $can_review_blocked = false ): string {
 		$this->assert_enabled();
 		$report = $this->reports->find_by_id( $finder_report_id );
 		$media  = $this->media->find_by_report_id( $finder_report_id );
@@ -89,11 +92,12 @@ final readonly class AdminSensitivePreview {
 
 		if (
 			null === $report
-			|| ! $this->is_previewable( $report->data->report_status )
-			|| $report->data->expires_at <= $now
+			|| ! $this->is_previewable( $report->data->report_status, $can_review_blocked )
 			|| null === $media
+			|| ( FinderReportStatus::BLOCKED === $report->data->report_status && ( null === $media->hold || ! $media->hold->active( $now ) ) )
+			|| ( FinderReportStatus::BLOCKED !== $report->data->report_status && $report->data->expires_at <= $now )
 			|| FinderEvidenceStatus::READY !== $media->data->media_status
-			|| $media->data->retention_until <= $now
+			|| ( FinderReportStatus::BLOCKED !== $report->data->report_status && $media->data->retention_until <= $now )
 			|| null === $media->data->review_derivative
 		) {
 			throw new RuntimeException( 'Sensitive preview is unavailable.' );
@@ -113,8 +117,9 @@ final readonly class AdminSensitivePreview {
 	 * Decide whether the report lifecycle still permits internal review.
 	 *
 	 * @param FinderReportStatus $status Persisted Finder Report status.
+	 * @param bool               $can_review_blocked Whether blocked review is authorized.
 	 */
-	private function is_previewable( FinderReportStatus $status ): bool {
+	private function is_previewable( FinderReportStatus $status, bool $can_review_blocked ): bool {
 		return in_array(
 			$status,
 			array(
@@ -122,9 +127,21 @@ final readonly class AdminSensitivePreview {
 				FinderReportStatus::PROCESSING,
 				FinderReportStatus::READY,
 				FinderReportStatus::NOTIFIED,
+				...( $can_review_blocked ? array( FinderReportStatus::BLOCKED ) : array() ),
 			),
 			true
 		);
+	}
+
+	/**
+	 * Determine whether ready processed evidence has an active Hold.
+	 *
+	 * @param int                $finder_report_id Finder Report identifier.
+	 * @param \DateTimeImmutable $now Current UTC instant.
+	 */
+	private function has_active_hold( int $finder_report_id, \DateTimeImmutable $now ): bool {
+		$media = $this->media->find_by_report_id( $finder_report_id );
+		return null !== $media && null !== $media->hold && FinderEvidenceStatus::READY === $media->data->media_status && null !== $media->data->review_derivative && $media->hold->active( $now );
 	}
 
 	/**

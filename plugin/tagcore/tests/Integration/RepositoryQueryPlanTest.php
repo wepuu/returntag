@@ -39,7 +39,7 @@ final class RepositoryQueryPlanTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 13, $runner->migrate()->ending_version );
+		self::assertSame( 14, $runner->migrate()->ending_version );
 	}
 
 	/**

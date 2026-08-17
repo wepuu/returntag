@@ -14,6 +14,9 @@ use ReturnTag\TagCore\Application\Admin\AdminTagLifecycleEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Admin\AdminTagLifecycleEventMetadataPolicy;
 use ReturnTag\TagCore\Application\Admin\AdminTagLifecyclePolicy;
 use ReturnTag\TagCore\Application\Admin\ManageAdminTagLifecycle;
+use ReturnTag\TagCore\Application\Admin\AdminFinderReportDecisionEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Admin\AdminFinderReportDecisionPolicy;
+use ReturnTag\TagCore\Application\Admin\ManageAdminFinderReportDecision;
 use ReturnTag\TagCore\Application\Batch\ChangeBatchLifecycle;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
@@ -54,6 +57,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTransactionManager;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminOperationsReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminTagLifecycleStore;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminFinderReportDecisionStore;
 use ReturnTag\TagCore\Infrastructure\FinderReport\AdminSensitivePreviewFactory;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
@@ -137,6 +141,10 @@ final class AdminBootstrap {
 		);
 
 		( new CapabilityInstaller( $plugin_file ) )->register_hooks();
+		add_filter(
+			'woocommerce_prevent_admin_access',
+			array( new WooCommerceAdminAccessPolicy(), 'filter_prevent_admin_access' )
+		);
 		( new BatchAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 		( new TagAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
 		( new OperationsAdminPage( dirname( $plugin_file ), $schema_state ) )->register_hooks();
@@ -210,6 +218,24 @@ final class AdminBootstrap {
 		);
 		add_action( 'rest_api_init', array( $admin_lifecycle_controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $admin_lifecycle_controller, 'apply_security_headers' ), 10, 3 );
+
+		$admin_finder_decisions = new AdminFinderReportDecisionRestController(
+			new ManageAdminFinderReportDecision(
+				new WpdbAdminFinderReportDecisionStore(
+					$gateway,
+					$tables,
+					$dates,
+					$transactions,
+					new WpdbEventRepository( $gateway, $tables, $dates, new DenyAllEventMetadataPolicy(), new AdminFinderReportDecisionEventIdentityPolicy() ),
+					new AdminFinderReportDecisionPolicy()
+				),
+				$feature_flags,
+				new SystemClock()
+			),
+			$schema_state
+		);
+		add_action( 'rest_api_init', array( $admin_finder_decisions, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $admin_finder_decisions, 'apply_security_headers' ), 10, 3 );
 
 		$lifecycle_controller = new BatchLifecycleRestController(
 			new GetBatchLifecycle( $lifecycle_repository, $feature_flags ),
