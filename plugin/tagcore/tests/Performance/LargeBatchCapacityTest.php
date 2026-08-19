@@ -30,6 +30,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchLifecycleRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchRepository;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbBatchTagInventoryReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbGateway;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminGovernanceReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\WordPress\CapabilityInstaller;
@@ -52,6 +53,7 @@ final class LargeBatchCapacityTest extends WP_UnitTestCase {
 	private const EXPORT_SECONDS        = 90.0;
 	private const EXPORT_MEMORY_BYTES   = 134217728;
 	private const QUEUE_SMOKE_QUANTITY  = 10000;
+	private const EVENT_COUNT           = 1000000;
 
 	/**
 	 * Authorized administrator fixture.
@@ -284,6 +286,50 @@ final class LargeBatchCapacityTest extends WP_UnitTestCase {
 		self::assertLessThanOrEqual( self::QUERY_P95_SECONDS, $batch_search_next_p95 );
 		self::assertLessThanOrEqual( self::EXACT_TAG_P95_SECONDS, $progress_p95 );
 		self::assertLessThanOrEqual( self::LIFECYCLE_P95_SECONDS, $lifecycle_p95 );
+	}
+
+	/** One million Events preserve bounded global Audit keyset reads. */
+	public function test_million_event_global_audit_profile(): void {
+		global $wpdb;
+
+		$tables  = new TableNames( $wpdb->prefix );
+		$fixture = new SyntheticCapacityFixture( $wpdb, $tables );
+		$fixture->create_event_dataset( self::EVENT_COUNT );
+		$reader   = new WpdbAdminGovernanceReader( new WpdbGateway( $wpdb ), $tables );
+		$criteria = array(
+			'from' => '2026-08-17 00:00:00',
+			'to'   => '2026-08-19 00:00:00',
+		);
+
+		$first = $reader->search_audit_events( $criteria, null, null, 51 );
+		self::assertCount( 51, $first );
+		$cursor = $first[49];
+		$next   = $reader->search_audit_events( $criteria, (string) $cursor['created_at'], (int) $cursor['event_id'], 51 );
+		self::assertCount( 51, $next );
+		self::assertLessThan( (int) $cursor['event_id'], (int) $next[0]['event_id'] );
+
+		$query = $wpdb->prepare(
+			'EXPLAIN SELECT event_id,event_type,actor_type,actor_id,target_type,target_id,event_result,created_at FROM %i WHERE created_at >= %s AND created_at <= %s ORDER BY created_at DESC,event_id DESC LIMIT %d',
+			$tables->events(),
+			$criteria['from'],
+			$criteria['to'],
+			51
+		);
+		self::assertIsString( $query );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.PreparedSQL.NotPrepared -- Prepared isolated capacity EXPLAIN.
+		$plan = $wpdb->get_row( $query, ARRAY_A );
+		self::assertIsArray( $plan );
+		self::assertStringContainsString( 'created_at_event_id', (string) ( $plan['possible_keys'] ?? '' ) );
+
+		$p95 = $this->measure_p95( static fn() => $reader->search_audit_events( $criteria, null, null, 51 ) );
+		$this->announce_metrics(
+			'global-audit',
+			array(
+				'events'            => self::EVENT_COUNT,
+				'query_p95_seconds' => $p95,
+			)
+		);
+		self::assertLessThanOrEqual( self::QUERY_P95_SECONDS, $p95 );
 	}
 
 	/**

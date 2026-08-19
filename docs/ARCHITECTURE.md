@@ -924,3 +924,14 @@ in a transaction. The Admin adapter owns only Nonce, capability, Schema, and
 strict snapshot validation. Cleanup treats an active Hold as ineligible for
 deletion. The Admin view exposes committed custody state without object
 references, original evidence, or Finder identity data.
+
+### RT-329 operational governance
+
+`OperationalRoleProfileCatalog` owns the fixed role/capability matrix and the
+WordPress installer reconciles only TagCore-owned capabilities. The global
+Audit adapter delegates normalization to `AuditEventSearchNormalizer` and
+prepared keyset reads to `WpdbAdminGovernanceReader`; neither layer reads Event
+metadata or correlation identifiers. `RetentionTaskManager` exposes health and
+queues one wrapper action that invokes an existing bounded cleanup hook, then
+records a metadata-free completion result. The manual-run feature flag is
+checked only by the Admin command and never disables recurring maintenance.

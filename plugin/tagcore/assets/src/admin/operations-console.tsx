@@ -16,13 +16,35 @@ export interface OperationsConfig {
 	tagsUrl: string;
 	finderReportsUrl: string;
 	usersUrl: string;
-	surface: 'batches' | 'tags' | 'finder_reports' | 'users';
+	roleProfilesUrl: string;
+	auditLogUrl: string;
+	retentionUrl: string;
+	wordpressUsersUrl: string | null;
+	roleProfiles: RoleProfile[];
+	surface:
+		| 'batches'
+		| 'tags'
+		| 'finder_reports'
+		| 'users'
+		| 'role_profiles'
+		| 'audit_log'
+		| 'retention';
 	canManageTags: boolean;
 	canManageTagLifecycle: boolean;
 	canManageDisputes: boolean;
 	canManageFinderReportDecisions: boolean;
 	canViewUsers: boolean;
 	canViewAudit: boolean;
+	canManageRoleProfiles: boolean;
+	canManageRetention: boolean;
+}
+
+interface RoleProfile {
+	slug: string;
+	name: string;
+	responsibility: string;
+	capabilities: string[];
+	userCount: number;
 }
 
 interface ApiError {
@@ -78,6 +100,36 @@ function OperationsNav( { config }: { config: OperationsConfig } ) {
 					{ __( 'Users', 'tagcore' ) }
 				</a>
 			) }
+			{ config.canManageRoleProfiles && (
+				<a
+					className={
+						config.surface === 'role_profiles' ? 'is-current' : ''
+					}
+					href={ config.roleProfilesUrl }
+				>
+					{ __( 'Role Profiles', 'tagcore' ) }
+				</a>
+			) }
+			{ config.canViewAudit && (
+				<a
+					className={
+						config.surface === 'audit_log' ? 'is-current' : ''
+					}
+					href={ config.auditLogUrl }
+				>
+					{ __( 'Audit Log', 'tagcore' ) }
+				</a>
+			) }
+			{ config.canManageRetention && (
+				<a
+					className={
+						config.surface === 'retention' ? 'is-current' : ''
+					}
+					href={ config.retentionUrl }
+				>
+					{ __( 'Retention', 'tagcore' ) }
+				</a>
+			) }
 		</nav>
 	);
 }
@@ -86,26 +138,34 @@ function PageHeader( {
 	title,
 	description,
 	config,
+	titleId,
 }: {
 	title: string;
 	description: string;
 	config: OperationsConfig;
+	titleId?: string;
 } ) {
+	let modeLabel: string = __( 'Read only', 'tagcore' );
+	if (
+		( config.surface === 'tags' && config.canManageTagLifecycle ) ||
+		( config.surface === 'finder_reports' &&
+			config.canManageFinderReportDecisions )
+	) {
+		modeLabel = __( 'Controlled changes', 'tagcore' );
+	} else if ( config.surface === 'retention' ) {
+		modeLabel = __( 'Guarded runs', 'tagcore' );
+	} else if ( config.surface === 'role_profiles' ) {
+		modeLabel = __( 'Fixed profiles', 'tagcore' );
+	}
+
 	return (
 		<>
 			<header className="returntag-page-header">
 				<div>
-					<h1>{ title }</h1>
+					<h1 id={ titleId }>{ title }</h1>
 					<p>{ description }</p>
 				</div>
-				<span className="returntag-read-only">
-					{ ( config.surface === 'tags' &&
-						config.canManageTagLifecycle ) ||
-					( config.surface === 'finder_reports' &&
-						config.canManageFinderReportDecisions )
-						? __( 'Controlled changes', 'tagcore' )
-						: __( 'Read only', 'tagcore' ) }
-				</span>
+				<span className="returntag-read-only">{ modeLabel }</span>
 			</header>
 			<OperationsNav config={ config } />
 		</>
@@ -1631,7 +1691,560 @@ function UsersConsole( { config }: { config: OperationsConfig } ) {
 	);
 }
 
+function RoleProfilesConsole( { config }: { config: OperationsConfig } ) {
+	return (
+		<section aria-labelledby="returntag-role-profiles-title">
+			<PageHeader
+				titleId="returntag-role-profiles-title"
+				title={ __( 'Role Profiles', 'tagcore' ) }
+				description={ __(
+					'Review the fixed, least-privilege responsibilities installed by TagCore.',
+					'tagcore'
+				) }
+				config={ config }
+			/>
+			<Notice status="info" isDismissible={ false }>
+				{ __(
+					'Assign users through WordPress Users. TagCore does not create accounts or grant capabilities directly to individuals.',
+					'tagcore'
+				) }
+			</Notice>
+			<div className="returntag-role-grid">
+				{ config.roleProfiles.map( ( profile ) => (
+					<article
+						className="returntag-governance-card"
+						key={ profile.slug }
+					>
+						<div className="returntag-governance-card-heading">
+							<div>
+								<h2>{ profile.name }</h2>
+								<p>{ profile.responsibility }</p>
+							</div>
+							<strong>
+								{ config.wordpressUsersUrl ? (
+									<a
+										href={ `${
+											config.wordpressUsersUrl
+										}?role=${ encodeURIComponent(
+											profile.slug
+										) }` }
+									>
+										{ sprintf(
+											/* translators: %d: Number of users assigned to the role. */
+											__( '%d users', 'tagcore' ),
+											profile.userCount
+										) }
+									</a>
+								) : (
+									sprintf(
+										/* translators: %d: Number of users assigned to the role. */
+										__( '%d users', 'tagcore' ),
+										profile.userCount
+									)
+								) }
+							</strong>
+						</div>
+						<h3>{ __( 'TagCore capabilities', 'tagcore' ) }</h3>
+						<ul className="returntag-capability-list">
+							{ profile.capabilities.map( ( capability ) => (
+								<li key={ capability }>
+									<code>{ capability }</code>
+								</li>
+							) ) }
+						</ul>
+					</article>
+				) ) }
+			</div>
+			{ config.wordpressUsersUrl && (
+				<Button variant="secondary" href={ config.wordpressUsersUrl }>
+					{ __( 'Open WordPress Users', 'tagcore' ) }
+				</Button>
+			) }
+		</section>
+	);
+}
+
+interface GlobalAuditEntry {
+	event_id: number;
+	event_type: string;
+	actor_type: string;
+	actor_id: number | null;
+	actor_user_url: string | null;
+	target_type: string;
+	target_id: string;
+	result: string;
+	created_at: string;
+}
+
+interface AuditSearchResponse {
+	items: GlobalAuditEntry[];
+	next_cursor: string | null;
+}
+
+type AuditTargetType =
+	| ''
+	| 'batch'
+	| 'tag'
+	| 'finder_report'
+	| 'conversation'
+	| 'user';
+
+function localDateTime( offsetHours: number ): string {
+	const date = new Date( Date.now() + offsetHours * 60 * 60 * 1000 );
+	date.setMinutes( date.getMinutes() - date.getTimezoneOffset() );
+	return date.toISOString().slice( 0, 16 );
+}
+
+function toUtcSeconds( value: string ): string {
+	return new Date( value ).toISOString().replace( /\.\d{3}Z$/, 'Z' );
+}
+
+function AuditLogConsole( { config }: { config: OperationsConfig } ) {
+	const [ from, setFrom ] = useState( localDateTime( -24 ) );
+	const [ to, setTo ] = useState( localDateTime( 0 ) );
+	const [ actor, setActor ] = useState( '' );
+	const [ targetType, setTargetType ] = useState< AuditTargetType >( '' );
+	const [ targetId, setTargetId ] = useState( '' );
+	const [ eventType, setEventType ] = useState( '' );
+	const [ result, setResult ] = useState( '' );
+	const [ response, setResponse ] = useState< AuditSearchResponse | null >(
+		null
+	);
+	const [ error, setError ] = useState< string | null >( null );
+	const [ busy, setBusy ] = useState( false );
+	const [ announcement, setAnnouncement ] = useState( '' );
+
+	const criteria = () => ( {
+		from: toUtcSeconds( from ),
+		to: toUtcSeconds( to ),
+		actor_user_id: actor,
+		target_type: targetType,
+		target_id: targetId,
+		event_type: eventType,
+		result,
+		per_page: 50,
+	} );
+
+	const search = async ( cursor?: string ) => {
+		setBusy( true );
+		setError( null );
+		try {
+			const next = await apiFetch< AuditSearchResponse >( {
+				path: `${ config.restPath }/admin/audit-events/search`,
+				method: 'POST',
+				data: { ...criteria(), cursor: cursor ?? '' },
+			} );
+			setResponse( ( current ) =>
+				cursor && current
+					? {
+							items: [ ...current.items, ...next.items ],
+							next_cursor: next.next_cursor,
+					  }
+					: next
+			);
+			setAnnouncement(
+				sprintf(
+					/* translators: %d: Number of audit events loaded. */
+					__( '%d audit events loaded.', 'tagcore' ),
+					cursor && response
+						? response.items.length + next.items.length
+						: next.items.length
+				)
+			);
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__( 'TagCore could not search the audit log.', 'tagcore' )
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+
+	useEffect( () => {
+		void search();
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+
+	return (
+		<section aria-labelledby="returntag-audit-log-title">
+			<PageHeader
+				titleId="returntag-audit-log-title"
+				title={ __( 'Audit Log', 'tagcore' ) }
+				description={ __(
+					'Search privacy-safe operational events without metadata or correlation identifiers.',
+					'tagcore'
+				) }
+				config={ config }
+			/>
+			<form
+				className="returntag-operation-search"
+				onSubmit={ ( event ) => {
+					event.preventDefault();
+					void search();
+				} }
+			>
+				<h2>{ __( 'Exact audit filters', 'tagcore' ) }</h2>
+				<p>
+					{ __(
+						'The default view covers the most recent 24 hours. The maximum search window is 31 days.',
+						'tagcore'
+					) }
+				</p>
+				<div className="returntag-operation-fields returntag-audit-fields">
+					<TextControl
+						type="datetime-local"
+						label={ __( 'From (local time)', 'tagcore' ) }
+						value={ from }
+						onChange={ setFrom }
+						required
+					/>
+					<TextControl
+						type="datetime-local"
+						label={ __( 'To (local time)', 'tagcore' ) }
+						value={ to }
+						onChange={ setTo }
+						required
+					/>
+					<TextControl
+						label={ __( 'Actor User ID', 'tagcore' ) }
+						value={ actor }
+						onChange={ setActor }
+						inputMode="numeric"
+					/>
+					<SelectControl
+						label={ __( 'Target type', 'tagcore' ) }
+						value={ targetType }
+						onChange={ setTargetType }
+						options={ [
+							{ label: __( 'Any target', 'tagcore' ), value: '' },
+							{ label: __( 'Batch', 'tagcore' ), value: 'batch' },
+							{ label: __( 'Tag', 'tagcore' ), value: 'tag' },
+							{
+								label: __( 'Finder Report', 'tagcore' ),
+								value: 'finder_report',
+							},
+							{
+								label: __( 'Conversation', 'tagcore' ),
+								value: 'conversation',
+							},
+							{ label: __( 'User', 'tagcore' ), value: 'user' },
+						] }
+					/>
+					<TextControl
+						label={ __( 'Target ID', 'tagcore' ) }
+						value={ targetId }
+						onChange={ setTargetId }
+						disabled={ ! targetType }
+					/>
+					<TextControl
+						label={ __( 'Event type', 'tagcore' ) }
+						value={ eventType }
+						onChange={ setEventType }
+					/>
+					<TextControl
+						label={ __( 'Result', 'tagcore' ) }
+						value={ result }
+						onChange={ setResult }
+					/>
+				</div>
+				<Button
+					type="submit"
+					variant="primary"
+					disabled={ busy }
+					isBusy={ busy }
+				>
+					{ __( 'Search audit log', 'tagcore' ) }
+				</Button>
+			</form>
+			<ErrorNotice message={ error } />
+			{ ! response && busy && <Busy /> }
+			{ response && response.items.length === 0 && (
+				<div className="returntag-empty">
+					<h2>{ __( 'No audit events found', 'tagcore' ) }</h2>
+					<p>
+						{ __(
+							'No metadata-free events match this exact window and filter set.',
+							'tagcore'
+						) }
+					</p>
+				</div>
+			) }
+			{ response && response.items.length > 0 && (
+				<div className="returntag-audit-stream">
+					<ol>
+						{ response.items.map( ( entry ) => (
+							<li key={ entry.event_id }>
+								<time>{ entry.created_at } UTC</time>
+								<div>
+									<strong>
+										{ formatKey( entry.event_type ) }
+									</strong>
+									<span>
+										{ entry.target_type } ·{ ' ' }
+										{ entry.target_id } · { entry.result }
+									</span>
+								</div>
+								<span>
+									{ entry.actor_type }{ ' ' }
+									{ entry.actor_user_url && entry.actor_id ? (
+										<a href={ entry.actor_user_url }>
+											{ entry.actor_id }
+										</a>
+									) : (
+										entry.actor_id ?? '—'
+									) }
+								</span>
+							</li>
+						) ) }
+					</ol>
+					{ response.next_cursor && (
+						<Button
+							variant="secondary"
+							disabled={ busy }
+							isBusy={ busy }
+							onClick={ () =>
+								void search( response.next_cursor ?? undefined )
+							}
+						>
+							{ __( 'Load more events', 'tagcore' ) }
+						</Button>
+					) }
+				</div>
+			) }
+			<p className="screen-reader-text" aria-live="polite">
+				{ announcement }
+			</p>
+		</section>
+	);
+}
+
+interface RetentionTask {
+	task_id: string;
+	name: string;
+	description: string;
+	policy: string;
+	schedule_health: string;
+	last_run_at: string | null;
+	last_result: string | null;
+	next_run_at: string | null;
+	current_status: string;
+	pending_count: string;
+}
+
+interface RetentionResponse {
+	items: RetentionTask[];
+	manual_run_enabled: boolean;
+}
+
+function RetentionConsole( { config }: { config: OperationsConfig } ) {
+	const [ response, setResponse ] = useState< RetentionResponse | null >(
+		null
+	);
+	const [ selected, setSelected ] = useState< RetentionTask | null >( null );
+	const [ confirmation, setConfirmation ] = useState( '' );
+	const [ error, setError ] = useState< string | null >( null );
+	const [ notice, setNotice ] = useState< string | null >( null );
+	const [ busy, setBusy ] = useState( false );
+	const load = async () => {
+		setBusy( true );
+		try {
+			setResponse(
+				await apiFetch< RetentionResponse >( {
+					path: `${ config.restPath }/admin/retention/tasks`,
+				} )
+			);
+			setError( null );
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__( 'TagCore could not load retention health.', 'tagcore' )
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+	useEffect( () => {
+		void load();
+	}, [] ); // eslint-disable-line react-hooks/exhaustive-deps
+	const run = async () => {
+		if ( ! selected ) {
+			return;
+		}
+		setBusy( true );
+		setError( null );
+		try {
+			await apiFetch( {
+				path: `${ config.restPath }/admin/retention/tasks/${ selected.task_id }/run`,
+				method: 'POST',
+				data: { confirmation },
+			} );
+			setNotice(
+				__( 'One bounded cleanup batch was queued.', 'tagcore' )
+			);
+			setSelected( null );
+			setConfirmation( '' );
+			await load();
+		} catch ( reason ) {
+			const apiError = reason as ApiError;
+			setError(
+				apiError.message ??
+					__(
+						'TagCore could not queue this retention task.',
+						'tagcore'
+					)
+			);
+		} finally {
+			setBusy( false );
+		}
+	};
+	return (
+		<section aria-labelledby="returntag-retention-title">
+			<PageHeader
+				titleId="returntag-retention-title"
+				title={ __( 'Retention', 'tagcore' ) }
+				description={ __(
+					'Monitor fixed cleanup policies and request one bounded batch when explicitly enabled.',
+					'tagcore'
+				) }
+				config={ config }
+			/>
+			{ response && ! response.manual_run_enabled && (
+				<Notice status="warning" isDismissible={ false }>
+					{ __(
+						'Manual retention runs are disabled. Automatic scheduled cleanup continues.',
+						'tagcore'
+					) }
+				</Notice>
+			) }
+			{ notice && (
+				<Notice status="success" onRemove={ () => setNotice( null ) }>
+					{ notice }
+				</Notice>
+			) }
+			<ErrorNotice message={ error } />
+			{ ! response && busy && <Busy /> }
+			{ response && (
+				<div className="returntag-retention-grid">
+					{ response.items.map( ( task ) => (
+						<article
+							className="returntag-governance-card"
+							key={ task.task_id }
+						>
+							<div className="returntag-governance-card-heading">
+								<div>
+									<h2>{ task.name }</h2>
+									<p>{ task.description }</p>
+								</div>
+								<strong
+									className={ `is-${ task.schedule_health }` }
+								>
+									{ formatKey( task.schedule_health ) }
+								</strong>
+							</div>
+							<p className="returntag-policy-note">
+								{ task.policy }
+							</p>
+							<dl className="returntag-retention-facts">
+								<div>
+									<dt>{ __( 'Pending', 'tagcore' ) }</dt>
+									<dd>{ task.pending_count }</dd>
+								</div>
+								<div>
+									<dt>{ __( 'Status', 'tagcore' ) }</dt>
+									<dd>
+										{ formatKey( task.current_status ) }
+									</dd>
+								</div>
+								<div>
+									<dt>{ __( 'Last run', 'tagcore' ) }</dt>
+									<dd>{ task.last_run_at ?? '—' }</dd>
+								</div>
+								<div>
+									<dt>{ __( 'Next run', 'tagcore' ) }</dt>
+									<dd>{ task.next_run_at ?? '—' }</dd>
+								</div>
+							</dl>
+							<Button
+								variant="secondary"
+								disabled={
+									! response.manual_run_enabled ||
+									task.current_status !== 'idle'
+								}
+								onClick={ () => {
+									setSelected( task );
+									setConfirmation( '' );
+								} }
+							>
+								{ __( 'Run one bounded batch', 'tagcore' ) }
+							</Button>
+						</article>
+					) ) }
+				</div>
+			) }
+			{ selected && (
+				<Modal
+					title={ __( 'Confirm bounded retention run', 'tagcore' ) }
+					onRequestClose={ () => setSelected( null ) }
+					shouldCloseOnClickOutside={ ! busy }
+				>
+					<p>
+						{ __(
+							'This queues one existing bounded cleanup batch. Fixed retention periods and Active Holds are not changed.',
+							'tagcore'
+						) }
+					</p>
+					<TextControl
+						label={ sprintf(
+							/* translators: %s: Fixed retention Task ID. */
+							__( 'Enter %s to confirm', 'tagcore' ),
+							selected.task_id
+						) }
+						value={ confirmation }
+						onChange={ setConfirmation }
+						autoComplete="off"
+						disabled={ busy }
+					/>
+					<div className="returntag-modal-actions">
+						<Button
+							variant="tertiary"
+							onClick={ () => setSelected( null ) }
+							disabled={ busy }
+						>
+							{ __( 'Cancel', 'tagcore' ) }
+						</Button>
+						<Button
+							variant="primary"
+							isDestructive
+							onClick={ run }
+							disabled={
+								busy || confirmation !== selected.task_id
+							}
+							isBusy={ busy }
+						>
+							{ __( 'Queue cleanup batch', 'tagcore' ) }
+						</Button>
+					</div>
+				</Modal>
+			) }
+			<p className="screen-reader-text" aria-live="polite">
+				{ notice }
+			</p>
+		</section>
+	);
+}
+
 export function OperationsConsole( { config }: { config: OperationsConfig } ) {
+	if ( config.surface === 'role_profiles' ) {
+		return <RoleProfilesConsole config={ config } />;
+	}
+	if ( config.surface === 'audit_log' ) {
+		return <AuditLogConsole config={ config } />;
+	}
+	if ( config.surface === 'retention' ) {
+		return <RetentionConsole config={ config } />;
+	}
 	if ( config.surface === 'finder_reports' ) {
 		return <FinderReportsConsole config={ config } />;
 	}

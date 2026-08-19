@@ -119,6 +119,45 @@ final readonly class SyntheticCapacityFixture {
 	}
 
 	/**
+	 * Create metadata-free Events for governance query capacity checks.
+	 *
+	 * @param int $event_count Number of Events.
+	 * @throws RuntimeException When the dimension or a fixture write is invalid.
+	 */
+	public function create_event_dataset( int $event_count ): void {
+		if ( $event_count < 1 ) {
+			throw new RuntimeException( 'Event capacity dimension is invalid.' );
+		}
+		$time = '2026-08-18 00:00:00';
+		for ( $offset = 0; $offset < $event_count; $offset += self::INSERT_CHUNK_SIZE ) {
+			$values = array();
+			$end    = min( $offset + self::INSERT_CHUNK_SIZE, $event_count );
+			for ( $index = $offset; $index < $end; ++$index ) {
+				$values[] = $this->database->prepare(
+					'(%s,%s,%d,%s,%s,%s,%s)',
+					'tag_metadata_updated',
+					'user',
+					1 + ( $index % 50 ),
+					'tag',
+					$this->tag_id( $index % 100000 ),
+					'success',
+					$time
+				);
+			}
+			$query = sprintf(
+				'INSERT INTO %s (event_type,actor_type,actor_id,target_type,target_id,event_result,created_at) VALUES %s',
+				$this->tables->events(),
+				implode( ',', $values )
+			);
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Synthetic values are prepared above and the table is a trusted isolated fixture.
+			$inserted = $this->database->query( $query );
+			if ( count( $values ) !== $inserted ) {
+				throw new RuntimeException( 'Capacity fixture could not create Event rows.' );
+			}
+		}
+	}
+
+	/**
 	 * Return one deterministic valid Tag ID for a fixture row.
 	 *
 	 * @param int $index Zero-based global fixture index.

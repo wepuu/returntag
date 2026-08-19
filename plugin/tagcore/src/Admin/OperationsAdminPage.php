@@ -15,6 +15,9 @@ use ReturnTag\TagCore\Infrastructure\Migration\SchemaState;
 final class OperationsAdminPage {
 	public const FINDER_REPORTS_SLUG = 'tagcore-finder-reports';
 	public const USERS_SLUG          = 'tagcore-users';
+	public const ROLE_PROFILES_SLUG  = 'tagcore-role-profiles';
+	public const AUDIT_LOG_SLUG      = 'tagcore-audit-log';
+	public const RETENTION_SLUG      = 'tagcore-retention';
 	private const SCRIPT_HANDLE      = 'returntag-tagcore-admin';
 
 	/**
@@ -43,6 +46,9 @@ final class OperationsAdminPage {
 	public function register_menu(): void {
 		$this->add_page( self::FINDER_REPORTS_SLUG, __( 'TagCore Finder Reports', 'tagcore' ), __( 'Finder Reports', 'tagcore' ), Capability::MANAGE_DISPUTES, 'finder_reports' );
 		$this->add_page( self::USERS_SLUG, __( 'TagCore Users', 'tagcore' ), __( 'Users', 'tagcore' ), Capability::VIEW_USERS, 'users' );
+		$this->add_page( self::ROLE_PROFILES_SLUG, __( 'TagCore Role Profiles', 'tagcore' ), __( 'Role Profiles', 'tagcore' ), Capability::MANAGE_ROLE_PROFILES, 'role_profiles' );
+		$this->add_page( self::AUDIT_LOG_SLUG, __( 'TagCore Audit Log', 'tagcore' ), __( 'Audit Log', 'tagcore' ), Capability::VIEW_AUDIT_LOGS, 'audit_log' );
+		$this->add_page( self::RETENTION_SLUG, __( 'TagCore Retention', 'tagcore' ), __( 'Retention', 'tagcore' ), Capability::MANAGE_RETENTION, 'retention' );
 	}
 
 	/**
@@ -124,7 +130,19 @@ final class OperationsAdminPage {
 	 * @param string $surface Frontend surface key.
 	 */
 	private function localize( string $surface ): void {
-		$user = wp_get_current_user();
+		$user            = wp_get_current_user();
+		$role_counts     = count_users();
+		$available_roles = $role_counts['avail_roles'];
+		$profiles        = array();
+		foreach ( ( new OperationalRoleProfileCatalog() )->profiles() as $slug => $profile ) {
+			$profiles[] = array(
+				'slug'           => $slug,
+				'name'           => __( $profile['name'], 'tagcore' ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- Fixed internal catalog.
+				'responsibility' => __( $profile['responsibility'], 'tagcore' ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- Fixed internal catalog.
+				'capabilities'   => $profile['capabilities'],
+				'userCount'      => isset( $available_roles[ $slug ] ) ? (int) $available_roles[ $slug ] : 0,
+			);
+		}
 		wp_localize_script(
 			self::SCRIPT_HANDLE,
 			'returntagTagCoreAdmin',
@@ -138,6 +156,11 @@ final class OperationsAdminPage {
 				'tagsUrl'                        => admin_url( 'admin.php?page=' . TagAdminPage::PAGE_SLUG ),
 				'finderReportsUrl'               => admin_url( 'admin.php?page=' . self::FINDER_REPORTS_SLUG ),
 				'usersUrl'                       => admin_url( 'admin.php?page=' . self::USERS_SLUG ),
+				'roleProfilesUrl'                => admin_url( 'admin.php?page=' . self::ROLE_PROFILES_SLUG ),
+				'auditLogUrl'                    => admin_url( 'admin.php?page=' . self::AUDIT_LOG_SLUG ),
+				'retentionUrl'                   => admin_url( 'admin.php?page=' . self::RETENTION_SLUG ),
+				'wordpressUsersUrl'              => current_user_can( 'edit_users' ) ? admin_url( 'users.php' ) : null,
+				'roleProfiles'                   => $profiles,
 				'surface'                        => $surface,
 				'canManageTags'                  => current_user_can( Capability::MANAGE_TAGS ),
 				'canManageTagLifecycle'          => current_user_can( Capability::MANAGE_TAG_LIFECYCLE ),
@@ -145,6 +168,8 @@ final class OperationsAdminPage {
 				'canManageFinderReportDecisions' => current_user_can( Capability::MANAGE_FINDER_REPORT_DECISIONS ),
 				'canViewUsers'                   => current_user_can( Capability::VIEW_USERS ),
 				'canViewAudit'                   => current_user_can( Capability::VIEW_AUDIT_LOGS ),
+				'canManageRoleProfiles'          => current_user_can( Capability::MANAGE_ROLE_PROFILES ),
+				'canManageRetention'             => current_user_can( Capability::MANAGE_RETENTION ),
 				'canEditUsers'                   => current_user_can( 'edit_users' ),
 			)
 		);

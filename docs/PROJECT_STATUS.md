@@ -1175,3 +1175,12 @@ existing Schema 12 relay tables and external relay keys. It adds no Migration,
 dependency, lock-file, email, queue, Transfer, Retire, moderation, release, or
 deployment. Disabling Account entry does not revoke an already-issued Secure
 Reply session.
+
+## RT-329 operational governance console
+
+RT-329 adds a fixed capability-version-6 role catalog, capability-separated
+Role Profiles, Audit Log, and Retention Admin entries, metadata-free global
+Audit search, and default-off bounded manual retention scheduling. It keeps
+TagCore `0.5.0`, Schema `14`, Theme boundaries, dependencies, and lock files
+unchanged. Production enablement, deployment, release, and Git publication are
+not part of the implementation authorization.

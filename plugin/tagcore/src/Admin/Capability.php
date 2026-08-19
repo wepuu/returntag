@@ -21,6 +21,8 @@ final class Capability {
 	public const MANAGE_FINDER_REPORT_DECISIONS = 'manage_returntag_finder_report_decisions';
 	public const VIEW_USERS                     = 'view_returntag_users';
 	public const VIEW_AUDIT_LOGS                = 'view_returntag_audit_logs';
+	public const MANAGE_ROLE_PROFILES           = 'manage_returntag_role_profiles';
+	public const MANAGE_RETENTION               = 'manage_returntag_retention';
 
 	/**
 	 * Static constants only.

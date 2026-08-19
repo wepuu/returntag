@@ -2265,6 +2265,26 @@ and both dispute and decision permissions. Custom duration, free-text reason,
 original or Email evidence, Finder Email, download, bulk action, notification,
 appeal, unblock, and reopen remain out of scope.
 
+### 29.8 RT-329 operational governance console
+
+TagCore installs eight fixed least-privilege operational roles and provides
+Role Profiles, global Audit Log, and Retention Admin surfaces. Role assignment
+remains in native WordPress Users; TagCore does not expose arbitrary capability
+editing or direct per-user grants. Operations Manager has operational access
+but cannot configure roles, edit WordPress users, or administer the site.
+
+Global Audit search is POST-only, defaults to 24 hours, caps the window at 31
+days, and supports exact actor, target, Event, and result filters. Results use
+strict descending keyset pagination and omit metadata, correlation identifiers,
+email, message, Token, OTP, IP, location, media references, and private names.
+
+Retention shows the four existing fixed policies and schedule health. A manual
+run requires the dedicated capability, current Schema, REST Nonce, exact Task
+ID confirmation, and a default-off flag. It queues one existing bounded cleanup
+batch; automatic cleanup remains active independently. Frozen periods and
+Active Holds cannot be overridden, and business audit Events, accepted
+Messages, Tag IDs, Owner Claims, and manufacturing exports are never eligible.
+
 ## 31. 结论
 
 ForgeTag 一期采用以下最终产品模型：

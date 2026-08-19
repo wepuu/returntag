@@ -23,4 +23,5 @@ enum FeatureFlag: string {
 	case ADMIN_SENSITIVE_PREVIEW       = 'returntag_admin_sensitive_preview_enabled';
 	case ADMIN_TAG_LIFECYCLE           = 'returntag_admin_tag_lifecycle_enabled';
 	case ADMIN_FINDER_REPORT_DECISIONS = 'returntag_admin_finder_report_decisions_enabled';
+	case ADMIN_RETENTION_RUN           = 'returntag_admin_retention_run_enabled';
 }
