@@ -326,3 +326,18 @@ Budget Option names contain only expiry and scope hashes; values contain only
 count and expiry. Raw IP, Tag ID, email, User, Owner, cookie, Session, token,
 item, order, message, device, and location data are not selected or stored.
 Schema version 8 requires no new index.
+
+## 22. RT-329 governance console
+
+| Read or write shape | Predicate and bound | Authority |
+|---|---|---|
+| Global Audit page | UTC range plus exact optional actor/target/type/result; `(created_at, event_id)` descending; `50` default, `100` maximum | `created_at_event_id` plus existing exact Event indexes |
+| Audit response | Event ID/type, actor type/ID, target type/ID, result, UTC time only | projection allowlist; no metadata or correlation column |
+| Retention challenge backlog | exact purpose and expired boundary; inner read stops at `1001`, display capped at `1000+` | `expires_consumed_at` and purpose indexes |
+| Finder evidence backlog | expired retention and no Active Hold; inner read stops at `1001`, display capped at `1000+` | `media_retention_hold` |
+| Manual retention request | exact fixed Task ID, unique pending Action | Action Scheduler hook/group identity |
+
+The dedicated capacity profile creates `1,000,000` metadata-free Events,
+checks first and next keyset pages, asserts `created_at_event_id` is an EXPLAIN
+candidate, and enforces the existing bounded-query p95 budget. Schema 14 and
+all indexes remain unchanged.

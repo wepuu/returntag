@@ -11,6 +11,7 @@ namespace ReturnTag\TagCore\Tests\Integration;
 
 use ReturnTag\TagCore\Admin\BatchCsvDownload;
 use ReturnTag\TagCore\Admin\Capability;
+use ReturnTag\TagCore\Admin\OperationalRoleProfileCatalog;
 use ReturnTag\TagCore\Application\Batch\CreateBatchInput;
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Infrastructure\Migration\MigrationRegistryFactory;
@@ -76,6 +77,9 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		}
 
 		delete_option( CapabilityInstaller::OPTION_NAME );
+		foreach ( array_keys( ( new OperationalRoleProfileCatalog() )->profiles() ) as $role_slug ) {
+			remove_role( $role_slug );
+		}
 		delete_option( FeatureFlag::GLOBAL_ACTIVATION->value );
 		$this->clear_generation_actions();
 		$this->clear_schema( $wpdb );
@@ -101,7 +105,13 @@ final class BatchAdminTest extends WP_UnitTestCase {
 		self::assertTrue( current_user_can( Capability::MANAGE_FINDER_REPORT_DECISIONS ) );
 		self::assertTrue( current_user_can( Capability::VIEW_USERS ) );
 		self::assertTrue( current_user_can( Capability::VIEW_AUDIT_LOGS ) );
-		self::assertSame( 5, get_option( CapabilityInstaller::OPTION_NAME ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_ROLE_PROFILES ) );
+		self::assertTrue( current_user_can( Capability::MANAGE_RETENTION ) );
+		self::assertSame(
+			array( 'read', Capability::MANAGE_RETURNTAG, Capability::MANAGE_RETENTION ),
+			array_keys( array_filter( get_role( 'returntag_retention_operator' )->capabilities ) )
+		);
+		self::assertSame( 6, get_option( CapabilityInstaller::OPTION_NAME ) );
 		self::assertArrayNotHasKey( CapabilityInstaller::OPTION_NAME, wp_load_alloptions() );
 
 		$query = $wpdb->prepare(

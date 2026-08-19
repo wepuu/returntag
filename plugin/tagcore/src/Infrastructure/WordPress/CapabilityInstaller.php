@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Infrastructure\WordPress;
 
 use ReturnTag\TagCore\Admin\Capability;
+use ReturnTag\TagCore\Admin\OperationalRoleProfileCatalog;
 use WP_Role;
 
 /**
@@ -18,7 +19,7 @@ use WP_Role;
 final class CapabilityInstaller {
 	public const OPTION_NAME = 'returntag_capability_schema_version';
 
-	private const TARGET_VERSION = 5;
+	private const TARGET_VERSION = 6;
 
 	/**
 	 * Create the installer.
@@ -57,14 +58,26 @@ final class CapabilityInstaller {
 			return;
 		}
 
-		$role->add_cap( Capability::MANAGE_RETURNTAG );
-		$role->add_cap( Capability::MANAGE_BATCHES );
-		$role->add_cap( Capability::MANAGE_TAGS );
-		$role->add_cap( Capability::MANAGE_TAG_LIFECYCLE );
-		$role->add_cap( Capability::MANAGE_DISPUTES );
-		$role->add_cap( Capability::MANAGE_FINDER_REPORT_DECISIONS );
-		$role->add_cap( Capability::VIEW_USERS );
-		$role->add_cap( Capability::VIEW_AUDIT_LOGS );
+		$catalog = new OperationalRoleProfileCatalog();
+		foreach ( $catalog->owned_capabilities() as $capability ) {
+			$role->add_cap( $capability );
+		}
+
+		foreach ( $catalog->profiles() as $slug => $profile ) {
+			$operational_role = get_role( $slug );
+			if ( ! $operational_role instanceof WP_Role ) {
+				add_role( $slug, __( $profile['name'], 'tagcore' ), array_fill_keys( $profile['capabilities'], true ) ); // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- Fixed internal catalog strings.
+				$operational_role = get_role( $slug );
+			}
+			if ( ! $operational_role instanceof WP_Role ) {
+				continue;
+			}
+			$wanted = array_fill_keys( $profile['capabilities'], true );
+			foreach ( $catalog->owned_capabilities() as $capability ) {
+				isset( $wanted[ $capability ] ) ? $operational_role->add_cap( $capability ) : $operational_role->remove_cap( $capability );
+			}
+			$operational_role->add_cap( 'read' );
+		}
 
 		$current_user = wp_get_current_user();
 

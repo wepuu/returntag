@@ -17,6 +17,8 @@ use ReturnTag\TagCore\Application\Admin\ManageAdminTagLifecycle;
 use ReturnTag\TagCore\Application\Admin\AdminFinderReportDecisionEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Admin\AdminFinderReportDecisionPolicy;
 use ReturnTag\TagCore\Application\Admin\ManageAdminFinderReportDecision;
+use ReturnTag\TagCore\Application\Admin\AdminGovernanceEventIdentityPolicy;
+use ReturnTag\TagCore\Application\Admin\AuditEventSearchNormalizer;
 use ReturnTag\TagCore\Application\Batch\ChangeBatchLifecycle;
 use ReturnTag\TagCore\Application\Batch\CreateBatch;
 use ReturnTag\TagCore\Application\Batch\ExportBatchCsv;
@@ -58,6 +60,7 @@ use ReturnTag\TagCore\Infrastructure\Persistence\WpdbTagSearchReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminOperationsReader;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminTagLifecycleStore;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminFinderReportDecisionStore;
+use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAdminGovernanceReader;
 use ReturnTag\TagCore\Infrastructure\FinderReport\AdminSensitivePreviewFactory;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationScheduler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerBatchGenerationMonitor;
@@ -189,6 +192,24 @@ final class AdminBootstrap {
 		add_action( 'rest_api_init', array( $operations_controller, 'register_routes' ) );
 		add_filter( 'rest_post_dispatch', array( $operations_controller, 'apply_security_headers' ), 10, 3 );
 		add_filter( 'rest_pre_serve_request', array( $operations_controller, 'serve_evidence' ), 10, 4 );
+
+		$governance_reader = new WpdbAdminGovernanceReader( $gateway, $tables );
+		$retention         = new RetentionTaskManager(
+			new RetentionTaskCatalog(),
+			$governance_reader,
+			new WpdbEventRepository( $gateway, $tables, $dates, new DenyAllEventMetadataPolicy(), new AdminGovernanceEventIdentityPolicy() )
+		);
+		$retention->register_hooks();
+		$governance_controller = new AdminGovernanceRestController(
+			$governance_reader,
+			new AuditEventSearchNormalizer(),
+			new AdminOperationsCursorCodec(),
+			$retention,
+			$feature_flags,
+			$schema_state
+		);
+		add_action( 'rest_api_init', array( $governance_controller, 'register_routes' ) );
+		add_filter( 'rest_post_dispatch', array( $governance_controller, 'apply_security_headers' ), 10, 3 );
 
 		$lifecycle_metadata         = new AdminTagLifecycleEventMetadataPolicy();
 		$admin_lifecycle            = new ManageAdminTagLifecycle(

@@ -1005,3 +1005,19 @@ deferred Owner notification state. It cannot recall delivered mail. Cleanup
 rejects deletion while `hold_until` is in the future. No route returns original
 evidence, Email derivatives, object references, Finder Email, filenames,
 public URLs, or download metadata.
+
+## RT-329 operational governance controls
+
+Capability contract version `6` adds `manage_returntag_role_profiles` and
+`manage_returntag_retention`. Fixed roles receive exact TagCore capability
+sets; reconciliation does not remove users or unrelated WordPress grants.
+Operations Manager intentionally lacks role configuration, `edit_users`, and
+site-administration permissions.
+
+Audit search requires a Cookie-authenticated REST Nonce, current Schema, and
+`view_returntag_audit_logs`. All filters are exact POST values, cursors are
+criteria-bound, and responses exclude metadata, correlation identifiers, and
+all sensitive fields. Retention manual runs additionally require exact Task ID
+confirmation and `returntag_admin_retention_run_enabled`. Queue and dependency
+failures collapse to fixed categories. Request and completion Events contain
+only actor classification, internal task target, result, and UTC time.

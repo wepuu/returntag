@@ -134,6 +134,36 @@ No actionable P0, P1, or P2 visual findings remain.
 
 final result: passed
 
+## RT-329 Stage 0 and governance-console contract
+
+Stage 0 used the connected user Chrome at `1440 × 1000` against the local
+WordPress Admin. Batches, Tags, Finder Reports, and Users screenshots establish
+the existing visual contract: native WordPress shell, one compact horizontal
+operations navigation, restrained status pill, white bordered cards, semantic
+tables, and responsive stacking below the WordPress mobile breakpoint.
+
+RT-329 extends that contract without a new framework: Role Profiles uses
+responsibility cards and capability chips; Audit Log uses one exact-filter card
+and chronological stream; Retention uses policy/health cards and an explicit
+Task ID confirmation modal. All copy is translatable US English. No Theme logic,
+custom icon asset, Finder identity, message, media reference, or private item
+field is introduced.
+
+Evidence captured before implementation:
+
+- `tmp/rt329-chrome/01-batches-1440.png`
+- `tmp/rt329-chrome/02-tags-1440.png`
+- `tmp/rt329-chrome/03-finder-reports-1440.png`
+- `tmp/rt329-chrome/04-users-1440.png`
+
+The implementation-pass fixture is available locally from
+`tmp/rt329-preview/` and uses the built TagCore Admin CSS plus the same
+responsive card, stream, and confirmation states. Connected-Chrome control
+timed out after the implementation build, so the final `1440`, `1024`, `816`,
+`390`, `320`, 200-percent, keyboard, permission-matrix, console, and resource
+checks remain an explicit release-gate item; this document does not mark them
+as passed without Chrome evidence.
+
 ## RT-325 Secure Reply accessibility release gate
 
 - Date: 2026-08-13

@@ -877,3 +877,20 @@ headers. Chrome review covers 1440, 1024, 816, 390, 320, and 200% equivalent
 layouts, keyboard and focus behavior, modal confirmation, error announcement,
 temporary Object URL revocation, and console/resource errors. Production
 enablement, deployment, and Release Tag require separate approval.
+
+## RT-329 operational governance console
+
+RT-329 keeps TagCore `0.5.0` and Schema `14`, and advances only
+`returntag_capability_schema_version` from `5` to `6`. Keep
+`returntag_admin_retention_run_enabled` disabled until the fixed-role matrix,
+Action Scheduler health, and retention audit path have been verified. Automatic
+cleanup is independent and must remain scheduled.
+
+Acceptance verifies all eight roles and Administrator, exact capability denial,
+24-hour default/31-day maximum Audit windows, filter-bound keyset cursors,
+projection and header allowlists, fixed retention task IDs, duplicate-run
+refusal, Active Hold preservation, and one metadata-free request/completion
+Event pair. Rollback disables manual runs first, restores code, and preserves
+roles, capabilities, Schema 14, audit Events, and business records. Deployment,
+production enablement, Release Tag, and version publication require separate
+approval.

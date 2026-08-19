@@ -1,8 +1,8 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 4 engineering baseline complete at plugin version 0.5.0 and Schema 13; immutable release publication and production deployment require separate authorization
+**Status:** Milestone 4 engineering baseline complete at plugin version 0.5.0 and Schema 14; immutable release publication and production deployment require separate authorization
 
-**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `13`
+**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `14`
 
 ## 1. Purpose
 
@@ -1167,3 +1167,18 @@ verifies Schema 13 first, is safe to retry, and performs no data rewrite.
 Rollback disables `returntag_admin_finder_report_decisions_enabled`; columns
 and Events remain. Do not run an older cleanup worker while an active Hold
 depends on Schema 14 semantics.
+
+## 28. RT-329 governance queries and retention coordination
+
+RT-329 introduces no DDL and keeps Schema `14`. Global Audit search uses the
+existing `created_at_event_id` keyset index and existing exact actor, target,
+and Event-type indexes. The projection never selects `metadata_json` or
+`correlation_id`. Retention backlog reads stop after `1001` eligible rows,
+are capped to `1000+` for display, and use the existing challenge-expiry and
+`media_retention_hold` indexes.
+
+Manual cleanup reuses existing bounded workers. It does not change frozen
+retention boundaries or bypass `hold_until`. Metadata-free request,
+completion, or fixed-category failure Events are appended; no audit Event,
+accepted Message, Tag ID, Owner Claim, or manufacturing export is deleted.
+Rollback disables the manual-run flag and preserves Schema and all Events.
