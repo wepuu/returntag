@@ -1,6 +1,8 @@
 # ReturnTag Architecture
 
-**Status:** Milestone 4 engineering baseline complete at version 0.5.0 and Schema version 13; immutable release publication and production deployment require separate authorization
+**Status:** TagCore 0.5.0 at Schema 14 with RT-329 governance merged;
+remaining P0 and release work is tracked in the
+[delivery roadmap](ROADMAP.md)
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -16,6 +18,9 @@ later tickets.
 The product requirements in `docs/PRD.md` remain the source of truth for
 product behavior. Architecture must support those requirements without
 weakening frozen business, security, or privacy rules.
+
+The [delivery roadmap](ROADMAP.md) records delivery order and status only. It
+does not change the dependency direction or runtime boundaries defined here.
 
 ## 2. System boundary
 

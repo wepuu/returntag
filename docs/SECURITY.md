@@ -1,14 +1,19 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security baseline plus RT-007 flags, RT-008 logging, RT-108 Schema controls, and RT-109 persistence boundaries
+**Status:** Security and privacy contracts through RT-329 at TagCore 0.5.0 and
+Schema 14; remaining P0 production gates are tracked in the
+[delivery roadmap](ROADMAP.md)
 
 ## 1. Purpose
 
 This document defines mandatory security and privacy controls for ReturnTag.
 RT-007 implements the fail-closed read boundary for global incident controls,
 and RT-008 implements a default-disabled sanitized operational logging
-boundary. Authentication, encryption, rate limiting, email, audited flag
-mutation, and complete incident tooling remain future work.
+boundary. Later accepted contracts add authentication, encryption, rate
+limiting, private email relay, administrative controls, and retention. Their
+remaining production dependencies and release gates are tracked separately in
+the [delivery roadmap](ROADMAP.md); a merged control is not automatically
+enabled in production.
 
 ## 2. Security objectives
 

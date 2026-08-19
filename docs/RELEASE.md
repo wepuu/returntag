@@ -1,6 +1,8 @@
 # ReturnTag Release Baseline
 
-**Status:** Engineering quality and artifact automation available
+**Status:** Engineering quality and artifact automation available through
+Schema 14; the P0-to-v1.0 release sequence is tracked in the
+[delivery roadmap](ROADMAP.md)
 
 **Plugin artifact:** `tagcore-v{version}.zip`
 
@@ -15,9 +17,10 @@ monitoring, TagCore tagged artifact assembly, and ForgeTag tagged artifact
 assembly are present. The ForgeTag Theme engineering skeleton, design tokens,
 pinned runtime assets, product-media baseline, and WooCommerce Template
 baseline are present. The Stage 5 TagCore integration and independence gates
-are also present; final Theme release approval remains a separate RT-314
-follow-up. Production publication and deployment remain manual, explicitly
-authorized operations.
+are also present. Consumer frontend closure, remaining P0 runtime work, and
+the release-candidate matrix are tracked in the
+[delivery roadmap](ROADMAP.md). Production publication and deployment remain
+manual, explicitly authorized operations.
 
 ## 2. Versioning
 
@@ -31,7 +34,10 @@ The plugin header, release tag, artifact name, and release record must identify
 the same version. Milestone 0 uses version `0.1.0`; Milestone 1 closes at
 version `0.2.0` with Schema version `8`; Milestone 2 closes at version `0.3.0`
 with Schema version `8`; Milestone 3 closes at version `0.4.0` with Schema
-version `8`.
+version `8`; and the current merged baseline remains TagCore `0.5.0` at Schema
+`14`. After the remaining P0 gates close, the next release candidate advances
+directly to `0.9.0`; empty retrospective 0.6.0, 0.7.0, and 0.8.0 releases are
+not published. Version `1.0.0` requires the complete Milestone 8 gate.
 
 The ForgeTag Theme uses independent semantic versioning. Its version is
 declared in `theme/forge-tag/style.css` and must not be inferred from the
@@ -894,3 +900,18 @@ Event pair. Rollback disables manual runs first, restores code, and preserves
 roles, capabilities, Schema 14, audit Events, and business records. Deployment,
 production enablement, Release Tag, and version publication require separate
 approval.
+
+## RT-330 v1.0 delivery sequence
+
+The [delivery roadmap](ROADMAP.md) is the canonical execution order, not a
+release authorization. The current merged baseline remains TagCore `0.5.0` at
+Schema `14`. It may advance directly to a `0.9.0` release candidate only after
+the remaining P0 frontend, WooCommerce, ownership-dispute, evidence-safety, and
+operational-readiness gates are accepted. Empty retrospective 0.6.0, 0.7.0,
+and 0.8.0 releases are not published.
+
+Version `1.0.0` additionally requires the complete Milestone 8 compatibility,
+security, delivery, migration, rollback, backup, and recovery evidence. The
+roadmap does not grant permission to create a tag, publish an artifact, enable
+a production flag, or deploy. Those operations retain their separate approval
+and immutable-artifact requirements.

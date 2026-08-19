@@ -2285,6 +2285,26 @@ batch; automatic cleanup remains active independently. Frozen periods and
 Active Holds cannot be overridden, and business audit Events, accepted
 Messages, Tag IDs, Owner Claims, and manufacturing exports are never eligible.
 
+### 29.9 RT-330 implementation status and v1.0 sequence
+
+The [v1.0 delivery roadmap](ROADMAP.md) records implementation status and
+execution order without changing the requirements in this document. The
+current merged baseline is TagCore `0.5.0`, Schema `14`, and capability contract
+version `6`.
+
+Milestones 0 through 3 are accepted. Milestones 4 and 5 have their core runtime
+on `main`, while the RT-323 and RT-324 actual-page acceptance work remains open.
+Most Milestone 7 administration is merged through RT-329, but the complete
+staff-created ownership-dispute case and adjudication workflow defined by
+section 20.3 remains a P0 gap. Milestone 6 remains a P0 gap because Theme
+compatibility does not implement the TagCore WooCommerce Completed Hook.
+
+After all P0 functionality, production dependencies, and consumer acceptance
+gates close, TagCore advances directly from `0.5.0` to a `0.9.0` release
+candidate. Version `1.0.0` still requires every Milestone 8 acceptance item.
+The P1 list in section 26.2 remains post-v1.0 scope. Release tags, production
+deployment, and production feature enablement require separate authorization.
+
 ## 31. 结论
 
 ForgeTag 一期采用以下最终产品模型：
