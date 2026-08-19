@@ -1,6 +1,7 @@
 # ReturnTag Database Baseline
 
-**Status:** Milestone 4 engineering baseline complete at plugin version 0.5.0 and Schema 14; immutable release publication and production deployment require separate authorization
+**Status:** TagCore 0.5.0 at current Schema 14; future additive persistence and
+release order is tracked in the [delivery roadmap](ROADMAP.md)
 
 **Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `14`
 

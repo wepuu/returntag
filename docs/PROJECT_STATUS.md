@@ -16,11 +16,17 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current baseline version: `0.5.0`
+* Current baseline: TagCore `0.5.0`, Schema `14`, capability contract `6`, and
+  ForgeTag Theme `0.1.0`
 
-* Current completed milestone: Milestone 4 engineering baseline complete at Schema 13
+* Current delivery state: Milestones 0 through 3 are accepted; Milestones 4,
+  5, and 7 remain in progress with merged foundations and the open P0 gates
+  recorded in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: Milestone 4 baseline closure; immutable artifact publication, WP Mail SMTP production configuration, and deployment remain separately authorized operations
+* Current workstream: RT-330 roadmap reconciliation, followed by RT-319 through
+  RT-324 frontend closure and the remaining P0 path to TagCore `0.9.0`
+
+* Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
 
 
@@ -119,6 +125,26 @@ The following tickets are considered implemented in the current baseline:
 * RT-312 - TagCore manual-entry routes, dynamic link block, and modal/full-screen adapter
 
 * RT-313 - ForgeTag V1 design-asset baseline and production/reference asset governance
+
+* RT-314 - ForgeTag Theme engineering, homepage, commerce-template, artifact, and TagCore integration baseline
+
+* RT-315 - Finder evidence processing, one-way Owner notification, optional Finder verification, and private relay
+
+* RT-316 - Participant close and report-block controls
+
+* RT-317 - Owner Account, Tag editing, Conversation browser, and Secure Reply continuation
+
+* RT-318 - Owner lifecycle, Transfer, Retire, and Test Email completion
+
+* RT-325 - Secure Reply accessibility and cross-state release gate
+
+* RT-326 - Tag, Finder Report, and User operations console
+
+* RT-327 - Audited administrator Tag lifecycle controls
+
+* RT-328 - Finder Report review, evidence Hold, and administrator decisions
+
+* RT-329 - Operational roles, global Audit, and Retention console
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -1184,3 +1210,17 @@ Audit search, and default-off bounded manual retention scheduling. It keeps
 TagCore `0.5.0`, Schema `14`, Theme boundaries, dependencies, and lock files
 unchanged. Production enablement, deployment, release, and Git publication are
 not part of the implementation authorization.
+
+## RT-330 v1.0 roadmap reconciliation
+
+RT-330 adds the [canonical delivery roadmap](ROADMAP.md) and reconciles the
+project baseline with the implementation merged through RT-329. The roadmap
+distinguishes merged code from actual-page acceptance, operational readiness,
+and production release. It records RT-319 through RT-324 as unfinished work to
+recover rather than replace, Milestone 6 and the complete ownership-dispute
+workflow as remaining P0 gaps, and `0.9.0` as the release-candidate target after
+P0 closure.
+
+RT-330 is documentation-only. It does not change TagCore `0.5.0`, Schema `14`,
+the ForgeTag Theme, a runtime interface, a feature-flag value, a dependency, an
+artifact, production configuration, or deployment authorization.
