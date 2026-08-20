@@ -54,7 +54,7 @@ describe( 'ForgeTag Theme contract', () => {
 			await writeFile(
 				path,
 				template.replace(
-					'<!-- wp:post-content {"align":"wide"} /-->',
+					'<!-- wp:post-content {"align":"wide","className":"forge-commerce__page-content"} /-->',
 					'<!-- wp:woocommerce/cart /-->'
 				)
 			);
@@ -65,6 +65,47 @@ describe( 'ForgeTag Theme contract', () => {
 			/must render the assigned WooCommerce page content/
 		);
 		assertFailure( result, /must not replace assigned page content/ );
+	} );
+
+	it( 'rejects an incomplete commerce shell or transaction heading', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'templates/page-checkout.html' );
+			const template = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				template
+					.replace(
+						'<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->',
+						''
+					)
+					.replace( '<!-- wp:post-title {"level":1} /-->', '' )
+			);
+		} );
+
+		assertFailure( result, /must retain the ForgeTag footer presentation/ );
+		assertFailure(
+			result,
+			/must render the assigned WooCommerce page content/
+		);
+	} );
+
+	it( 'rejects an incomplete responsive commerce presentation contract', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'assets/css/commerce.css' );
+			const stylesheet = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				stylesheet.replaceAll(
+					'.wp-block-woocommerce-checkout',
+					'.wp-block-checkout-removed'
+				)
+			);
+		} );
+
+		assertFailure(
+			result,
+			/missing the RT-321 presentation contract: \.wp-block-woocommerce-checkout/
+		);
 	} );
 
 	it( 'rejects commerce code that crosses Theme boundaries', async () => {

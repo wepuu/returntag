@@ -53,6 +53,14 @@ Block Templates plus responsive and accessibility regression coverage. Cart
 and Checkout continue to render their assigned page content, so WooCommerce
 remains authoritative for those blocks. The Theme owns presentation only and
 does not allocate Tag IDs, infer product state, or duplicate TagCore routes.
+RT-321 completes the presentation acceptance layer with an editorial catalog
+intro, responsive one-to-three-column product cards, product media and summary
+hierarchy, complete ForgeTag shells for Cart and Checkout, and public-Block
+styling for populated, empty, notice, form, and validation states. Acceptance
+uses an isolated local WooCommerce fixture with synthetic products, prices,
+ratings, reviews, stock, and approved Theme media; that data is development
+evidence, not a production commercial claim. The contract is reviewed at
+1440px, 1024px, 816px, 390px, 320px, and 200% equivalent text sizing.
 The independent release workflow validates the exact runtime allowlist and an
 approved `forge-tag-v{version}` tag before assembling a `forge-tag/`-rooted ZIP
 and SHA-256 checksum. It uploads workflow artifacts only; release approval and

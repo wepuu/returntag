@@ -418,3 +418,100 @@ final result: passed
   and TypeScript checks passed before the final full regression.
 
 final result: passed
+
+---
+
+# RT-321 Design QA
+
+## Evidence contract
+
+- Source visual truth:
+  - `C:/Users/admin/.codex/worktrees/74dc/ForgeTag/docs/design/homepage.png` (816 x 1927 px; visual language only).
+  - `C:/Users/admin/.codex/visualizations/2026/08/11/019fefbe-8165-78d0-803d-288cb446e20d/rt-319/08-shop-1440.png` (RT-319 unavailable-commerce baseline).
+  - `C:/Users/admin/.codex/worktrees/74dc/ForgeTag/docs/design/RT-319-STAGE-0-AUDIT.md` (frozen commerce acceptance contract).
+- Implementation: local ForgeTag/WooCommerce routes at `/shop/`, the synthetic fixture product permalink, `/cart/`, and `/checkout/`.
+- Required Chrome screenshots: captured under `C:/Users/admin/.codex/visualizations/2026/08/11/019fefbe-8165-78d0-803d-288cb446e20d/rt-321-commerce/` using the user's connected Chrome session.
+- Density normalization: Chrome reported device scale `1`. Full-page captures record the content viewport after the browser scrollbar: 1425 px for a 1440 px override, 1009 px for 1024, 801 px for 816, 375 px for 390, and 305 px for 320.
+- State: populated Shop, Single Product with one synthetic five-star review, populated Cart, Checkout, stable empty Cart, and responsive catalog.
+
+## Findings
+
+- [resolved P2] Populated Cart exceeded the desktop content viewport.
+  - Location: WooCommerce Cart block at the 1440 px viewport.
+  - Evidence: `04-cart-populated-1440.png` captured a 1433 px document against a 1425 px client viewport; the Cart block extended to x=1448 because its wide alignment and Theme padding were calculated with content-box sizing.
+  - Fix and verification: the Theme now constrains the Cart/Checkout blocks with `box-sizing: border-box` and `max-inline-size: 100%`. `05-cart-populated-1440-fixed.png` records a 1425 px document/client width and a Cart block ending at x=1367.
+
+- [P3] WordPress/WooCommerce requests two upstream visual resources in the synthetic review state.
+  - Location: Single Product review/gallery.
+  - Evidence: `s.w.org` supplies the WordPress Core magnifier emoji and `secure.gravatar.com` supplies the reviewer avatar. RT-321 Theme code does not introduce either request.
+  - Follow-up: decide in a separate operational/privacy scope whether production disables remote avatars and WordPress emoji replacement.
+
+- [P3] WooCommerce-generated markup has two narrow upstream Axe exceptions.
+  - Location: Single Product `.zoomImg` and Checkout `#email`.
+  - Evidence: the gallery script creates a zoom clone with `role="presentation"` plus non-empty `alt`; Checkout emits `autocomplete="section-contact contact email"`. Theme-owned regions otherwise pass the automated Axe gate after dynamic checkout skeletons settle.
+  - Follow-up: track against the WooCommerce integration/version or an explicitly approved compatibility adapter; keep the exceptions narrow and named in E2E.
+
+- [P3] Minor polish remains outside the RT-321 acceptance boundary.
+  - At 320 px, the existing global Footer wraps `Privacy` onto a separate line but remains usable and creates no horizontal overflow.
+  - Product-title links use the browser's visible 1 px automatic focus outline while Theme buttons and Footer links use the stronger 2 px treatment.
+  - With only one eligible related product in the local fixture, the desktop related-products region leaves intentional unused grid space.
+
+- [P3] Chrome console warnings are upstream and non-blocking.
+  - WordPress Interactivity warns about a deprecated double-hyphen `data-wp-init` directive.
+  - WooCommerce Cart warns that an inline script accesses `wc.wcBlocksData` without declaring it as a dependency.
+  - Checkout emits a WooCommerce `useSelect` performance warning.
+  - Chrome reported no page console errors. Statsig timeouts shown by the control client target `ab.chatgpt.com` and are not requests from the ForgeTag page.
+
+## Required fidelity surfaces
+
+- Fonts and typography: the Chrome captures preserve the existing ForgeTag heavy display hierarchy, condensed supporting type, and readable control labels without introducing a parallel commerce type system.
+- Spacing and layout rhythm: catalog, product, Cart, and Checkout use consistent wrappers and responsive 3/2/1-column behavior; the corrected surfaces do not overflow at 1440, 1024/816, 390, 320, or the 200% equivalent check.
+- Colors and visual tokens: `18-rt319-vs-rt321-shop.png` and `19-visual-language-vs-shop-816.png` confirm the existing red/black/white visual language, hard-edged controls, dark Footer, and pale commerce canvas.
+- Image quality and asset fidelity: Shop and Product render repository-owned product images at positive natural dimensions. `13-product-390-image-loaded.png` confirms the mobile gallery image is fully painted and not cropped by the responsive layout.
+- Copy and content: Theme-owned consumer copy remains translatable US English. Synthetic local products, prices, stock, rating, and review are intentionally test data and are not production claims.
+
+## Full-view and focused-region comparison evidence
+
+- Full-view comparison:
+  - `18-rt319-vs-rt321-shop.png`: RT-319 unavailable baseline beside the implemented 1440 Shop.
+  - `19-visual-language-vs-shop-816.png`: supplied homepage visual-language reference beside the 816 Shop. The source governs visual language only, not commerce content or business claims.
+- Desktop focused evidence:
+  - `01-shop-1440.png`, `02-product-1440.png`, `03-product-reviews-1440.png`, `05-cart-populated-1440-fixed.png`, and `06-checkout-1440.png`.
+- Responsive evidence:
+  - `07-shop-1024.png`, `08-shop-816.png`, `09-shop-200pct-equivalent.png`, `10-shop-390.png`, `11-shop-320.png`, `13-product-390-image-loaded.png`, `14-cart-390.png`, `15-checkout-390.png`, and `17-cart-empty-390-stable.png`.
+- Superseded captures retained for audit history:
+  - `04-cart-populated-1440.png` shows the fixed overflow.
+  - `12-product-390.png` and `16-cart-empty-390.png` caught asynchronous paint/loading transitions; the stable recaptures above are authoritative.
+
+## Interaction and automated checks
+
+- Shop and Single Product: real local images, product links, visible keyboard focus, add-to-cart form, synthetic five-star review, and Theme-owned Axe scope exercised.
+- Cart and Checkout: populated content, semantic H1, shared Header/Footer, visible labels, settled dynamic content, and Theme-owned Axe scope exercised.
+- Empty Cart: recovery state and browse/shop action exercised.
+- Responsive: Chrome and automated checks covered 1440, 1024, 816, 390, 320, and 200% equivalent text without page-level horizontal overflow after the Cart correction.
+- Keyboard: Chrome Tab traversal reached product cards, actions, and Footer links with visible outlines; semantic labels were present on checkout inputs and Cart quantity controls.
+- Resource policy: all unexpected third-party requests fail the test; only the documented WordPress Core emoji and Gravatar requests are allowed.
+- Console: no page errors; the upstream WordPress/WooCommerce warnings are recorded above.
+
+## Comparison history
+
+- Iteration 0: RT-319 recorded commerce as unavailable/Coming Soon; no Shop, Product, Cart, or Checkout presentation could be accepted.
+- Iteration 1: RT-321 added ForgeTag commerce templates, responsive presentation CSS, synthetic WooCommerce fixture coverage, and contract validators.
+- Chrome iteration 1: same-state captures exposed the populated Cart's content-box overflow at desktop width.
+- Chrome iteration 2: the block box model was corrected, statically contracted, recaptured at the same viewport, and measured at `scrollWidth === clientWidth === 1425`.
+- Final comparison: every required commerce state was inspected in Chrome and the implementation/source composites were reviewed together. No P0, P1, or unresolved P2 fidelity issue remains.
+
+## Implementation checklist
+
+1. Chrome route/state and responsive captures: complete.
+2. Combined reference/implementation comparisons: complete.
+3. P2 Cart overflow fix and same-state recapture: complete.
+4. Keyboard, labels, console, resource, image-paint, and empty-state review: complete.
+
+## Follow-up polish
+
+- Reassess WooCommerce remote avatar/emoji behavior under the production privacy and resource policy.
+- Track the two narrow WooCommerce-generated ARIA/autocomplete findings separately from Theme presentation.
+- Harmonize product-title focus styling and the 320 px Footer wrap in a later shared-shell polish ticket if desired.
+
+final result: passed

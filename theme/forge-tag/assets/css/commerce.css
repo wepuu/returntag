@@ -1,17 +1,73 @@
 /*
- * RT-314 Stage 4 WooCommerce presentation baseline.
+ * RT-321 WooCommerce presentation contract.
  * Keep styling on Theme-owned wrappers and public Block surfaces.
  */
 
 .forge-commerce {
 	min-block-size: 60vh;
-	padding-block: clamp(2.5rem, 6vw, 6rem);
+	padding-block: clamp(2.5rem, 5vw, 5.5rem);
 	overflow-wrap: anywhere;
+}
+
+.forge-commerce :where(a, button, input, select, textarea) {
+	font-family: var(--wp--preset--font-family--body);
+}
+
+.forge-commerce__intro,
+.forge-commerce__product-nav {
+	margin-inline: auto;
+	width: 100%;
+}
+
+.forge-commerce__intro {
+	padding-block: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 2vw, 1.5rem);
+}
+
+.forge-commerce__intro > * {
+	margin-inline: 0;
+}
+
+.forge-commerce__intro h1 {
+	max-inline-size: 14ch;
+	margin-block: var(--wp--preset--spacing--sm) 0;
+}
+
+.forge-commerce__intro .term-description {
+	max-inline-size: 42rem;
+	color: var(--wp--preset--color--graphite);
+	font-size: var(--wp--preset--font-size--body-lg);
+}
+
+.forge-commerce__intro--transaction {
+	padding-block-end: var(--wp--preset--spacing--lg);
+}
+
+.forge-commerce__intro--transaction h1 {
+	max-inline-size: none;
+}
+
+.forge-commerce__product-nav {
+	padding-block-end: var(--wp--preset--spacing--lg);
+}
+
+.forge-commerce__product-media img {
+	display: block;
+	inline-size: 100%;
+	block-size: auto;
+	border-radius: calc(var(--wp--custom--forge--radius--media) - 8px);
+}
+
+.forge-commerce__product-summary > * {
+	margin-inline: 0;
 }
 
 .forge-commerce__catalog-toolbar {
 	gap: var(--wp--preset--spacing--md);
-	margin-block: var(--wp--preset--spacing--xl);
+	margin-block: var(--wp--preset--spacing--lg) var(--wp--preset--spacing--xl);
+	padding-block: var(--wp--preset--spacing--md);
+	border-block: 1px solid var(--wp--preset--color--line);
+	color: var(--wp--preset--color--graphite);
+	font-size: var(--wp--preset--font-size--small);
 }
 
 .forge-commerce__catalog-toolbar > * {
@@ -24,27 +80,260 @@
 	max-inline-size: 100%;
 }
 
+.forge-commerce__catalog-toolbar select {
+	min-block-size: 44px;
+	padding:
+		var(--wp--preset--spacing--sm) 2.75rem
+		var(--wp--preset--spacing--sm) var(--wp--preset--spacing--md);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--control);
+	background-color: var(--wp--preset--color--surface);
+	color: var(--wp--preset--color--ink);
+}
+
+.forge-commerce__catalog-grid .wp-block-woocommerce-product-template {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: clamp(1rem, 2.4vw, 2rem);
+}
+
+.forge-commerce__catalog-grid .wp-block-post {
+	display: grid;
+	min-inline-size: 0;
+	padding: var(--wp--preset--spacing--md);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--card);
+	background: var(--wp--preset--color--surface);
+	box-shadow: var(--wp--preset--shadow--card);
+	align-content: start;
+	gap: var(--wp--preset--spacing--sm);
+	overflow: hidden;
+}
+
+.forge-commerce__catalog-grid .wp-block-post > * {
+	min-inline-size: 0;
+	margin-block: 0;
+}
+
+.forge-commerce__catalog-grid .wp-block-woocommerce-product-image {
+	position: relative;
+	aspect-ratio: 1;
+	margin-block-end: var(--wp--preset--spacing--xs);
+	border-radius: calc(var(--wp--custom--forge--radius--card) - 4px);
+	background: var(--wp--preset--color--cloud);
+	overflow: hidden;
+}
+
+.forge-commerce__catalog-grid .wp-block-woocommerce-product-image img {
+	display: block;
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+}
+
+.forge-commerce__catalog-grid .wp-block-post-title {
+	font-family: var(--wp--preset--font-family--display);
+	font-weight: 750;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+}
+
+.forge-commerce__catalog-grid .wp-block-post-title a {
+	text-decoration: none;
+}
+
+.forge-commerce__catalog-grid .wp-block-woocommerce-product-price {
+	color: var(--wp--preset--color--graphite);
+	font-weight: 700;
+}
+
+.forge-commerce__catalog-grid .wp-block-woocommerce-product-button {
+	margin-block-start: var(--wp--preset--spacing--xs);
+}
+
+.forge-commerce__catalog-grid
+.wp-block-woocommerce-product-button
+:where(a, button) {
+	inline-size: 100%;
+	min-block-size: 44px;
+	justify-content: center;
+}
+
+.forge-commerce__catalog-grid .wp-block-query-pagination {
+	grid-column: 1 / -1;
+	gap: var(--wp--preset--spacing--sm);
+	margin-block-start: var(--wp--preset--spacing--xl);
+}
+
 .forge-commerce__product-layout {
 	align-items: flex-start;
 	gap: clamp(2rem, 6vw, 6rem);
 }
 
+.forge-commerce__product-media {
+	min-inline-size: 0;
+	padding: clamp(0.75rem, 2vw, 1.5rem);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--media);
+	background: var(--wp--preset--color--cloud);
+}
+
 .forge-commerce__product-summary {
 	min-width: 0;
+	padding-block: clamp(0.25rem, 2vw, 1.5rem);
 }
 
-.forge-commerce__product-summary > * {
-	margin-inline: 0;
+.forge-commerce__product-summary h1 {
+	max-inline-size: 12ch;
+	margin-block: 0 var(--wp--preset--spacing--md);
 }
 
-.forge-commerce--product > .wp-block-woocommerce-product-details {
+.forge-commerce__product-summary .wp-block-woocommerce-product-rating {
+	margin-block: var(--wp--preset--spacing--md);
+}
+
+.forge-commerce__product-summary .wp-block-woocommerce-product-price {
+	margin-block: var(--wp--preset--spacing--md);
+	font-family: var(--wp--preset--font-family--display);
+	font-size: clamp(1.5rem, 3vw, 2rem);
+	font-weight: 750;
+	letter-spacing: -0.02em;
+}
+
+.forge-commerce__product-summary .wp-block-post-excerpt {
+	max-inline-size: 42rem;
+	margin-block: var(--wp--preset--spacing--lg);
+	color: var(--wp--preset--color--graphite);
+	font-size: var(--wp--preset--font-size--body-lg);
+}
+
+.forge-commerce__product-summary .wp-block-woocommerce-add-to-cart-form {
+	margin-block-start: var(--wp--preset--spacing--xl);
+	padding-block-start: var(--wp--preset--spacing--lg);
+	border-block-start: 1px solid var(--wp--preset--color--line);
+}
+
+.forge-commerce__product-summary .wp-block-woocommerce-add-to-cart-form form {
+	display: flex;
+	align-items: stretch;
+	gap: var(--wp--preset--spacing--sm);
+	flex-wrap: wrap;
+}
+
+.forge-commerce__product-summary .wp-block-woocommerce-add-to-cart-form input {
+	inline-size: 5rem;
+}
+
+.forge-commerce__product-summary .wp-block-woocommerce-add-to-cart-form button {
+	min-block-size: 48px;
+	flex: 1 1 12rem;
+}
+
+.forge-commerce--product > .wp-block-woocommerce-product-details,
+.forge-commerce__product-details {
 	margin-top: clamp(3rem, 7vw, 6rem);
+	padding-block: clamp(2rem, 5vw, 4rem);
+	border-block: 1px solid var(--wp--preset--color--line);
+}
+
+.forge-commerce__page-content {
+	inline-size: 100%;
+}
+
+.forge-commerce__page-content > :where(.wp-block-woocommerce-cart, .wp-block-woocommerce-checkout) {
+	margin-block: 0;
+}
+
+.forge-commerce
+:where(.wp-block-woocommerce-cart, .wp-block-woocommerce-checkout) {
+	box-sizing: border-box;
+	max-inline-size: 100%;
+	padding: clamp(1rem, 3vw, 2rem);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--card);
+	background: var(--wp--preset--color--surface);
+	box-shadow: var(--wp--preset--shadow--card);
+}
+
+.forge-commerce :where(.wp-block-woocommerce-empty-cart-block) {
+	padding: clamp(2rem, 6vw, 5rem);
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--card);
+	background: var(--wp--preset--color--cloud);
+	text-align: center;
+}
+
+.forge-commerce :where(fieldset) {
+	min-inline-size: 0;
+	padding: 0;
+	border: 0;
+}
+
+.forge-commerce :where(label, legend) {
+	color: var(--wp--preset--color--ink);
+	font-weight: 700;
+}
+
+.forge-commerce :where(input, select, textarea) {
+	max-inline-size: 100%;
+	border: 1px solid var(--wp--preset--color--line);
+	border-radius: var(--wp--custom--forge--radius--control);
+	background-color: var(--wp--preset--color--surface);
+	color: var(--wp--preset--color--ink);
+}
+
+.forge-commerce
+:where(input:not([type="checkbox"]):not([type="radio"]), select) {
+	min-block-size: 44px;
+}
+
+.forge-commerce :where(textarea) {
+	min-block-size: 7rem;
+}
+
+.forge-commerce :where(button, .wp-element-button, [role="button"]) {
+	min-block-size: 44px;
+	border-radius: var(--wp--custom--forge--radius--control);
+	font-weight: 700;
+}
+
+.forge-commerce :where(table) {
+	inline-size: 100%;
+	border-collapse: collapse;
+}
+
+.forge-commerce :where(th, td) {
+	padding: var(--wp--preset--spacing--sm);
+	border-block-end: 1px solid var(--wp--preset--color--line);
+	text-align: start;
+}
+
+.forge-commerce :where([role="alert"], [role="status"]) {
+	padding: var(--wp--preset--spacing--md);
+	border-inline-start: 4px solid var(--wp--preset--color--forge-red);
+	border-radius: var(--wp--custom--forge--radius--control);
+	background: var(--wp--preset--color--cloud);
+}
+
+@media (max-width: 64rem) {
+
+	.forge-commerce__catalog-grid .wp-block-woocommerce-product-template {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.forge-commerce__product-layout {
+		gap: var(--wp--preset--spacing--2xl);
+	}
 }
 
 @media (max-width: 47.999rem) {
 
 	.forge-commerce {
 		padding-block: var(--wp--preset--spacing--2xl);
+	}
+
+	.forge-commerce__intro {
+		padding-block-start: var(--wp--preset--spacing--md);
 	}
 
 	.forge-commerce__catalog-toolbar {
@@ -60,5 +349,31 @@
 
 	.forge-commerce__product-layout {
 		gap: var(--wp--preset--spacing--xl);
+	}
+
+	.forge-commerce__catalog-grid .wp-block-woocommerce-product-template {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.forge-commerce__product-summary h1 {
+		max-inline-size: 16ch;
+	}
+
+	.forge-commerce
+	:where(.wp-block-woocommerce-cart, .wp-block-woocommerce-checkout) {
+		padding: var(--wp--preset--spacing--md);
+	}
+}
+
+@media (max-width: 22.5rem) {
+
+	.forge-commerce {
+		padding-block: var(--wp--preset--spacing--xl);
+	}
+
+	.forge-commerce__catalog-grid .wp-block-post,
+	.forge-commerce
+	:where(.wp-block-woocommerce-cart, .wp-block-woocommerce-checkout) {
+		padding: var(--wp--preset--spacing--sm);
 	}
 }
