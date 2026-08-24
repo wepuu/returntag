@@ -2,7 +2,7 @@
 
 **Status:** Approved implementation path recorded by RT-330
 
-**Baseline:** `origin/main` commit `571e503`, TagCore `0.5.0`, Schema `14`,
+**Baseline:** `origin/main` commit `ec60d38`, TagCore `0.5.0`, Schema `14`,
 ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
@@ -66,7 +66,7 @@ published Milestone 7 release and does not authorize production enablement.
 
 ### [RT-330](https://github.com/wepuu/returntag/issues/82) - v1.0 roadmap reconciliation
 
-Status: `In progress`
+Status: `Merged`
 
 RT-330 establishes this roadmap and aligns status statements in the related
 documents. It changes no runtime, Schema, dependency, Option, feature-flag
@@ -96,8 +96,8 @@ The original worktrees remain present and unchanged at the time of this audit.
 
 | Work item | Branch and current head | Recovery facts |
 |---|---|---|
-| [RT-319](https://github.com/wepuu/returntag/issues/65) | Audit document is currently untracked beside RT-320 at `9ebe744` | Preserve the audit separately from RT-320. User reference assets are untracked in the same worktree and are not RT-319 runtime output. |
-| [RT-320](https://github.com/wepuu/returntag/issues/66) | `feat/RT-320-global-shell-metadata` at `9ebe744` | Behind `main` by five commits; 12 tracked files contain 756 insertions and 256 deletions, plus scoped untracked implementation files and excluded reference assets. Do not rebase in place. |
+| [RT-319](https://github.com/wepuu/returntag/issues/65) | Recovered independently and merged as `ec60d38` | The audit, page-state matrix, findings, and privacy-reviewed Chrome evidence are now on `main`; user reference assets remain unchanged. |
+| [RT-320](https://github.com/wepuu/returntag/issues/66) | Recovery fingerprint remains at `9ebe744`; scoped work is ported to `feat/RT-320-global-shell-metadata-recovered` from `ec60d38` | The original worktree remains unchanged. The recovered branch contains only RT-320 Theme, tests, documentation, and privacy-reviewed QA evidence. |
 | [RT-321](https://github.com/wepuu/returntag/issues/67) | `feat/RT-321-commerce-presentation` at `e125538` | Clean worktree with existing [Draft PR #68](https://github.com/wepuu/returntag/pull/68). Update it only after RT-320 is merged, then rebase or port onto the new baseline. |
 | [RT-322](https://github.com/wepuu/returntag/issues/69) | `feat/RT-322-tag-entry-surfaces` at `9ebe744` | Behind `main` by five commits; 12 tracked files contain 336 insertions and 27 deletions. |
 | [RT-323](https://github.com/wepuu/returntag/issues/70) | `feat/RT-323-activate-report-flow` at `9ebe744` | Behind `main` by five commits; nine tracked files contain 365 insertions and 50 deletions. |
@@ -114,7 +114,7 @@ work items.
 
 | Order | Work item | Status | Exit gate |
 |---|---|---|---|
-| 1 | [RT-319](https://github.com/wepuu/returntag/issues/65) actual-page audit and visual contract | `In progress` | Audit report, page-state matrix, P0/P1/P2 findings, privacy-reviewed durable Chrome evidence, and reproduction steps are merged. |
+| 1 | [RT-319](https://github.com/wepuu/returntag/issues/65) actual-page audit and visual contract | `Accepted` | Audit report, page-state matrix, P0/P1/P2 findings, privacy-reviewed durable Chrome evidence, and reproduction steps are merged. |
 | 2 | [RT-320](https://github.com/wepuu/returntag/issues/66) global shell, metadata, Search, and 404 | `In progress` | Consumer brand, metadata, fallback templates, responsive shell, and production-safe copy pass Theme checks and Chrome acceptance. |
 | 3 | [RT-321](https://github.com/wepuu/returntag/issues/67) commerce presentation | `In progress` | The existing Draft PR is updated after RT-320; Shop, Product, Cart, and Checkout pass the WooCommerce and responsive matrix. |
 | 4 | [RT-322](https://github.com/wepuu/returntag/issues/69) Tag entry surfaces | `In progress` | Desktop dialog, mobile input page, no-JavaScript fallback, focus behavior, and canonical `303` routing pass. |
@@ -265,6 +265,5 @@ distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
 The current active work item is
-[RT-330](https://github.com/wepuu/returntag/issues/82). The next implementation
-work after its merge is RT-319 closure, followed by RT-320 through RT-324 in
-the order above.
+[RT-320](https://github.com/wepuu/returntag/issues/66). After RT-320 is merged,
+the next implementation work is RT-321 through RT-324 in the order above.

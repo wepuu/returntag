@@ -36,17 +36,14 @@ code, obsolete domain, and Tag ID; Smart Tag uses an exact runtime copy.
 Source-design files are never loaded by WordPress, and visible model artwork
 in the Smart Tag image is not approved as public copy.
 
-The homepage trust-completion pass adds a brand-story Pattern backed by the
-user-authorized Forge travel-lock family image and a semantic three-review
-customer-story Pattern. The brand-story copy and three-item proof strip follow
-the brand owner's supplied effect design, while their text remains translatable
-and editable in the Pattern. The travel-lock image and the pinned Lucide proof
-icons are recorded in the asset manifest. Customer stories use local red Lucide
-star icons and three non-identifying illustrated avatars generated as temporary
-reviewer placeholders; they are not customer photographs. Reviews use only the
-supplied display names, product labels, ratings, buyer statuses, marketplace
-sources, and unedited sentence excerpts; Smart Tag tracking or battery claims
-remain excluded from the review Pattern.
+RT-320 keeps the user-authorized Forge travel-lock family image and the supplied
+commercial-history, sales-proof, marketplace-review, rating, and recovery-story
+content as explicit development/local demo data. Production environments render
+the PRD-backed brand-story facts and omit the testimonial demo Pattern. The
+companion confidence Pattern explains browser-based QR recovery, private relay,
+and the independent smart-network boundary. Generic Page, Search, and 404
+Templates share the same responsive shell and give people clear recovery actions
+without moving TagCore forms or state decisions into the Theme.
 
 Stage 4 adds source-controlled Shop Archive, Single Product, Cart, and Checkout
 Block Templates plus responsive and accessibility regression coverage. Cart

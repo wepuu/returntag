@@ -285,13 +285,13 @@ describe( 'ForgeTag Theme contract', () => {
 			await writeFile(
 				path,
 				template.replace(
-					'\t<!-- wp:pattern {"slug":"forge-tag/home-testimonials"} /-->\n',
+					'\t<!-- wp:pattern {"slug":"forge-tag/home-confidence"} /-->\n',
 					''
 				)
 			);
 		} );
 
-		assertFailure( missing, /must include forge-tag\/home-testimonials/ );
+		assertFailure( missing, /must include forge-tag\/home-confidence/ );
 
 		const reordered = await withThemeCopy( async ( themeRoot ) => {
 			const path = join( themeRoot, 'templates/front-page.html' );
@@ -299,8 +299,8 @@ describe( 'ForgeTag Theme contract', () => {
 			await writeFile(
 				path,
 				template.replace(
-					'\t<!-- wp:pattern {"slug":"forge-tag/home-brand-story"} /-->\n\t<!-- wp:pattern {"slug":"forge-tag/home-testimonials"} /-->',
-					'\t<!-- wp:pattern {"slug":"forge-tag/home-testimonials"} /-->\n\t<!-- wp:pattern {"slug":"forge-tag/home-brand-story"} /-->'
+					'\t<!-- wp:pattern {"slug":"forge-tag/home-brand-story"} /-->\n\t<!-- wp:pattern {"slug":"forge-tag/home-confidence"} /-->',
+					'\t<!-- wp:pattern {"slug":"forge-tag/home-confidence"} /-->\n\t<!-- wp:pattern {"slug":"forge-tag/home-brand-story"} /-->'
 				)
 			);
 		} );
@@ -308,7 +308,7 @@ describe( 'ForgeTag Theme contract', () => {
 		assertFailure( reordered, /homepage Pattern order is incorrect/ );
 	} );
 
-	it( 'rejects a malformed brand proof strip and approved claims outside the brand story', async () => {
+	it( 'rejects a malformed recovery-fact strip and unsupported security claims', async () => {
 		const malformed = await withThemeCopy( async ( themeRoot ) => {
 			const path = join( themeRoot, 'patterns/home-brand-story.php' );
 			const pattern = await readFile( path, 'utf8' );
@@ -326,50 +326,73 @@ describe( 'ForgeTag Theme contract', () => {
 		const misplacedClaim = await withThemeCopy( async ( themeRoot ) => {
 			const path = join( themeRoot, 'parts/footer.html' );
 			const footer = await readFile( path, 'utf8' );
-			await writeFile( path, `${ footer }\n<p>Millions sold</p>` );
+			await writeFile( path, `${ footer }\n<p>End-to-end encrypted</p>` );
 		} );
 
 		assertFailure( misplacedClaim, /contains an unapproved product claim/ );
 	} );
 
-	it( 'rejects invalid testimonial content and unsupported behavior', async () => {
+	it( 'rejects unsupported behavior in recovery confidence', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'patterns/home-confidence.php' );
+			const pattern = await readFile( path, 'utf8' );
+			await writeFile(
+				path,
+				`${ pattern }\n<script>window.demo = true;</script>`
+			);
+		} );
+
+		assertFailure( result, /unsupported behavior/ );
+	} );
+
+	it( 'requires testimonial demos to stay explicit and development-only', async () => {
 		const result = await withThemeCopy( async ( themeRoot ) => {
 			const path = join( themeRoot, 'patterns/home-testimonials.php' );
 			const pattern = await readFile( path, 'utf8' );
 			await writeFile(
 				path,
-				`${ pattern }\n<p>Sample testimonial about active tracking.</p>`
+				pattern.replace( 'wp_get_environment_type()', "'production'" )
 			);
 		} );
 
-		assertFailure(
-			result,
-			/placeholder, unsupported behavior, or unapproved Smart Tag claims/
-		);
+		assertFailure( result, /testimonial demos must remain explicit/ );
 	} );
 
-	it( 'rejects incomplete testimonial stars and reviewer avatars', async () => {
-		const missingAvatar = await withThemeCopy( async ( themeRoot ) => {
-			await rm(
-				join( themeRoot, 'assets/images/review-avatars/megan-r.png' )
-			);
-		} );
-
-		assertFailure( missingAvatar, /megan_r reviewer avatar is missing/ );
-
-		const missingStar = await withThemeCopy( async ( themeRoot ) => {
-			const path = join( themeRoot, 'patterns/home-testimonials.php' );
+	it( 'rejects incomplete recovery-confidence cards and icons', async () => {
+		const missingIcon = await withThemeCopy( async ( themeRoot ) => {
+			const path = join( themeRoot, 'patterns/home-confidence.php' );
 			const pattern = await readFile( path, 'utf8' );
 			await writeFile(
 				path,
-				pattern.replace( 'assets/icons/star.svg', 'assets/icons/x.svg' )
+				pattern.replace(
+					'assets/icons/qr-code.svg',
+					'assets/icons/x.svg'
+				)
 			);
 		} );
 
 		assertFailure(
-			missingStar,
-			/exactly three semantic reviews, fifteen stars, and three avatars/
+			missingIcon,
+			/homepage confidence section is missing assets\/icons\/qr-code\.svg/
 		);
+	} );
+
+	it( 'rejects incomplete global content and metadata surfaces', async () => {
+		const result = await withThemeCopy( async ( themeRoot ) => {
+			await writeFile(
+				join( themeRoot, 'templates/404.html' ),
+				'<!-- wp:template-part {"slug":"header"} /-->'
+			);
+			const functionsPath = join( themeRoot, 'functions.php' );
+			const functions = await readFile( functionsPath, 'utf8' );
+			await writeFile(
+				functionsPath,
+				functions.replace( "'document_title_parts'", "'wrong_filter'" )
+			);
+		} );
+
+		assertFailure( result, /404\.html must render/ );
+		assertFailure( result, /consumer-facing document metadata/ );
 	} );
 
 	it( 'rejects Theme selectors that cross into TagCore markup', async () => {

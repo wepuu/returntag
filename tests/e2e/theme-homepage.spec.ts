@@ -4,13 +4,16 @@ import { expect, test } from './fixtures';
 
 test.describe( 'RT-314 ForgeTag homepage', () => {
 	test( 'renders the brand shell and keeps product entry inside TagCore', async ( {
+		baseURL,
 		page,
 	}, testInfo ) => {
 		const externalRequests = new Set< string >();
 		const consoleErrors: string[] = [];
+		const expectedOrigin = new URL( baseURL ?? 'http://localhost:8888' )
+			.origin;
 		page.on( 'request', ( request ) => {
 			const url = new URL( request.url() );
-			if ( url.origin !== 'http://localhost:8888' ) {
+			if ( url.origin !== expectedOrigin ) {
 				externalRequests.add( url.href );
 			}
 		} );
@@ -24,6 +27,7 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		const response = await page.goto( '/', { waitUntil: 'networkidle' } );
 		expect( response?.status() ).toBe( 200 );
 		await page.evaluate( () => document.fonts.ready );
+		await expect( page ).toHaveTitle( 'ForgeTag' );
 
 		await expect(
 			page.getByRole( 'heading', {
@@ -79,61 +83,32 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		await expect( brandProofs.getByText( 'Trusted' ) ).toBeVisible();
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'Customer stories',
+				name: 'Private by design, clear in the moment',
 			} )
 		).toBeVisible();
 
-		const testimonials = page.locator( '.forge-home-testimonial' );
-		await expect( testimonials ).toHaveCount( 3 );
-		await expect( testimonials.locator( 'blockquote' ) ).toHaveCount( 3 );
-		await expect( testimonials.locator( 'figcaption' ) ).toHaveCount( 3 );
+		const confidenceCards = page.locator( '.forge-home-confidence__card' );
+		await expect( confidenceCards ).toHaveCount( 3 );
+		await expect( confidenceCards.locator( 'h3' ) ).toHaveCount( 3 );
 		await expect(
-			testimonials.locator(
-				'[role="img"][aria-label="Rated 5 out of 5"]'
-			)
+			confidenceCards.locator( 'img[aria-hidden="true"]' )
 		).toHaveCount( 3 );
 		await expect(
-			testimonials.locator( '.forge-home-testimonial__stars img' )
-		).toHaveCount( 15 );
-		const reviewAvatars = testimonials.locator(
-			'.forge-home-testimonial__avatar'
-		);
-		await expect( reviewAvatars ).toHaveCount( 3 );
-		for ( const avatar of await reviewAvatars.all() ) {
-			await avatar.scrollIntoViewIfNeeded();
-			await expect
-				.poll( () =>
-					avatar.evaluate(
-						( image: HTMLImageElement ) =>
-							image.complete &&
-							image.alt === '' &&
-							image.naturalWidth === 256 &&
-							image.naturalHeight === 256
-					)
-				)
-				.toBe( true );
-		}
-		await expect(
-			page.getByText( 'Classic Tag · Verified Buyer · Amazon', {
+			confidenceCards.getByText( 'Contact details stay private', {
 				exact: true,
 			} )
-		).toHaveCount( 1 );
-		await expect(
-			page.getByText( 'Sticker · Verified Buyer · Walmart', {
-				exact: true,
-			} )
-		).toHaveCount( 1 );
-		await expect(
-			page.getByText(
-				'I received the message and got my bag back that evening. The process was simple, and neither of us had to post personal information publicly.',
-				{ exact: true }
-			)
 		).toBeVisible();
-		expect(
-			await testimonials
-				.locator( '[class*="carousel"], [class*="swiper"], button' )
-				.count()
-		).toBe( 0 );
+		await expect(
+			page.getByRole( 'heading', { name: 'Customer stories' } )
+		).toBeVisible();
+		await expect(
+			page.getByText( 'Verified Buyer', { exact: false } )
+		).toHaveCount( 3 );
+		await expect(
+			page.getByText( 'Demo content · development environment', {
+				exact: true,
+			} )
+		).toHaveCount( 2 );
 		await expect(
 			page.getByRole( 'img', {
 				name: 'ForgeTag Sticker product sheet',
@@ -189,27 +164,21 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 
 					return {
 						labelFits: label.scrollWidth <= label.clientWidth,
-						labelLineCount: Math.round(
-							label.getBoundingClientRect().height /
-								Number.parseFloat(
-									getComputedStyle( label ).lineHeight
-								)
-						),
 						valueFits: value.scrollWidth <= value.clientWidth,
 					};
 				} )
 			);
 		expect( brandProofMetrics ).toEqual( [
-			{ labelFits: true, labelLineCount: 1, valueFits: true },
-			{ labelFits: true, labelLineCount: 1, valueFits: true },
-			{ labelFits: true, labelLineCount: 1, valueFits: true },
+			{ labelFits: true, valueFits: true },
+			{ labelFits: true, valueFits: true },
+			{ labelFits: true, valueFits: true },
 		] );
-		const testimonialHeights = await testimonials.evaluateAll( ( cards ) =>
-			cards.map( ( card ) => card.getBoundingClientRect().height )
+		const confidenceHeights = await confidenceCards.evaluateAll(
+			( cards ) =>
+				cards.map( ( card ) => card.getBoundingClientRect().height )
 		);
 		expect(
-			Math.max( ...testimonialHeights ) -
-				Math.min( ...testimonialHeights )
+			Math.max( ...confidenceHeights ) - Math.min( ...confidenceHeights )
 		).toBeLessThanOrEqual( 1 );
 
 		expect(
@@ -289,7 +258,6 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 
 		const accessibility = await new AxeBuilder( { page } )
 			.exclude( 'dialog:not([open])' )
-			.exclude( '.wc-block-mini-cart__drawer[aria-hidden="true"]' )
 			.analyze();
 		expect( accessibility.violations ).toEqual( [] );
 		expect( consoleErrors ).toEqual( [] );
@@ -327,7 +295,7 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 				productWidths: cards.map( ( card ) =>
 					Math.round( card.width )
 				),
-				testimonialColumns: columns( '.forge-home-testimonials__grid' ),
+				confidenceColumns: columns( '.forge-home-confidence__grid' ),
 			};
 		} );
 
@@ -335,7 +303,7 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		expect( layout.brandProofColumns ).toBe( 3 );
 		expect( layout.heroColumns ).toBe( 2 );
 		expect( layout.productColumns ).toBe( 2 );
-		expect( layout.testimonialColumns ).toBe( 3 );
+		expect( layout.confidenceColumns ).toBe( 3 );
 		expect( layout.productRows[ 0 ] ).toBe( layout.productRows[ 1 ] );
 		expect( layout.productRows[ 2 ] ).toBeGreaterThan(
 			layout.productRows[ 0 ]
@@ -436,16 +404,22 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		).toBeVisible();
 
 		const compactLayout = await page.evaluate( () => {
+			const header = document
+				.querySelector< HTMLElement >( '.forge-site-header__inner' )!
+				.getBoundingClientRect();
 			const brand = document
 				.querySelector< HTMLElement >( '.forge-site-header__brand' )!
 				.getBoundingClientRect();
 			const account = document
 				.querySelector< HTMLElement >(
 					'.wp-block-woocommerce-customer-account'
-				)!
-				.getBoundingClientRect();
+				)
+				?.getBoundingClientRect();
 			const activate = document
 				.querySelector< HTMLElement >( '.forge-site-header__activate' )!
+				.getBoundingClientRect();
+			const actions = document
+				.querySelector< HTMLElement >( '.forge-site-header__actions' )!
 				.getBoundingClientRect();
 			const useCases = getComputedStyle(
 				document.querySelector< HTMLElement >(
@@ -457,9 +431,9 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 					'.forge-home-brand-story__layout'
 				)!
 			).gridTemplateColumns.split( ' ' ).length;
-			const testimonials = getComputedStyle(
+			const confidence = getComputedStyle(
 				document.querySelector< HTMLElement >(
-					'.forge-home-testimonials__grid'
+					'.forge-home-confidence__grid'
 				)!
 			).gridTemplateColumns.split( ' ' ).length;
 			const brandProofs = getComputedStyle(
@@ -469,31 +443,57 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 			).gridTemplateColumns.split( ' ' ).length;
 
 			return {
-				accountLeft: Math.round( account.left ),
-				accountTop: Math.round( account.top ),
+				accountLeft: account ? Math.round( account.left ) : null,
+				accountTop: account ? Math.round( account.top ) : null,
+				actionsLeft: Math.round( actions.left ),
+				actionsWidth: Math.round( actions.width ),
 				activateLeft: Math.round( activate.left ),
 				activateTop: Math.round( activate.top ),
 				brandStory,
 				brandProofs,
 				brandLeft: Math.round( brand.left ),
 				brandTop: Math.round( brand.top ),
-				testimonials,
+				confidence,
+				hasMiniCart: Boolean(
+					document.querySelector( '.wp-block-woocommerce-mini-cart' )
+				),
+				headerLeft: Math.round( header.left ),
+				headerWidth: Math.round( header.width ),
 				useCases,
 			};
 		} );
-		expect( compactLayout.brandLeft ).toBeLessThan(
-			compactLayout.accountLeft
-		);
-		expect(
-			Math.abs( compactLayout.accountTop - compactLayout.brandTop )
-		).toBeLessThan( 16 );
-		expect( compactLayout.activateTop ).toBeGreaterThan(
-			compactLayout.brandTop
-		);
+		if (
+			compactLayout.accountLeft !== null &&
+			compactLayout.accountTop !== null
+		) {
+			expect( compactLayout.brandLeft ).toBeLessThan(
+				compactLayout.accountLeft
+			);
+			expect(
+				Math.abs( compactLayout.accountTop - compactLayout.brandTop )
+			).toBeLessThan( 16 );
+		}
+		if ( compactLayout.hasMiniCart ) {
+			expect( compactLayout.activateTop ).toBeGreaterThan(
+				compactLayout.brandTop + 16
+			);
+			expect(
+				Math.abs( compactLayout.actionsLeft - compactLayout.headerLeft )
+			).toBeLessThan( 2 );
+			expect(
+				Math.abs(
+					compactLayout.actionsWidth - compactLayout.headerWidth
+				)
+			).toBeLessThan( 2 );
+		} else {
+			expect(
+				Math.abs( compactLayout.activateTop - compactLayout.brandTop )
+			).toBeLessThan( 16 );
+		}
 		expect( compactLayout.useCases ).toBe( 2 );
 		expect( compactLayout.brandStory ).toBe( 1 );
 		expect( compactLayout.brandProofs ).toBe( 1 );
-		expect( compactLayout.testimonials ).toBe( 1 );
+		expect( compactLayout.confidence ).toBe( 1 );
 
 		const overflowBeforeZoom = await page.evaluate( () =>
 			[ ...document.querySelectorAll< HTMLElement >( 'body *' ) ]

@@ -134,6 +134,127 @@ No actionable P0, P1, or P2 visual findings remain.
 
 final result: passed
 
+---
+
+# RT-320 global shell, metadata, Search, and 404 Product Design QA
+
+## Comparison target
+
+- Frozen product contract: `docs/design/RT-319-STAGE-0-AUDIT.md`.
+- Baseline actual-page evidence:
+  `docs/design/qa/rt-319/01-home-1440.png`,
+  `docs/design/qa/rt-319/04-home-390.png`,
+  `docs/design/qa/rt-319/16-search-1440.png`, and
+  `docs/design/qa/rt-319/17-404-1440.png`.
+- Visual-language references: `docs/design/homepage.png`,
+  `docs/design/dashboard.png`, `docs/design/tanchuang.png`, and
+  `docs/design/html/`. The references do not override PRD, ADR, privacy, or
+  Theme/TagCore boundaries and were not modified by RT-320.
+- Implementation: `http://localhost:8893/` in the isolated RT-320 WordPress
+  environment with ForgeTag Theme `0.1.0`, TagCore `0.5.0`, Schema `14`,
+  WordPress `7.0.2`, and WooCommerce `10.9.4`.
+- Browser: the user's connected Chrome session. Requested CSS viewports were
+  `1440 x 900`, `1024 x 768`, `816 x 900`, `720 x 450` as the 200-percent
+  equivalent, `390 x 844`, and `320 x 568`. Captured content widths exclude the
+  visible scrollbar where present.
+- States: Home, generic Page, Search results, Search empty, 404, mobile menu
+  open/close, and keyboard skip-link focus.
+
+## Final visual evidence
+
+- Home: `docs/design/qa/rt-320/home-1440.png` (`1425 x 891`),
+  `home-1024.png` (`1009 x 768`), `home-816.png` (`801 x 900`),
+  `home-720-200pct.png` (`705 x 450`), `home-390.png` (`375 x 844`), and
+  `home-320.png` (`305 x 568`).
+- Content states: `page-1440.png`, `search-results-1440.png`,
+  `search-empty-1440.png`, `search-empty-390.png`, `404-1440.png`, and
+  `404-320.png` under `docs/design/qa/rt-320/`.
+- Interaction and focus: `home-390-menu-open.png` and
+  `404-320-keyboard-focus.png` under the same directory.
+- Same-input comparison canvases:
+  `comparison-home-1440.png` (`2850 x 943`),
+  `comparison-home-390.png` (`750 x 864`),
+  `comparison-search-1440.png` (`2865 x 943`), and
+  `comparison-404-1440.png` (`2865 x 943`).
+- A separate focused crop was not required: the desktop comparisons preserve
+  each complete first viewport, while the `390px` Home comparison is already a
+  focused header, Hero, CTA, and product-image review at matched state and size.
+
+## Fidelity, behavior, and privacy review
+
+- Home preserves the frozen ForgeTag header, typography, Hero, CTA hierarchy,
+  product imagery, spacing, radii, and responsive rhythm at desktop and mobile.
+  The combined captures show no unintended redesign relative to RT-319.
+- Search now has a semantic, branded result heading, responsive result cards,
+  and a labelled empty-state search form. The RT-319 attempted Search evidence
+  rendered the Cart fallback instead; the combined comparison records the
+  corrected page completeness rather than treating the Cart surface as visual
+  truth.
+- 404 now returns the actual HTTP `404 Not Found` status and renders a semantic
+  H1, recovery explanation, Home, Activate, and Report actions. The RT-319
+  baseline had no main 404 content.
+- Generic Page, Search, and 404 titles use the `ForgeTag` consumer suffix;
+  Home uses `ForgeTag`. Consumer copy remains translatable US English.
+- Theme code controls presentation only. Activate and Report links use the
+  existing TagCore entry routes; no Tag ID parsing, state, ownership,
+  authentication, privacy, Schema, API, or database logic moved into Theme.
+- Ratings, sales figures, tenure statements, and testimonials remain available
+  only in the explicit local/development Demo presentation. Production paths
+  omit testimonials and use evidence-safe confidence copy without inventing a
+  recovery rate, location, shipping, certification, or supported-network claim.
+- A repeated server-rendered dual-state check on 2026-08-24 confirmed that the
+  local environment includes the visible `Demo content · development
+  environment`, `Customer stories`, and `Millions` markers. With
+  `WP_ENVIRONMENT_TYPE=production`, those markers were absent while the safe
+  `A clear route back, without public contact details`, recovery-path, and
+  privacy-confidence copy remained. The isolated environment was restored to
+  `local` immediately after the check.
+- Chrome confirmed semantic H1s, labelled Search, the mobile navigation dialog,
+  focus restoration to `Open menu`, and a visible keyboard-accessible skip
+  link. The reviewed tabs recorded no console warning or error. Loaded local
+  images reported complete resources with non-zero natural dimensions.
+- The 2026-08-24 Playwright acceptance rerun passed all RT-320-adjacent
+  Chromium checks (`7/7`) and all Homepage Mobile Safari checks (`6/6`). The
+  complete PR suite initially reported `38` passed, `2` skipped, and `7`
+  environment-related failures: WooCommerce Coming Soon intercepted six
+  Commerce states, and a duplicate same-origin Inter face made one Foundation
+  network assertion order-dependent. After opening the isolated store, the
+  Commerce subset passed `6/6` with a local-only extended fixture timeout; the
+  revised Foundation contract passed `2/2` while retaining computed-font,
+  Theme-Manrope, allowlist, and same-origin checks.
+
+## Findings and resolution history
+
+- [Resolved P1] A long user-supplied Search term expanded the mobile document
+  from a `375px` content viewport to `519px`. The Search H1 now uses
+  `overflow-wrap: anywhere`; the repeated `390px` Chrome capture measured both
+  document and H1 scroll widths at `375px` or less. An E2E assertion protects
+  this state.
+- [Resolved QA interpretation] PowerShell initially summarized the custom 404
+  response as `200`; a direct header check returned the authoritative
+  `HTTP/1.1 404 Not Found`. No Theme status-code fix was needed.
+- [Resolved completeness gaps] Search and 404 no longer fall through to Cart or
+  a header/footer-only shell. Both surfaces now have explicit, recoverable
+  states and real CTAs.
+- [Resolved acceptance assertions] Homepage external-resource checks now bind
+  to Playwright's configured base URL instead of hard-coding port `8888`.
+  Mobile Header alignment compares the visible Brand and Activate controls
+  within the existing `16px` tolerance rather than assuming their top-edge
+  order. The Foundation font assertion permits WooCommerce to satisfy its
+  duplicate same-origin Inter face while still requiring the Theme-owned
+  Manrope request and the computed Inter body family.
+- [Tooling note] A fresh Chrome-extension control session could not be acquired
+  on 2026-08-24 because the control component timed out during initialization,
+  despite the user-visible side panel reporting connected. No Theme rendering
+  code changed after the preserved Chrome captures; those combined captures
+  remain the visual evidence for this pass, supplemented by the fresh
+  Chromium and Mobile Safari interaction results above.
+- No actionable P0, P1, or P2 screenshot, interaction, responsive,
+  accessibility, privacy, console, or resource finding remains in the reviewed
+  RT-320 scope.
+
+final result: passed
+
 ## RT-329 Stage 0 and governance-console contract
 
 Stage 0 used the connected user Chrome at `1440 × 1000` against the local
