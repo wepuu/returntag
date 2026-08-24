@@ -19,6 +19,7 @@ final readonly class ManualTagEntryView {
 	 * @param TagEntryIntent          $intent Closed presentation intent.
 	 * @param string                  $title Translated title.
 	 * @param string                  $introduction Translated guidance.
+	 * @param string                  $context Translated intent-safe next-step guidance.
 	 * @param string                  $action_url Same-site form action.
 	 * @param string                  $nonce Anonymous WordPress nonce.
 	 * @param ManualTagEntryFormState $state Safe form state.
@@ -29,6 +30,7 @@ final readonly class ManualTagEntryView {
 		public TagEntryIntent $intent,
 		public string $title,
 		public string $introduction,
+		public string $context,
 		public string $action_url,
 		public string $nonce,
 		public ManualTagEntryFormState $state,

@@ -19,6 +19,14 @@ submit the same bounded, nonce-protected form, and a valid Tag ID receives a
 query Tag or Batch state and never decide the resulting activation or Finder
 experience.
 
+RT-322 refines only that presentation seam. The desktop dialog and standalone
+page share the same intent-safe orientation, labelled Tag ID field, localized
+client error, and ForgeTag token contract. Standalone pages add bounded help
+for locating the printed ID and explaining that TagCore will resolve the next
+step; the selected intent still grants no authority. The native dialog remains
+the focus trap and inert-background boundary, while mobile and failed-script
+requests retain the ordinary link fallback.
+
 RT-325 closes the Secure Reply presentation and accessibility release gate.
 The controller remains the only adapter that exchanges one-time bearer links,
 creates 30-minute role-bound sessions, submits messages, and performs terminal
