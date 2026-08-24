@@ -258,7 +258,6 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 
 		const accessibility = await new AxeBuilder( { page } )
 			.exclude( 'dialog:not([open])' )
-			.exclude( '.wc-block-mini-cart__drawer[aria-hidden="true"]' )
 			.analyze();
 		expect( accessibility.violations ).toEqual( [] );
 		expect( consoleErrors ).toEqual( [] );
@@ -405,6 +404,9 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 		).toBeVisible();
 
 		const compactLayout = await page.evaluate( () => {
+			const header = document
+				.querySelector< HTMLElement >( '.forge-site-header__inner' )!
+				.getBoundingClientRect();
 			const brand = document
 				.querySelector< HTMLElement >( '.forge-site-header__brand' )!
 				.getBoundingClientRect();
@@ -415,6 +417,9 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 				?.getBoundingClientRect();
 			const activate = document
 				.querySelector< HTMLElement >( '.forge-site-header__activate' )!
+				.getBoundingClientRect();
+			const actions = document
+				.querySelector< HTMLElement >( '.forge-site-header__actions' )!
 				.getBoundingClientRect();
 			const useCases = getComputedStyle(
 				document.querySelector< HTMLElement >(
@@ -440,6 +445,8 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 			return {
 				accountLeft: account ? Math.round( account.left ) : null,
 				accountTop: account ? Math.round( account.top ) : null,
+				actionsLeft: Math.round( actions.left ),
+				actionsWidth: Math.round( actions.width ),
 				activateLeft: Math.round( activate.left ),
 				activateTop: Math.round( activate.top ),
 				brandStory,
@@ -447,6 +454,11 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 				brandLeft: Math.round( brand.left ),
 				brandTop: Math.round( brand.top ),
 				confidence,
+				hasMiniCart: Boolean(
+					document.querySelector( '.wp-block-woocommerce-mini-cart' )
+				),
+				headerLeft: Math.round( header.left ),
+				headerWidth: Math.round( header.width ),
 				useCases,
 			};
 		} );
@@ -461,9 +473,23 @@ test.describe( 'RT-314 ForgeTag homepage', () => {
 				Math.abs( compactLayout.accountTop - compactLayout.brandTop )
 			).toBeLessThan( 16 );
 		}
-		expect(
-			Math.abs( compactLayout.activateTop - compactLayout.brandTop )
-		).toBeLessThan( 16 );
+		if ( compactLayout.hasMiniCart ) {
+			expect( compactLayout.activateTop ).toBeGreaterThan(
+				compactLayout.brandTop + 16
+			);
+			expect(
+				Math.abs( compactLayout.actionsLeft - compactLayout.headerLeft )
+			).toBeLessThan( 2 );
+			expect(
+				Math.abs(
+					compactLayout.actionsWidth - compactLayout.headerWidth
+				)
+			).toBeLessThan( 2 );
+		} else {
+			expect(
+				Math.abs( compactLayout.activateTop - compactLayout.brandTop )
+			).toBeLessThan( 16 );
+		}
 		expect( compactLayout.useCases ).toBe( 2 );
 		expect( compactLayout.brandStory ).toBe( 1 );
 		expect( compactLayout.brandProofs ).toBe( 1 );

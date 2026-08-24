@@ -42,6 +42,14 @@
 	flex: 0 0 auto;
 }
 
+/*
+ * WooCommerce renders the drawer before its interactivity state hydrates.
+ * Keep the closed drawer and its controls out of the keyboard tree.
+ */
+.wc-block-mini-cart__drawer[aria-hidden="true"] {
+	display: none;
+}
+
 .forge-site-header__inner > .wp-block-woocommerce-customer-account
 .wc-block-customer-account__link {
 	display: inline-flex;
