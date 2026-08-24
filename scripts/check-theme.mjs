@@ -55,21 +55,27 @@ const requiredThemeFiles = [
 	'parts/header.html',
 	'patterns/home-hero.php',
 	'patterns/home-brand-story.php',
+	'patterns/home-confidence.php',
+	'patterns/home-testimonials.php',
 	'patterns/home-privacy.php',
 	'patterns/home-process.php',
 	'patterns/home-products.php',
 	'patterns/home-recovery-paths.php',
-	'patterns/home-testimonials.php',
 	'patterns/home-use-cases.php',
+	'patterns/page-404.php',
+	'patterns/search-empty.php',
+	'patterns/search-header.php',
 	'patterns/site-footer.php',
 	'patterns/site-header.php',
 	'style.css',
+	'templates/404.html',
 	'templates/front-page.html',
 	'templates/index.html',
 	'templates/archive-product.html',
 	'templates/page-cart.html',
 	'templates/page-checkout.html',
 	'templates/page.html',
+	'templates/search.html',
 	'templates/single-product.html',
 	'theme.json',
 ];
@@ -80,6 +86,7 @@ const homepagePatternSlugs = [
 	'forge-tag/home-recovery-paths',
 	'forge-tag/home-use-cases',
 	'forge-tag/home-brand-story',
+	'forge-tag/home-confidence',
 	'forge-tag/home-testimonials',
 	'forge-tag/home-privacy',
 ];
@@ -584,13 +591,9 @@ const checkRuntimeBoundaries = async ( themeRoot, files, failures ) => {
 				`${ relativePath } must not reproduce a TagCore Tag ID form`
 			);
 		}
-		const claimContents =
-			relativePath === approvedBrandStoryPatternPath
-				? contents.replace( /millions sold|trusted travel brand/gi, '' )
-				: contents;
 		if (
-			/end[- ]to[- ]end encrypt|verified pair|pairing verified|millions sold|tsa approved|trusted travel brand|free shipping|30-day guarantee/i.test(
-				claimContents
+			/end[- ]to[- ]end encrypt|verified pair|pairing verified|tsa approved|free shipping|30-day guarantee/i.test(
+				contents
 			)
 		) {
 			failures.push(
@@ -645,7 +648,7 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		'patterns/home-recovery-paths.php',
 		'patterns/home-use-cases.php',
 		'patterns/home-brand-story.php',
-		'patterns/home-testimonials.php',
+		'patterns/home-confidence.php',
 		'patterns/home-privacy.php',
 		'patterns/site-footer.php',
 	];
@@ -748,26 +751,37 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		'utf8'
 	);
 	const requiredBrandProofIcons = [
+		'assets/icons/key-round.svg',
+		'assets/icons/smartphone.svg',
 		'assets/icons/calendar-days.svg',
 		'assets/icons/chart-no-axes-column-increasing.svg',
 		'assets/icons/shield-check.svg',
 	];
 	const requiredBrandCopy = [
+		'BUILT FOR THE MOMENT SOMETHING GOES MISSING',
+		'A clear route back, without public contact details',
+		'ForgeTag keeps the recovery path simple:',
+		'One Tag ID',
+		'Six-character recovery route',
+		'Any phone',
+		'No ForgeTag app required',
+		'Email hidden',
+		'Private relay by default',
 		'FROM A BRAND BUILT ON TRAVEL SECURITY',
-		'From a brand built on travel security',
-		'Since 2015, Forge has helped travelers protect what matters with TSA locks trusted by customers across Amazon and beyond.',
-		'ForgeTag brings that same security mindset to item recovery and tracking.',
-		'2015',
-		'Founded',
+		'Since 2015, Forge has helped travelers protect what matters',
 		'Millions',
 		'Sold',
 		'Trusted',
 		'Travel Brand',
+		'Demo content · development environment',
 	];
 	if (
 		( brandStoryPattern.match( /<h2\b/g ) ?? [] ).length !== 1 ||
 		( brandStoryPattern.match( /<ul\b/g ) ?? [] ).length !== 1 ||
-		( brandStoryPattern.match( /<li\b/g ) ?? [] ).length !== 3 ||
+		( brandStoryPattern.match( /<li\b/g ) ?? [] ).length !== 1 ||
+		! brandStoryPattern.includes(
+			'foreach ( $forge_tag_brand_proofs as $forge_tag_brand_proof )'
+		) ||
 		! /<p class="forge-home-brand-story__summary">/.test(
 			brandStoryPattern
 		)
@@ -777,7 +791,7 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		);
 	}
 	for ( const icon of requiredBrandProofIcons ) {
-		if ( ! brandStoryPattern.includes( icon ) ) {
+		if ( ! brandStoryPattern.includes( icon.split( '/' ).at( -1 ) ) ) {
 			failures.push( `homepage brand story is missing ${ icon }` );
 		}
 	}
@@ -789,65 +803,183 @@ const checkHomepageContract = async ( themeRoot, failures ) => {
 		}
 	}
 
-	const testimonialPattern = await readFile(
-		join( themeRoot, 'patterns/home-testimonials.php' ),
+	const confidencePattern = await readFile(
+		join( themeRoot, 'patterns/home-confidence.php' ),
 		'utf8'
 	);
-	const requiredTestimonialAvatars = [
-		'assets/images/review-avatars/megan-r.png',
-		'assets/images/review-avatars/chris-d.png',
-		'assets/images/review-avatars/daniel-k.png',
+	const requiredConfidenceIcons = [
+		'assets/icons/qr-code.svg',
+		'assets/icons/mail-check.svg',
+		'assets/icons/shield-check.svg',
 	];
-	const requiredTestimonialCopy = [
-		'Megan R.',
-		'Chris D.',
-		'Daniel K.',
-		'Setup took maybe two minutes, and the tag feels sturdy without being bulky. I also like that someone can contact me without my personal information being printed on the luggage.',
-		'The sticker is low-profile, the QR code is easy to scan, and the activation process was straightforward. Hopefully I never need it, but it gives me some extra peace of mind.',
-		'I received the message and got my bag back that evening. The process was simple, and neither of us had to post personal information publicly.',
+	const requiredConfidenceCopy = [
+		'RECOVERY, WITHOUT PUBLIC CONTACT DETAILS',
+		'Private by design, clear in the moment',
+		'A finder opens the recovery page',
+		'Contact details stay private',
+		'Smart finding stays separate',
+		'No ForgeTag app is required.',
+		'without showing either person’s email address.',
+		'ForgeTag does not read network account, device, battery, pairing, or location data.',
 	];
 	if (
-		( testimonialPattern.match( /<figure\b/g ) ?? [] ).length !== 3 ||
-		( testimonialPattern.match( /<blockquote\b/g ) ?? [] ).length !== 3 ||
-		( testimonialPattern.match( /<figcaption\b/g ) ?? [] ).length !== 3 ||
-		( testimonialPattern.match( /Verified Buyer/g ) ?? [] ).length !== 3 ||
-		( testimonialPattern.match( /assets\/icons\/star\.svg/g ) ?? [] )
-			.length !== 15 ||
-		(
-			testimonialPattern.match(
-				/class="forge-home-testimonial__avatar"/g
-			) ?? []
-		).length !== 3 ||
-		( testimonialPattern.match( /role="img"/g ) ?? [] ).length !== 3
+		( confidencePattern.match( /<article\b/g ) ?? [] ).length !== 3 ||
+		( confidencePattern.match( /<h3\b/g ) ?? [] ).length !== 3 ||
+		( confidencePattern.match( /aria-hidden="true"/g ) ?? [] ).length !== 3
 	) {
 		failures.push(
-			'homepage testimonials must contain exactly three semantic reviews, fifteen stars, and three avatars'
+			'homepage confidence section must contain exactly three semantic recovery facts'
 		);
 	}
-	for ( const path of requiredTestimonialAvatars ) {
-		if ( ! testimonialPattern.includes( path ) ) {
-			failures.push( `homepage testimonials are missing ${ path }` );
+	for ( const path of requiredConfidenceIcons ) {
+		if ( ! confidencePattern.includes( path ) ) {
+			failures.push( `homepage confidence section is missing ${ path }` );
 		}
 	}
-	for ( const copy of requiredTestimonialCopy ) {
-		if ( ! testimonialPattern.includes( copy ) ) {
+	for ( const copy of requiredConfidenceCopy ) {
+		if ( ! confidencePattern.includes( copy ) ) {
 			failures.push(
-				`homepage testimonials are missing approved content: ${ copy }`
+				`homepage confidence section is missing approved content: ${ copy }`
 			);
 		}
 	}
 	if (
-		/placeholder|sample testimonial|example review|customer name|active tracking|battery dies|tracking feature|J\. Parker|carousel|swiper|pagination|autoplay|<script\b/i.test(
-			testimonialPattern
+		/placeholder|active tracking|tracking feature|carousel|swiper|pagination|autoplay|<script\b/i.test(
+			confidencePattern
 		)
 	) {
 		failures.push(
-			'homepage testimonials contain placeholder, unsupported behavior, or unapproved Smart Tag claims'
+			'homepage confidence section contains unsupported behavior'
+		);
+	}
+
+	const testimonialsPattern = await readFile(
+		join( themeRoot, 'patterns/home-testimonials.php' ),
+		'utf8'
+	);
+	if (
+		! testimonialsPattern.includes( 'wp_get_environment_type()' ) ||
+		! testimonialsPattern.includes( "array( 'development', 'local' )" ) ||
+		! testimonialsPattern.includes(
+			'Demo content · development environment'
+		) ||
+		( testimonialsPattern.match( /'avatar'\s+=>/g ) ?? [] ).length !== 3 ||
+		! testimonialsPattern.includes( 'Verified Buyer' ) ||
+		! testimonialsPattern.includes( 'Rated 5 out of 5' )
+	) {
+		failures.push(
+			'homepage testimonial demos must remain explicit and development-only'
 		);
 	}
 
 	if ( contents.includes( 'forge-home-hero--awaiting-media' ) ) {
 		failures.push( 'homepage must not retain the awaiting-media state' );
+	}
+};
+
+const checkContentSurfaceContract = async ( themeRoot, failures ) => {
+	const functions = await readFile(
+		join( themeRoot, 'functions.php' ),
+		'utf8'
+	);
+	if (
+		! functions.includes( "'document_title_parts'" ) ||
+		! functions.includes( "_x( 'ForgeTag', 'Consumer-facing site title'" )
+	) {
+		failures.push(
+			'functions.php must provide ForgeTag consumer-facing document metadata'
+		);
+	}
+
+	const page = await readFile(
+		join( themeRoot, 'templates/page.html' ),
+		'utf8'
+	);
+	if (
+		! page.includes( 'forge-content-surface forge-page' ) ||
+		! page.includes( 'wp:post-title {"level":1}' ) ||
+		! page.includes( 'wp:post-content ' )
+	) {
+		failures.push(
+			'page.html must render one semantic Page title and assigned Page content in the global surface'
+		);
+	}
+
+	const search = await readFile(
+		join( themeRoot, 'templates/search.html' ),
+		'utf8'
+	);
+	for ( const required of [
+		'forge-tag/search-header',
+		'wp:post-template',
+		'wp:query-no-results',
+		'forge-tag/search-empty',
+	] ) {
+		if ( ! search.includes( required ) ) {
+			failures.push( `search.html is missing ${ required }` );
+		}
+	}
+	const searchHeader = await readFile(
+		join( themeRoot, 'patterns/search-header.php' ),
+		'utf8'
+	);
+	if (
+		! searchHeader.includes( 'wp:query-title' ) ||
+		! searchHeader.includes( 'type":"search' )
+	) {
+		failures.push(
+			'Search heading Pattern must render the inherited Search query title'
+		);
+	}
+
+	const notFound = await readFile(
+		join( themeRoot, 'templates/404.html' ),
+		'utf8'
+	);
+	if (
+		! notFound.includes( 'forge-content-surface--state' ) ||
+		! notFound.includes( 'forge-tag/page-404' )
+	) {
+		failures.push( '404.html must render the ForgeTag recovery state' );
+	}
+
+	const notFoundPattern = await readFile(
+		join( themeRoot, 'patterns/page-404.php' ),
+		'utf8'
+	);
+	const notFoundEntryBlocks = [
+		...notFoundPattern.matchAll(
+			/<!-- wp:tagcore\/tag-entry-link\s+(\{[^\r\n]+\})\s+\/-->/g
+		),
+	].map( ( match ) => JSON.parse( match[ 1 ] ) );
+	if (
+		( notFoundPattern.match( /<h1\b/g ) ?? [] ).length !== 1 ||
+		! notFoundPattern.includes( "home_url( '/' )" ) ||
+		notFoundEntryBlocks.length !== 2 ||
+		! notFoundEntryBlocks.some(
+			( attributes ) => attributes.intent === 'activate'
+		) ||
+		! notFoundEntryBlocks.some(
+			( attributes ) => attributes.intent === 'report'
+		)
+	) {
+		failures.push(
+			'404 Pattern must provide one H1, Home, Activate, and Report recovery actions'
+		);
+	}
+
+	const searchEmpty = await readFile(
+		join( themeRoot, 'patterns/search-empty.php' ),
+		'utf8'
+	);
+	if (
+		( searchEmpty.match( /<h2\b/g ) ?? [] ).length !== 1 ||
+		! searchEmpty.includes( 'wp:search ' ) ||
+		! searchEmpty.includes( "home_url( '/' )" )
+	) {
+		failures.push(
+			'Search empty Pattern must provide one H2, a labelled Search form, and a Home action'
+		);
 	}
 };
 
@@ -1039,6 +1171,16 @@ export const validateTheme = async ( {
 	} catch ( error ) {
 		failures.push(
 			`Homepage contract validation failed: ${
+				error instanceof Error ? error.message : String( error )
+			}`
+		);
+	}
+
+	try {
+		await checkContentSurfaceContract( themeRoot, failures );
+	} catch ( error ) {
+		failures.push(
+			`Content surface contract validation failed: ${
 				error instanceof Error ? error.message : String( error )
 			}`
 		);

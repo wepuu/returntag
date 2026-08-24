@@ -70,3 +70,18 @@ add_action(
 		}
 	}
 );
+
+add_filter(
+	'document_title_parts',
+	static function ( array $parts ): array {
+		$site_title = _x( 'ForgeTag', 'Consumer-facing site title', 'forge-tag' );
+
+		if ( is_front_page() ) {
+			return array( 'title' => $site_title );
+		}
+
+		$parts['site'] = $site_title;
+
+		return $parts;
+	}
+);

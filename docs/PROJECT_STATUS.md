@@ -23,8 +23,8 @@
   5, and 7 remain in progress with merged foundations and the open P0 gates
   recorded in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: RT-330 roadmap reconciliation, followed by RT-319 through
-  RT-324 frontend closure and the remaining P0 path to TagCore `0.9.0`
+* Current workstream: RT-320 global shell, metadata, Search, and 404 closure,
+  followed by RT-321 through RT-324 and the remaining P0 path to TagCore `0.9.0`
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -145,6 +145,10 @@ The following tickets are considered implemented in the current baseline:
 * RT-328 - Finder Report review, evidence Hold, and administrator decisions
 
 * RT-329 - Operational roles, global Audit, and Retention console
+
+* RT-330 - Canonical v1.0 delivery roadmap and unfinished-work recovery controls
+
+* RT-319 - Actual-page frontend audit and frozen cross-surface visual contract
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -1216,10 +1220,10 @@ not part of the implementation authorization.
 RT-330 adds the [canonical delivery roadmap](ROADMAP.md) and reconciles the
 project baseline with the implementation merged through RT-329. The roadmap
 distinguishes merged code from actual-page acceptance, operational readiness,
-and production release. It records RT-319 through RT-324 as unfinished work to
-recover rather than replace, Milestone 6 and the complete ownership-dispute
-workflow as remaining P0 gaps, and `0.9.0` as the release-candidate target after
-P0 closure.
+and production release. It records RT-320 through RT-324 as unfinished work to
+recover rather than replace, records RT-319 as the accepted visual contract,
+keeps Milestone 6 and the complete ownership-dispute workflow as remaining P0
+gaps, and keeps `0.9.0` as the release-candidate target after P0 closure.
 
 RT-330 is documentation-only. It does not change TagCore `0.5.0`, Schema `14`,
 the ForgeTag Theme, a runtime interface, a feature-flag value, a dependency, an
