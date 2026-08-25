@@ -23,6 +23,7 @@ export default async function globalSetup( config: FullConfig ) {
 		await Promise.all( [
 			page.waitForURL( /\/wp-admin(?:\/|$)/, {
 				waitUntil: 'domcontentloaded',
+				timeout: 60_000,
 			} ),
 			page.getByRole( 'button', { name: 'Log In' } ).click(),
 		] );

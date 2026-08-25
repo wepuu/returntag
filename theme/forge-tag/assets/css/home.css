@@ -1123,6 +1123,7 @@
 	}
 
 	.forge-site-header__inner {
+		gap: clamp(0.5rem, 2vw, 0.75rem);
 		min-height: 4.5rem;
 	}
 
@@ -1141,6 +1142,22 @@
 	.forge-site-header__navigation {
 		order: 3;
 		margin-inline: 0;
+	}
+
+	/*
+	 * WordPress switches Navigation Blocks at 600px. ForgeTag's approved
+	 * product-flow breakpoint is 768px, where the full menu no longer reflows
+	 * safely with enlarged text. Keep the core responsive dialog behavior, but
+	 * expose its trigger throughout the ForgeTag mobile-header range.
+	 */
+	.forge-site-header__navigation
+	.wp-block-navigation__responsive-container:not(.is-menu-open) {
+		display: none;
+	}
+
+	.forge-site-header__navigation
+	.wp-block-navigation__responsive-container-open {
+		display: flex;
 	}
 
 	.forge-home-hero__inner {
