@@ -61,11 +61,26 @@ final class AccountStageOneTest extends WP_UnitTestCase {
 		);
 
 		self::assertStringContainsString( 'Weekend carry-on', $overview );
+		self::assertStringContainsString( 'Tag ID A7R2W9', $overview );
+		self::assertStringContainsString( 'Manage Tag', $overview );
+		self::assertStringContainsString( 'Check email delivery', $overview );
+		self::assertLessThan(
+			strpos( $overview, 'Check email delivery' ),
+			strpos( $overview, 'Weekend carry-on' ),
+			'The owned Tag list must remain the primary overview content.'
+		);
+		self::assertStringContainsString( 'aria-current="page"', $overview );
 		self::assertStringContainsString( 'Private item name', $detail );
 		self::assertStringContainsString( 'Public label', $detail );
+		self::assertStringContainsString( 'Only you', $detail );
+		self::assertStringContainsString( 'Finder-visible', $detail );
+		self::assertStringContainsString( 'aria-label="Tag identity and visibility"', $detail );
 		self::assertStringContainsString( 'Please contact me through ForgeTag.', $detail );
 		self::assertStringNotContainsString( 'owner@example.test', $detail );
 		self::assertStringNotContainsString( 'owner_id', $detail );
+		self::assertStringNotContainsString( 'Last seen', $detail );
+		self::assertStringNotContainsString( 'Billing', $detail );
+		self::assertStringNotContainsString( 'aria-current="false"', $detail );
 	}
 
 	/** Unknown and transferred candidates render the same generic unavailable copy. */

@@ -370,6 +370,59 @@ final result: passed
 
 ---
 
+# RT-324 Owner Account presentation QA
+
+## Evidence contract
+
+- Date: 2026-08-25.
+- Baseline: `main@f9f6adf`, TagCore `0.5.0`, Schema `14`, WordPress `7.0.2`,
+  WooCommerce `10.9.4`, and PHP `8.4` in the isolated local `wp-env`.
+- Synthetic Owner fixtures used only Tag IDs `K7M4P9`, `Q7T4M9`, and
+  `M7P4R9`. No production account, email, Message, Token, evidence, or media
+  entered the environment.
+- Current-run captures are `test-results/rt324-overview-1440.png`,
+  `test-results/rt324-overview-390.png`,
+  `test-results/rt324-overview-320.png`,
+  `test-results/rt324-overview-zoom-200.png`,
+  `test-results/rt324-detail-active-390.png`, and
+  `test-results/rt324-conversations-empty-390.png`.
+
+## Verified states and interaction
+
+- Account Stage 1–3 integration passed with `270` tests and `3019`
+  assertions, covering sign-in/OTP, current ownership, metadata and Lost Mode
+  mutations, Conversation summaries, and Secure Reply continuation controls.
+- Overview passed at `1440`, `1024`, `816`, `720` CSS pixels as the
+  200-percent equivalent, `390`, and `320`, with owned Tags before the
+  secondary email utility and no horizontal overflow.
+- Active Tag Detail displayed `Only you` and `Finder-visible` boundaries,
+  separate Transfer and permanent Retire actions, and no cross-party email,
+  location, Last seen, private relay field, or unsupported activity claim.
+- Suspended and retired Tag Detail remained read-only. An unknown or
+  inaccessible Tag used the generic unavailable state without Owner data.
+- Empty Conversations supplied a safe route back to My Tags without email,
+  Message, Token, evidence, or media data. No-JavaScript Account SSR remained
+  usable at `320` CSS pixels.
+- With `returntag_owner_account_enabled` removed, all three existing Account
+  browser safety tests passed and the flag was restored only inside the
+  isolated fixture environment.
+
+## Visual result
+
+- The desktop hierarchy gives owned Tags the primary task position and keeps
+  account email delivery visibly secondary. Status pills remain legible
+  without relying on color alone.
+- At `320`, navigation remains on one dedicated row, Tag cards reflow to one
+  column, and the email action fills the available width. The mobile detail
+  keeps identity/privacy fields and high-risk actions in distinct surfaces.
+- Current-run screenshots were visually inspected after rebuilding the public
+  bundle. No actionable P0, P1, or P2 visual, privacy, responsive, or
+  accessibility issue remained.
+
+final result: passed
+
+---
+
 # RT-323 Canonical Activate / Report Flow QA
 
 ## Evidence contract

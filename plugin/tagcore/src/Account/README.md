@@ -31,3 +31,13 @@ revokes prior Owner sessions, and issues the existing role-bound 30-minute
 session. Account GET and the WordPress session never authorize Message reads or
 writes directly, and no cross-party email, Message content, Token, evidence,
 media reference, or filename enters the Account projection.
+
+RT-324 refines only the server-rendered presentation contract. My Tags remains
+the primary overview task, while the test-email action is a secondary account
+utility. Tag Detail marks private fields as `Only you` and approved public
+recovery fields as `Finder-visible`; these labels explain the existing data
+boundary and do not change authorization or persistence. Active, suspended,
+retired, unavailable, and empty states continue to come from the Application
+projection. The responsive header moves Account navigation onto its own row at
+small widths, and Transfer/Retire remain distinct nonce-protected forms inside
+an isolated high-risk section.
