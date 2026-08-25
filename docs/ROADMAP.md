@@ -1,8 +1,8 @@
 # ReturnTag v1.0 Delivery Roadmap
 
-**Status:** Approved implementation path re-certified by RT-331
+**Status:** Approved implementation path re-certified by RT-331 and aligned by RT-332
 
-**Runtime implementation baseline:** canonical `main` commit `301ba4f`,
+**Runtime implementation baseline:** canonical `main` commit `095c18a`,
 TagCore `0.5.0`, Schema `14`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
@@ -165,14 +165,15 @@ Status: `PLANNED`
 Freeze the phase-one ownership-dispute contract in ADR 0030 before persistence
 or UI implementation. The only intake is a capability-protected staff console;
 there is no public claimant portal in phase one. The ADR must define case
-states, permitted evidence, encryption and private storage, retention, Hold,
-operator separation, exact confirmation, concurrency, audit allowlists, and
-the canonical results `reject`, `transfer_to_new_owner`,
-`suspend_pending_review`, and `retire_tag`.
+states, participants, retention, Hold, operator separation, exact confirmation,
+concurrency, audit allowlists, and the canonical results `reject`,
+`transfer_to_new_owner`, `suspend_pending_review`, and `retire_tag`.
 
-The design must reuse RT-327 lifecycle actions and RT-328 evidence custody where
-their preconditions match. It must not duplicate state machines, reveal either
-party's email, or accept unrestricted files or free-form operational logging.
+TagCore generates the internal dispute ID and the external support system may
+reference that ID. TagCore must not store the external ticket body, evidence,
+URL, or free text. The design must reuse RT-327 lifecycle actions where their
+preconditions match. It must not duplicate state machines or reveal either
+party's email.
 
 ### Proposed RT-342 - ownership-dispute runtime
 
@@ -183,14 +184,14 @@ internal Cookie-authenticated Admin interfaces. Every mutation requires the
 current Schema, a REST nonce, a dedicated capability, a default-disabled
 incident control, exact identity confirmation, and committed-state recheck.
 Decisions are transactional and append privacy-safe Events. Fresh install,
-previous-Schema upgrade, retry, stale-browser, rollback compatibility, evidence
-retention, and previous-Owner revocation are release gates.
+previous-Schema upgrade, retry, stale-browser, rollback compatibility, Hold and
+record retention, and previous-Owner revocation are release gates.
 
 ## 7. Phase D: production dependencies and 0.9.0 candidate
 
 ### [RT-332](https://github.com/wepuu/returntag/issues/92) - defer Finder image moderation
 
-Status: `IN_PROGRESS`
+Status: `ACCEPTED`
 
 ADR 0028 makes the current behavior explicit: Finder images retain signature
 and MIME validation, bounded decode/re-encoding, metadata removal, encrypted
@@ -200,18 +201,21 @@ review image content. The runtime must not depend on reviewer availability and
 the UI and Owner email must disclose the limitation without describing an image
 as safe, approved, moderated, scanned, or reviewed.
 
+PR #94 is the canonical merge and CI acceptance evidence.
+
 AWS, Rekognition, thresholds, model versions, and moderation provider
 configuration are not phase-one release dependencies. A future provider is an
 uncommitted post-v1 candidate requiring a separate approved PRD, ADR, ticket,
 calibration policy, staging evidence, and staged rollout. It is not on the v1
 critical path.
 
-RT-333 and Proposed RT-334 explicitly own the Resend and Cloudflare Turnstile
-account, DNS/hostname, least-privilege credential, environment-separation, and
-rotation gates. They remain `BLOCKED` until the approved external resources
-exist.
+[RT-333](https://github.com/wepuu/returntag/issues/93) and
+[RT-334](https://github.com/wepuu/returntag/issues/95) explicitly own the
+Resend and Cloudflare Turnstile account, DNS/hostname, least-privilege
+credential, environment-separation, and rotation gates. They remain `BLOCKED`
+until the approved external resources exist.
 
-### Proposed RT-336 through RT-343 - delivery, risk, privacy, and lifecycle gates
+### [RT-336](https://github.com/wepuu/returntag/issues/96) through RT-343 - delivery, risk, privacy, and lifecycle gates
 
 Status: `BLOCKED`
 
@@ -223,6 +227,29 @@ port and a default-off containment control. Privacy, signature, idempotency,
 out-of-order delivery, fail-closed behavior, and PII-safe logging are release
 gates. The stable external privacy-policy identifier and provider accounts are
 explicit blockers.
+
+RT-336 is active on Issue #96. Its source audit and staging-only probe may be
+developed without an account, but acceptance remains blocked by RT-333. The
+runtime decision is binary: keep WP Mail SMTP only if a supported public Resend
+Email-ID contract is proven; otherwise RT-337 uses a provider-neutral direct
+Resend adapter. There is no permanent dual path.
+
+[RT-339](https://github.com/wepuu/returntag/issues/97) freezes the privacy data
+map and is blocked for acceptance until the approved external policy has a
+stable version identifier and accountable owner.
+
+Because deferred content moderation did not change Schema 14, the fixed
+additive migration sequence is:
+
+```text
+Schema 15 - email deliveries and webhook events
+Schema 16 - privacy requests
+Schema 17 - ownership disputes
+```
+
+No empty moderation migration is reserved. Each migration still requires fresh
+install, previous-Schema upgrade, idempotent retry, previous-code compatibility,
+and a feature-disable or rollback plan.
 
 ### Proposed RT-346 and RT-347 - Confirmed Recovery and history
 
@@ -299,10 +326,11 @@ the sequence. Every update must link the relevant Issue or PR and preserve the
 distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
-RT-331 is the latest accepted work item. RT-332 is the active policy/runtime
-alignment item and removes image content moderation from the v1 critical path.
-The next external-service gates are RT-333 for Resend and Proposed RT-334 for
+RT-332 is the latest accepted work item and removes image content moderation
+from the v1 critical path. RT-336 is the active engineering spike. The external-
+service gates are RT-333 for Resend and RT-334 for
 Cloudflare Turnstile; they remain `BLOCKED` until those resources exist.
-Contract-first P0 work may proceed in the dependency order above. Proposed
-numbers are not assigned Issue IDs until their single-purpose Issues are
-created.
+RT-339 is also assigned but remains blocked for acceptance by the versioned
+privacy policy. Contract-first P0 work may proceed in the dependency order
+above; unassigned Proposed numbers remain placeholders until their
+single-purpose Issues are created.
