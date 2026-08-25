@@ -309,6 +309,67 @@ final result: passed
 
 ---
 
+# RT-322 Design QA
+
+## Evidence contract
+
+- Source visual truth:
+  - `C:/Users/admin/.codex/worktrees/74dc/ForgeTag/docs/design/tanchuang.png` (visual language only; its item categories, description, consent, commerce claims, and other unsupported fields are not product requirements).
+  - `C:/Users/admin/.codex/visualizations/2026/08/11/019fefbe-8165-78d0-803d-288cb446e20d/rt-319/31-activate-dialog-1440.png` (`1425 x 891`, accepted RT-319 desktop baseline).
+  - `C:/Users/admin/.codex/visualizations/2026/08/11/019fefbe-8165-78d0-803d-288cb446e20d/rt-319/26-activate-390.png` (`390 x 900`, accepted RT-319 mobile baseline).
+- Implementation: local TagCore `/tag/activate/`, `/tag/report/`, and the real ForgeTag Header `tagcore/tag-entry-link` blocks.
+- Browser: the user's connected Chrome, device scale `1`; no in-app browser or Figma was used.
+- State: Activate/Report standalone ready pages, Activate/Report open desktop dialogs, client-invalid Activate dialog, Escape close/focus restoration, and mobile Header fallback navigation.
+
+## Findings
+
+- No actionable P0, P1, or P2 difference remains.
+- [P3] At 390 and 320 CSS px, the dark Tag ID guidance region continues below the first viewport and requires a short vertical scroll. The primary input and Continue action remain above it, the document does not overflow horizontally, and the guidance is supplemental rather than a hidden required action.
+- [P3] WordPress Core emits one Interactivity API deprecation warning for a generated `data-wp-init` directive. Chrome reported no page console error, and RT-322 does not own that runtime directive.
+
+## Required fidelity surfaces
+
+- Fonts and typography: the implementation keeps the established ForgeTag display/body pairing, heavy sentence-case heading, uppercase tracked eyebrow, and readable utility copy. The dialog retains the RT-319 hierarchy while the standalone page adds a distinct but token-compatible guidance heading.
+- Spacing and layout rhythm: `09-dialog-rt319-vs-rt322.jpg` shows the dialog remains centered and bounded while gaining one clearly separated orientation block. `10-mobile-rt319-vs-rt322.jpg` shows the prior sparse full-height canvas replaced by a deliberate card and guidance rail without moving the core action below the fold.
+- Colors and visual tokens: warm cloud, white surface, near-black ink, graphite copy, restrained borders, and Forge red are preserved. The dark guidance rail spends the ticket's visual emphasis on locating the physical ID and does not encode business state.
+- Image quality and assets: the entry surfaces require no new raster or icon asset. No reference image, custom SVG, CSS drawing, placeholder, remote image, or third-party tracker was added.
+- Copy and content: all new strings are translatable US English and explain only where to find the public Tag ID and that TagCore resolves the next step. They make no location, pairing, shipping, sales, subscription, certification, recovery-rate, or identity claim.
+
+## Full-view and focused comparison evidence
+
+- Desktop comparison: `09-dialog-rt319-vs-rt322.jpg` combines the same 1440 CSS viewport and open Activate state. Source and implementation are both `1425 x 891` captured pixels at device scale `1`.
+- Mobile comparison: `10-mobile-rt319-vs-rt322.jpg` combines the 390 CSS-pixel standalone Activate state. The RT-319 source is `390 x 900`; the implementation viewport capture is `390 x 844`, aligned at the top without rescaling, on a `780 x 900` comparison canvas.
+- Focused evidence:
+  - `06-activate-dialog-1440.jpg`: ready Activate dialog.
+  - `07-activate-dialog-error-1440.jpg`: localized visible client error associated with the focused Tag ID input.
+  - `08-report-dialog-1440.jpg`: intent-specific Report dialog and private-recovery orientation.
+  - `02-activate-standalone-390.jpg`, `03-activate-standalone-320.jpg`, and `04-activate-200pct-equivalent.jpg`: responsive standalone presentation.
+  - `05-report-standalone-390.jpg`: Report standalone parity.
+
+## Interaction and responsive verification
+
+- Desktop Header links open native TagCore dialogs only at or above 768 px. Initial focus reaches the Tag ID input after the dialog animation frame; the native modal provides the focus trap and inert background.
+- Invalid client input keeps the dialog open, focuses the input, sets `aria-invalid`, and exposes `Enter a valid six-character Tag ID.` in a `role="alert"` region using server-translated data.
+- Escape closes the dialog and restores focus to the exact invoking Header link.
+- At 390 px, the real Header Activate link navigates to `/tag/activate/` without opening a dialog. The committed E2E contract retains explicit JavaScript-disabled and failed-Script-Module fallback coverage.
+- Chrome measurements found no horizontal overflow: 1440 dialog `scrollWidth = clientWidth = 1425`; 390 standalone `scrollWidth = clientWidth = 390`; 320 standalone `scrollWidth = clientWidth = 305`; 720 CSS-pixel 200%-equivalent `scrollWidth = clientWidth = 705`.
+- The dialog measured `736 x 612.39` CSS px within the `1440 x 900` viewport, leaving safe space on every edge.
+- GET entry responses returned `200`, `Cache-Control: no-store, private`, `Referrer-Policy: no-referrer`, and `X-Robots-Tag: noindex, nofollow, noarchive`.
+
+## Comparison history
+
+- RT-319 baseline: the dialog was accessible but intentionally minimal; standalone pages were usable yet visually sparse with little orientation or secondary guidance.
+- RT-322 implementation pass: added shared intent-safe next-step copy, localized client-invalid feedback, a bounded dialog orientation block, and a standalone two-region card explaining where to find the printed public ID.
+- Final visual pass: combined same-state reference/implementation captures were inspected together. The new guidance does not import forbidden fields from `tanchuang.png`, the core input/action remains primary, and no P0/P1/P2 mismatch remains.
+
+## Follow-up polish
+
+- A future shared-shell polish ticket may replace the text Close control with an approved icon-library asset if the Theme and TagCore adopt one consistent close treatment; RT-322 keeps the explicit accessible label and introduces no new asset dependency.
+
+final result: passed
+
+---
+
 # RT-314 Homepage Detail Pass - Chrome QA
 
 - Brand proof strip: at `1440px`, `Millions`, `Trusted`, and `Travel Brand`

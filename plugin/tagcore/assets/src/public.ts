@@ -38,10 +38,17 @@ function prepareForm( form: HTMLFormElement ): void {
 
 		const normalized = normalizeManualTagId( input.value );
 		const valid = TAG_ID_PATTERN.test( normalized );
-
-		input.setCustomValidity(
-			valid ? '' : 'Enter a valid six-character Tag ID.'
+		const clientError = form.querySelector< HTMLElement >(
+			'[data-returntag-tag-entry-client-error]'
 		);
+		const errorMessage = input.dataset.returntagInvalidMessage ?? '';
+
+		input.setCustomValidity( valid ? '' : errorMessage );
+		input.setAttribute( 'aria-invalid', valid ? 'false' : 'true' );
+		if ( clientError ) {
+			clientError.textContent = valid ? '' : errorMessage;
+			clientError.hidden = valid;
+		}
 
 		if ( ! valid ) {
 			event.preventDefault();
@@ -56,7 +63,15 @@ function prepareForm( form: HTMLFormElement ): void {
 		const input = form.querySelector< HTMLInputElement >(
 			'input[name="returntag_tag_id"]'
 		);
+		const clientError = form.querySelector< HTMLElement >(
+			'[data-returntag-tag-entry-client-error]'
+		);
 		input?.setCustomValidity( '' );
+		input?.removeAttribute( 'aria-invalid' );
+		if ( clientError ) {
+			clientError.textContent = '';
+			clientError.hidden = true;
+		}
 	} );
 }
 

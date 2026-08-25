@@ -82,7 +82,28 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertStringContainsString( '<dialog', $html );
 		self::assertStringContainsString( 'aria-labelledby=', $html );
 		self::assertStringContainsString( 'data-returntag-tag-entry-form', $html );
+		self::assertStringContainsString( 'What happens next', $html );
+		self::assertStringContainsString( 'right private recovery step', $html );
+		self::assertStringContainsString( 'data-returntag-invalid-message=', $html );
 		self::assertStringNotContainsString( '<iframe', $html );
+	}
+
+	/**
+	 * Standalone presentation provides the same bounded orientation as the dialog.
+	 */
+	public function test_standalone_entry_presents_safe_tag_id_and_next_step_guidance(): void {
+		$html = ( new ManualTagEntryTemplateRenderer( RETURNTAG_TAGCORE_DIR ) )->render_to_string(
+			TagEntryIntent::ACTIVATE,
+			home_url( '/tag/activate/' ),
+			ManualTagEntryFormState::READY
+		);
+
+		self::assertStringContainsString( 'aria-label="ForgeTag home"', $html );
+		self::assertStringContainsString( 'One ID. Six characters.', $html );
+		self::assertStringContainsString( 'Find it beside the QR code', $html );
+		self::assertStringContainsString( 'right activation or recovery step', $html );
+		self::assertStringContainsString( 'placeholder="A7R2W9"', $html );
+		self::assertStringNotContainsString( 'aria-invalid="true"', $html );
 	}
 
 	/**
@@ -196,6 +217,8 @@ final class ManualTagEntryTest extends WP_UnitTestCase {
 		self::assertSame( ManualTagEntryFormState::INVALID, $result->state );
 		self::assertStringNotContainsString( '<script>', $html );
 		self::assertStringContainsString( 'Enter a valid six-character Tag ID.', $html );
+		self::assertStringContainsString( 'aria-invalid="true"', $html );
+		self::assertStringContainsString( 'role="alert"', $html );
 	}
 
 	/**

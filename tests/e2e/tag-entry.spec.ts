@@ -49,7 +49,7 @@ async function createEntryPage(
 	return result.link;
 }
 
-test.describe( 'RT-312 TagCore entry adapter', () => {
+test.describe( 'RT-322 TagCore entry surfaces', () => {
 	test( 'standalone entry page is private, responsive, and canonicalizes a valid ID', async ( {
 		page,
 	} ) => {
@@ -67,8 +67,26 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		await expect(
 			page.getByRole( 'heading', { name: 'Activate your ForgeTag' } )
 		).toBeVisible();
+		await expect(
+			page.getByRole( 'heading', { name: 'Find it beside the QR code' } )
+		).toBeVisible();
+		await expect(
+			page.getByText(
+				'We will check the Tag and show the right activation or recovery step.'
+			)
+		).toBeVisible();
+		const standaloneLayout = await page.evaluate( () => ( {
+			scrollWidth: document.documentElement.scrollWidth,
+			viewportWidth: window.innerWidth,
+		} ) );
+		expect( standaloneLayout.scrollWidth ).toBeLessThanOrEqual(
+			standaloneLayout.viewportWidth
+		);
 
-		const input = page.getByLabel( 'Tag ID' );
+		const input = page.getByRole( 'textbox', {
+			name: 'Tag ID',
+			exact: true,
+		} );
 		await input.fill( 'a7-r2 w9' );
 		await Promise.all( [
 			page.waitForURL( /\/t\/A7R2W9\/?$/, {
@@ -105,10 +123,18 @@ test.describe( 'RT-312 TagCore entry adapter', () => {
 		} );
 		await expect( dialog ).toBeVisible();
 		await expect( dialog.getByLabel( 'Tag ID' ) ).toBeFocused();
+		await expect(
+			dialog.getByText(
+				'We will check the Tag and show the right activation or recovery step.'
+			)
+		).toBeVisible();
 		await dialog.getByLabel( 'Tag ID' ).fill( 'not-valid' );
 		await dialog.getByRole( 'button', { name: 'Continue' } ).click();
 		await expect( dialog ).toBeVisible();
 		await expect( dialog.getByLabel( 'Tag ID' ) ).toBeFocused();
+		await expect( dialog.getByRole( 'alert' ) ).toHaveText(
+			'Enter a valid six-character Tag ID.'
+		);
 
 		await page.keyboard.press( 'Escape' );
 		await expect( dialog ).toBeHidden();

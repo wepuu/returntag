@@ -112,14 +112,16 @@ final readonly class ManualTagEntryTemplateRenderer {
 		bool $standalone,
 		?string $form_id
 	): ManualTagEntryView {
-		[ $title, $introduction ] = match ( $intent ) {
+		[ $title, $introduction, $context ] = match ( $intent ) {
 			TagEntryIntent::ACTIVATE => array(
 				__( 'Activate your ForgeTag', 'tagcore' ),
 				__( 'Enter the six-character ID printed on your tag.', 'tagcore' ),
+				__( 'We will check the Tag and show the right activation or recovery step.', 'tagcore' ),
 			),
 			TagEntryIntent::REPORT => array(
 				__( 'Report a found ForgeTag', 'tagcore' ),
 				__( 'Enter the six-character ID printed on the tag you found.', 'tagcore' ),
+				__( 'We will check the Tag and show the right private recovery step.', 'tagcore' ),
 			),
 		};
 
@@ -127,6 +129,7 @@ final readonly class ManualTagEntryTemplateRenderer {
 			$intent,
 			$title,
 			$introduction,
+			$context,
 			$action_url,
 			wp_create_nonce( ManualTagEntryFormHandler::NONCE_ACTION ),
 			$state,

@@ -13,9 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$help_id  = $view->form_id . '-help';
-$error_id = $view->form_id . '-error';
-$has_error = ReturnTag\TagCore\PublicSite\ManualTagEntryFormState::READY !== $view->state;
+$help_id         = $view->form_id . '-help';
+$error_id        = $view->form_id . '-error';
+$client_error_id = $view->form_id . '-client-error';
+$has_error       = ReturnTag\TagCore\PublicSite\ManualTagEntryFormState::READY !== $view->state;
 ?>
 <form
 	id="<?php echo esc_attr( $view->form_id ); ?>"
@@ -41,10 +42,14 @@ $has_error = ReturnTag\TagCore\PublicSite\ManualTagEntryFormState::READY !== $vi
 			autocapitalize="characters"
 			spellcheck="false"
 			maxlength="64"
-			aria-describedby="<?php echo esc_attr( $help_id . ( $has_error ? ' ' . $error_id : '' ) ); ?>"
-			aria-invalid="<?php echo $has_error ? 'true' : 'false'; ?>"
+			placeholder="<?php esc_attr_e( 'A7R2W9', 'tagcore' ); ?>"
+			enterkeyhint="go"
+			data-returntag-invalid-message="<?php esc_attr_e( 'Enter a valid six-character Tag ID.', 'tagcore' ); ?>"
+			aria-describedby="<?php echo esc_attr( $help_id . ' ' . $client_error_id . ( $has_error ? ' ' . $error_id : '' ) ); ?>"
+			<?php if ( $has_error ) : ?>aria-invalid="true"<?php endif; ?>
 			required
 		>
+		<p id="<?php echo esc_attr( $client_error_id ); ?>" class="returntag-entry__error" role="alert" data-returntag-tag-entry-client-error hidden></p>
 		<?php if ( $has_error ) : ?>
 			<p id="<?php echo esc_attr( $error_id ); ?>" class="returntag-entry__error" role="alert">
 				<?php

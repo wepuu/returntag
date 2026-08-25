@@ -140,6 +140,17 @@ and that disabling TagCore leaves the ForgeTag brand shell renderable without
 hard-coded replacement links. Finder messaging and Owner Account completion are
 not implied by these entry checks.
 
+RT-322 acceptance repeats the Stage 5 checks after a CI-equivalent permalink
+initialization: set the configured permalink structure, flush rewrite rules
+once during environment setup, and verify `GET /tag/activate/` and
+`GET /tag/report/` before exercising Header links. Ordinary requests must not
+flush rules. At 1440, 1024/816, 390, 320, and 200% equivalent zoom, record the
+dialog/standalone split, initial input focus, visible invalid feedback, Escape
+focus restoration, no horizontal overflow, and the privacy headers. Repeat one
+standalone submission with JavaScript unavailable and confirm the canonical
+`303` redirect for a normalized valid ID. These presentation checks do not
+enable activation, Finder contact, email dispatch, or any Owner workflow.
+
 The source-controlled Theme is the production design source of truth. A Site
 Editor Template, Template Part, Pattern, or Global Styles change intended for
 production must be exported to the Theme, reviewed in Git, validated, and

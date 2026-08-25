@@ -132,6 +132,9 @@ final readonly class TagEntryLinkBlock {
 		$description = TagEntryIntent::ACTIVATE === $intent
 			? __( 'Enter the six-character ID printed on your tag.', 'tagcore' )
 			: __( 'Enter the six-character ID printed on the tag you found.', 'tagcore' );
+		$context     = TagEntryIntent::ACTIVATE === $intent
+			? __( 'We will check the Tag and show the right activation or recovery step.', 'tagcore' )
+			: __( 'We will check the Tag and show the right private recovery step.', 'tagcore' );
 		$instance    = wp_unique_id( 'returntag-tag-entry-' );
 		$dialog_id   = $instance . '-dialog';
 		$title_id    = $instance . '-title';
@@ -147,7 +150,7 @@ final readonly class TagEntryLinkBlock {
 		wp_enqueue_script_module( self::SCRIPT_MODULE_HANDLE );
 
 		return sprintf(
-			'<div %1$s><a class="returntag-entry-link__trigger" href="%2$s" aria-haspopup="dialog" aria-controls="%3$s" data-returntag-tag-entry-trigger>%4$s</a><dialog id="%3$s" class="returntag-entry-dialog" aria-labelledby="%5$s" aria-describedby="%6$s" data-returntag-tag-entry-dialog><div class="returntag-entry-dialog__surface"><button class="returntag-entry-dialog__close" type="button" data-returntag-tag-entry-close>%7$s</button><p class="returntag-entry__eyebrow">%8$s</p><h2 id="%5$s">%9$s</h2><p id="%6$s" class="returntag-entry__introduction">%10$s</p>%11$s</div></dialog></div>',
+			'<div %1$s><a class="returntag-entry-link__trigger" href="%2$s" aria-haspopup="dialog" aria-controls="%3$s" data-returntag-tag-entry-trigger>%4$s</a><dialog id="%3$s" class="returntag-entry-dialog" aria-labelledby="%5$s" aria-describedby="%6$s" data-returntag-tag-entry-dialog><div class="returntag-entry-dialog__surface"><button class="returntag-entry-dialog__close" type="button" data-returntag-tag-entry-close>%7$s</button><div class="returntag-entry-dialog__content"><p class="returntag-entry__eyebrow">%8$s</p><h2 id="%5$s">%9$s</h2><p id="%6$s" class="returntag-entry__introduction">%10$s</p>%11$s<div class="returntag-entry__orientation"><strong>%12$s</strong><p class="returntag-entry__orientation-text">%13$s</p></div></div></div></dialog></div>',
 			$wrapper,
 			esc_url( $url ),
 			esc_attr( $dialog_id ),
@@ -158,7 +161,9 @@ final readonly class TagEntryLinkBlock {
 			esc_html__( 'Tag recovery', 'tagcore' ),
 			esc_html( $title ),
 			esc_html( $description ),
-			$this->renderer->render_form_to_string( $intent, $url, ManualTagEntryFormState::READY, $instance . '-form' )
+			$this->renderer->render_form_to_string( $intent, $url, ManualTagEntryFormState::READY, $instance . '-form' ),
+			esc_html__( 'What happens next', 'tagcore' ),
+			esc_html( $context )
 		);
 	}
 }
