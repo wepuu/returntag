@@ -2,7 +2,7 @@
 
 **Status:** Approved implementation path re-certified by RT-331
 
-**Runtime implementation baseline:** canonical `main` commit `9400ae9`,
+**Runtime implementation baseline:** canonical `main` commit `301ba4f`,
 TagCore `0.5.0`, Schema `14`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
@@ -53,7 +53,7 @@ gate.
 | Milestone 2: manufacturing | `ACCEPTED` | Batch creation, secure Tag ID generation, audited export, lifecycle controls, search, and capacity coverage are on `main`. |
 | Milestone 3: activation | `ACCEPTED` | Canonical scan, OTP, passwordless Session, atomic activation, convergence, limits, and Smart Tag static guidance are on `main`. |
 | Milestone 4: Owner | `ACCEPTED` | Owner services and RT-324 Account presentation are on `main`; production enablement remains a separate release gate. |
-| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted; the approved production safety reviewer and provider delivery bridge remain open. |
+| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted. ADR 0028 defers content moderation; the provider delivery bridge remains open. |
 | Milestone 6: WooCommerce | `PLANNED` | RT-321 commerce presentation is accepted, but TagCore has no Completed Order onboarding runtime. |
 | Milestone 7: operations | `IN_PROGRESS` | RT-326 through RT-329 provide query, lifecycle, Finder Report decisions, roles, Audit, and Retention. The complete ownership-dispute workflow remains open. |
 | Milestone 8: release readiness | `IN_PROGRESS` | CI and artifact automation exist; production dependencies, full compatibility, security, rollback, and release-candidate acceptance remain open. |
@@ -145,7 +145,7 @@ production configuration.
 
 Status: `PLANNED`
 
-Freeze the Completed Hook contract in ADR 0028 and implement it inside the
+Freeze the Completed Hook contract in ADR 0029 and implement it inside the
 TagCore `WooCommerce` layer. The workflow may use WooCommerce public CRUD APIs
 to read an eligible completed order's billing email, find or safely create the
 WordPress user, preserve existing passwords, enqueue activation guidance, and
@@ -162,7 +162,7 @@ staging acceptance.
 
 Status: `PLANNED`
 
-Freeze the phase-one ownership-dispute contract in ADR 0029 before persistence
+Freeze the phase-one ownership-dispute contract in ADR 0030 before persistence
 or UI implementation. The only intake is a capability-protected staff console;
 there is no public claimant portal in phase one. The ADR must define case
 states, permitted evidence, encryption and private storage, retention, Hold,
@@ -188,20 +188,28 @@ retention, and previous-Owner revocation are release gates.
 
 ## 7. Phase D: production dependencies and 0.9.0 candidate
 
-Before those runtime tickets, Proposed RT-332 through RT-334 explicitly own
-AWS Rekognition, Resend, and Cloudflare Turnstile account, region, DNS,
-least-privilege credential, environment-separation, and rotation gates. They
-remain `BLOCKED` until the approved external resources exist.
+### [RT-332](https://github.com/wepuu/returntag/issues/92) - defer Finder image moderation
 
-### Proposed RT-335 - production Finder evidence safety adapter
+Status: `IN_PROGRESS`
 
-Status: `BLOCKED`
+ADR 0028 makes the current behavior explicit: Finder images retain signature
+and MIME validation, bounded decode/re-encoding, metadata removal, encrypted
+private storage, rate limits, retention, Hold, idempotency, privacy controls,
+and the default-disabled evidence kill switch, but ForgeTag does not currently
+review image content. The runtime must not depend on reviewer availability and
+the UI and Owner email must disclose the limitation without describing an image
+as safe, approved, moderated, scanned, or reviewed.
 
-Select and integrate an approved safety reviewer behind the existing
-`FinderEvidenceSafetyReviewer` interface. Provider unavailable, timeout,
-malformed response, or uncertain result must fail closed. Provider credentials,
-original evidence, storage paths, and raw responses must not enter the
-repository, ordinary logs, Events, URLs, or public responses.
+AWS, Rekognition, thresholds, model versions, and moderation provider
+configuration are not phase-one release dependencies. A future provider is an
+uncommitted post-v1 candidate requiring a separate approved PRD, ADR, ticket,
+calibration policy, staging evidence, and staged rollout. It is not on the v1
+critical path.
+
+RT-333 and Proposed RT-334 explicitly own the Resend and Cloudflare Turnstile
+account, DNS/hostname, least-privilege credential, environment-separation, and
+rotation gates. They remain `BLOCKED` until the approved external resources
+exist.
 
 ### Proposed RT-336 through RT-343 - delivery, risk, privacy, and lifecycle gates
 
@@ -291,8 +299,10 @@ the sequence. Every update must link the relevant Issue or PR and preserve the
 distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
-RT-331 is the latest accepted work item. The next critical-path gates are the
-external-service account/configuration tickets Proposed RT-332 through RT-334;
-they remain `BLOCKED` until those resources exist. Contract-first P0 work may
-then proceed in the dependency order above. Proposed numbers are not assigned
-Issue IDs until their single-purpose Issues are created.
+RT-331 is the latest accepted work item. RT-332 is the active policy/runtime
+alignment item and removes image content moderation from the v1 critical path.
+The next external-service gates are RT-333 for Resend and Proposed RT-334 for
+Cloudflare Turnstile; they remain `BLOCKED` until those resources exist.
+Contract-first P0 work may proceed in the dependency order above. Proposed
+numbers are not assigned Issue IDs until their single-purpose Issues are
+created.

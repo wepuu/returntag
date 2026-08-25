@@ -16,9 +16,6 @@ use ReturnTag\TagCore\Application\FeatureFlagReader;
 use ReturnTag\TagCore\Application\FinderReport\CleanupFinderReportEvidence;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceDerivative;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceImageProcessor;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyAvailability;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyReviewer;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyUnavailableException;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSource;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSourceInspector;
 use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSourceMetadata;
@@ -31,7 +28,6 @@ use ReturnTag\TagCore\Application\FinderReport\PrivateMediaObject;
 use ReturnTag\TagCore\Application\FinderReport\PrivateMediaStorage;
 use ReturnTag\TagCore\Application\FinderReport\ProcessedFinderEvidence;
 use ReturnTag\TagCore\Application\FinderReport\ProcessFinderReportEvidence;
-use ReturnTag\TagCore\Application\FinderReport\ReviewFinderEvidence;
 use ReturnTag\TagCore\Application\FinderReport\SubmitFinderReport;
 use ReturnTag\TagCore\Application\Persistence\Record\FinderReportMediaRecord;
 use ReturnTag\TagCore\Application\Persistence\Record\FinderReportRecord;
@@ -48,7 +44,6 @@ use ReturnTag\TagCore\Application\PublicTag\PublicTagStateReader;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagStateRecord;
 use ReturnTag\TagCore\Domain\Batch\BatchStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceMime;
-use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceSafetyDecision;
 use ReturnTag\TagCore\Domain\FinderReport\FinderEvidenceStatus;
 use ReturnTag\TagCore\Domain\FinderReport\FinderReportStatus;
 use ReturnTag\TagCore\Domain\FinderReport\PrivateMediaObjectKind;
@@ -111,7 +106,6 @@ final class FinderReportWorkflowTest extends TestCase {
 		$use_case = new SubmitFinderReport(
 			$this->tag_reader(),
 			$this->enabled_features(),
-			$this->available_safety(),
 			$this->allowing_limiter(),
 			$this->source_inspector(),
 			$storage,
@@ -144,7 +138,6 @@ final class FinderReportWorkflowTest extends TestCase {
 		$use_case = new SubmitFinderReport(
 			$this->tag_reader(),
 			$features,
-			$this->available_safety(),
 			$this->allowing_limiter(),
 			$inspector,
 			$storage,
@@ -161,30 +154,17 @@ final class FinderReportWorkflowTest extends TestCase {
 		$use_case->execute( $this->submission_input( '' ) );
 	}
 
-	/** Explicit approval stores both controlled derivatives and reaches ready. */
-	public function test_processing_requires_approval_and_converges_ready(): void {
-		$reports  = $this->processing_reports( true );
-		$media    = $this->processing_media( true );
-		$storage  = $this->processing_storage();
-		$events   = new InMemoryEventRepository();
-		$reviewer = new class() implements FinderEvidenceSafetyReviewer {
-			/**
-			 * Approve the metadata-free review derivative.
-			 *
-			 * @param FinderEvidenceDerivative $review_derivative Metadata-free review derivative.
-			 */
-			public function review( FinderEvidenceDerivative $review_derivative ): FinderEvidenceSafetyDecision {
-				TestCase::assertSame( 'review-bytes', $review_derivative->bytes );
-
-				return FinderEvidenceSafetyDecision::APPROVED;
-			}
-		};
-		$process  = new ProcessFinderReportEvidence(
+	/** Technical processing stores both controlled derivatives and reaches ready. */
+	public function test_processing_converges_ready_without_content_review(): void {
+		$reports = $this->processing_reports( true );
+		$media   = $this->processing_media( true );
+		$storage = $this->processing_storage();
+		$events  = new InMemoryEventRepository();
+		$process = new ProcessFinderReportEvidence(
 			$reports,
 			$media,
 			$storage,
 			$this->processor(),
-			new ReviewFinderEvidence( $reviewer ),
 			$events,
 			new ImmediateTransactionManager(),
 			new FixedClock( $this->now )
@@ -194,11 +174,11 @@ final class FinderReportWorkflowTest extends TestCase {
 
 		self::assertCount( 1, $events->records );
 		self::assertSame( 'finder_report_evidence_ready', $events->records[0]->data->event_type );
-		self::assertSame( 'approved', $events->records[0]->data->event_result );
+		self::assertSame( 'processed', $events->records[0]->data->event_result );
 	}
 
-	/** Unavailable safety review blocks the report without storing derivatives. */
-	public function test_processing_fails_closed_when_safety_is_unavailable(): void {
+	/** A technical processing failure blocks the report without storing derivatives. */
+	public function test_processing_fails_closed_when_image_processing_fails(): void {
 		$reports = $this->processing_reports( false );
 		$media   = $this->processing_media( false );
 		$storage = $this->createMock( PrivateMediaStorage::class );
@@ -206,26 +186,14 @@ final class FinderReportWorkflowTest extends TestCase {
 			->method( 'read' )
 			->willReturn( 'source-bytes' );
 		$storage->expects( self::never() )->method( 'put' );
-		$events   = new InMemoryEventRepository();
-		$reviewer = new class() implements FinderEvidenceSafetyReviewer {
-			/**
-			 * Report provider unavailability without approving bytes.
-			 *
-			 * @param FinderEvidenceDerivative $review_derivative Metadata-free review derivative.
-			 * @throws FinderEvidenceSafetyUnavailableException Always unavailable in this fixture.
-			 */
-			public function review( FinderEvidenceDerivative $review_derivative ): FinderEvidenceSafetyDecision {
-				unset( $review_derivative );
-
-				throw new FinderEvidenceSafetyUnavailableException( 'Unavailable.' );
-			}
-		};
-		$process  = new ProcessFinderReportEvidence(
+		$processor = $this->createMock( FinderEvidenceImageProcessor::class );
+		$processor->method( 'process' )->willThrowException( new RuntimeException( 'Decode failed.' ) );
+		$events  = new InMemoryEventRepository();
+		$process = new ProcessFinderReportEvidence(
 			$reports,
 			$media,
 			$storage,
-			$this->processor(),
-			new ReviewFinderEvidence( $reviewer ),
+			$processor,
 			$events,
 			new ImmediateTransactionManager(),
 			new FixedClock( $this->now )
@@ -233,7 +201,7 @@ final class FinderReportWorkflowTest extends TestCase {
 
 		try {
 			$process->execute( 10 );
-			self::fail( 'Unavailable review must fail closed.' );
+			self::fail( 'Technical processing failure must fail closed.' );
 		} catch ( RuntimeException $exception ) {
 			self::assertSame( 'Finder evidence processing failed.', $exception->getMessage() );
 		}
@@ -334,14 +302,6 @@ final class FinderReportWorkflowTest extends TestCase {
 		$features->method( 'is_enabled' )->willReturn( true );
 
 		return $features;
-	}
-
-	/** Return a healthy explicit safety boundary. */
-	private function available_safety(): FinderEvidenceSafetyAvailability {
-		$safety = $this->createMock( FinderEvidenceSafetyAvailability::class );
-		$safety->method( 'is_available' )->willReturn( true );
-
-		return $safety;
 	}
 
 	/** Return an atomic limiter that accepts one test report. */

@@ -99,8 +99,9 @@ commits `suspended`; Transfer never unsuspends a Tag; Retire is permanent.
 
 An initial one-way Finder Report may notify the current Owner without Finder
 email verification only after its required evidence image passes the approved
-private processing and content-safety controls. Finder email is optional for
-that report. It must be verified before a canonical Conversation opens, the
+private technical-processing and privacy controls. The current phase does not
+review or classify image content and must disclose that fact. Finder email is
+optional for that report. It must be verified before a canonical Conversation opens, the
 Owner receives a reply action, or any Owner reply is delivered to the Finder.
 Owners never see a finder email address, and finders never see an owner email
 address.
@@ -794,10 +795,12 @@ full-screen route and never loads the surrounding Theme page.
 ## 27. RT-315 Finder evidence-report security contract
 
 RT-315 Stage 1 adds Schema 9/10 and typed repositories. Stage 2 adds an
-uncomposed media-safety kernel: bounded source bytes, strict JPEG/PNG/WebP
+independently testable private-media kernel: bounded source bytes, strict JPEG/PNG/WebP
 container checks, server MIME/decode agreement, 20-megapixel enforcement,
 orientation-aware GD decode, metadata-removing JPEG re-encoding, controlled
-1600-pixel and 800-pixel/200-KiB derivatives, and explicit safety approval.
+1600-pixel and 800-pixel/200-KiB derivatives, plus dormant provider-neutral
+moderation extension points. The current runtime does not compose or call a
+content-moderation provider.
 There is still no upload endpoint, queue, email, or composed runtime flag.
 Runtime must remain disabled until every control in this section is present and
 `returntag_finder_evidence_enabled` is explicitly enabled.
@@ -813,17 +816,18 @@ client MIME declarations are never trusted or retained.
 Accepted bytes enter encrypted non-public quarantine outside WordPress uploads
 and the Media Library. Processing re-encodes decoded pixels, removes EXIF, GPS,
 capture time, device data, embedded profiles not required for safe rendering,
-and original filenames, then creates controlled 1600-pixel review and
-800-pixel/200-KiB email derivatives. Content-safety review is mandatory and
-fails closed. No Owner notification occurs after a decode, storage, scanning,
-processing, timeout, or safety failure. Provider requests use only the minimum
-approved derivative and must not include Tag ID, item name, email, source
-filename, or unnecessary metadata.
+and original filenames, then creates controlled 1600-pixel processing and
+800-pixel/200-KiB email derivatives. No Owner notification occurs after a
+validation, decode, storage, re-encoding, queue, or privacy-control failure.
+The current phase performs no content review, classification, provider request,
+or moderation decision. Public and email copy must say that metadata is removed
+but image content is not currently reviewed; it must not claim an image is safe,
+approved, moderated, scanned, or reviewed.
 
 Object storage uses authenticated encryption with keys outside WordPress and
 its database. Object references are non-public and never appear in HTML, URLs,
-logs, analytics, or email. Ordinary logs and Events contain only approved
-classification, result, opaque internal identifiers, timings, sizes, and error
+logs, analytics, or email. Ordinary logs and Events contain only allowlisted
+technical results, opaque internal identifiers, timings, sizes, and error
 codes; they contain no image bytes, thumbnails, private messages, email,
 location, Tag ID, or object credentials.
 
@@ -839,11 +843,15 @@ overwrites, key reuse, purpose confusion, ciphertext modification, digest
 mismatch, and public-root placement fail closed. The adapter returns no path or
 URL and is not yet registered by the production bootstrap.
 
-Content safety remains an external approval boundary. Stage 2 passes only the
-metadata-free review derivative to `FinderEvidenceSafetyReviewer`. The shipped
-default adapter always reports safety unavailable. Only an explicit
-`approved` result creates `ApprovedFinderEvidence`; rejection, provider error,
-timeout, or missing configuration produces no approval marker.
+`FinderEvidenceSafetyReviewer` and its related types remain dormant extension
+points and are not part of the current runtime authorization path. Reviewer
+availability must not control form visibility, processing, `ready` state, or
+Owner notification. A future content-moderation integration requires a new
+approved PRD/ADR and ticket defining its provider, calibration, data
+minimization, failure behavior, user disclosure, staging evidence, and rollout
+control. No provider credential, original evidence, raw provider response, or
+unnecessary identifier may enter ordinary logs, Events, URLs, or public
+responses if that future work is approved.
 
 Owner notification runs asynchronously after durable state. Its queue argument
 is only an internal report ID. The Worker rechecks the evidence, Finder-contact,

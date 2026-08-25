@@ -67,6 +67,8 @@ final class FinderReportOwnerEmailTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'image/jpeg', $sent->body );
 		self::assertStringContainsString( 'Content-Disposition: inline; filename=evidence.jpg', $sent->body );
 		self::assertStringContainsString( 'I found it near &lt;script&gt;alert(1)&lt;/script&gt; gate.', quoted_printable_decode( $sent->body ) );
+		self::assertStringContainsString( 'did not review its content', quoted_printable_decode( $sent->body ) );
+		self::assertStringNotContainsString( 'passed ForgeTag safety checks', quoted_printable_decode( $sent->body ) );
 		self::assertStringNotContainsString( 'A7R2W9', $sent->body );
 		self::assertStringNotContainsString( 'finder@example.net', $sent->header . $sent->body );
 		self::assertStringNotContainsString( 'owner@example.com', $sent->body );

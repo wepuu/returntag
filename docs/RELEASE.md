@@ -672,7 +672,7 @@ registered, no feature-disable action is required for Stage 1 alone.
 RT-315 Stage 2 keeps project/plugin version `0.4.0`, Theme version `0.1.0`, and
 Schema version `10`. It adds no route, Hook, Option, database write, queue,
 email, dependency, artifact, tag, deployment, or production composition. Code
-rollback removes only unregistered processing, safety, and encrypted-storage
+rollback removes only unregistered processing, dormant moderation, and encrypted-storage
 classes; Schema 10 and stored business data remain untouched.
 
 Before a later stage composes intake, release configuration must provide two
@@ -681,19 +681,25 @@ independent 32-byte Base64 keys through
 `RETURNTAG_TAGCORE_PRIVATE_MEDIA_REFERENCE_KEY_V1`, plus an absolute private
 storage root outside all web and WordPress content roots. Release acceptance
 must verify GD and Fileinfo support, JPEG/PNG/WebP decode, encrypted round-trip,
-purpose binding, tamper rejection, key separation, metadata stripping,
-derivative bounds, and a real approved content-safety provider. The shipped
-unavailable reviewer intentionally prevents runtime approval.
+purpose binding, tamper rejection, key separation, metadata stripping, and
+derivative bounds. Release evidence must confirm that no moderation provider is
+called and Finder/Owner copy accurately discloses that image content is not
+currently reviewed.
 
 No Finder evidence runtime may ship until private encrypted storage,
 signature/MIME and decode validation, metadata-stripping re-encoding,
-controlled derivatives, fail-closed content-safety review, atomic abuse
+controlled derivatives, accurate no-content-review disclosure, atomic abuse
 budgets, bounded retention, idempotent Owner notification, and the default-off
 `returntag_finder_evidence_enabled` control have passed implementation and
 release acceptance. Deployment must also prove that anonymous reports are
 one-way, Owner reply remains unavailable until Finder email verification, and
 neither party's address or private item data appears in content, headers, URLs,
 logs, Events, or media references.
+
+Content moderation, an AWS account, Rekognition, moderation thresholds, model
+versions, and provider availability are not phase-one release gates. A future
+integration requires separate product, security, architecture, staging, and
+rollout approval and must not be enabled by production configuration alone.
 
 The Stage 4 notification implementation adds no Migration, dependency,
 lock-file, version bump, artifact, deployment, or production configuration.

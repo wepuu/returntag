@@ -11,7 +11,6 @@ namespace ReturnTag\TagCore\PublicSite;
 
 use ReturnTag\TagCore\Application\FeatureFlag;
 use ReturnTag\TagCore\Application\FeatureFlagReader;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyAvailability;
 use ReturnTag\TagCore\Application\FinderReport\FinderReportProcessingScheduler;
 use ReturnTag\TagCore\Application\FinderReport\FinderReportSubmissionInput;
 use ReturnTag\TagCore\Application\FinderReport\SubmitFinderReport;
@@ -32,18 +31,16 @@ final readonly class FinderReportFormHandler {
 	/**
 	 * Create the boundary.
 	 *
-	 * @param SubmitFinderReport|null               $submit Configured intake use case.
-	 * @param FinderEvidenceSafetyAvailability|null $safety Safety-provider availability.
-	 * @param FinderReportProcessingScheduler|null  $scheduler Durable queue boundary.
-	 * @param FeatureFlagReader                     $feature_flags Operational controls.
-	 * @param PublicFormRequestGuard                $request_guard Browser request guard.
-	 * @param FinderEvidenceUploadReader            $uploads Trusted upload reader.
-	 * @param FinderReportSubmissionLedger          $ledger Idempotency ledger.
-	 * @param WordPressPublicRequestHasher          $hasher Privacy-safe request hasher.
+	 * @param SubmitFinderReport|null              $submit Configured intake use case.
+	 * @param FinderReportProcessingScheduler|null $scheduler Durable queue boundary.
+	 * @param FeatureFlagReader                    $feature_flags Operational controls.
+	 * @param PublicFormRequestGuard               $request_guard Browser request guard.
+	 * @param FinderEvidenceUploadReader           $uploads Trusted upload reader.
+	 * @param FinderReportSubmissionLedger         $ledger Idempotency ledger.
+	 * @param WordPressPublicRequestHasher         $hasher Privacy-safe request hasher.
 	 */
 	public function __construct(
 		private ?SubmitFinderReport $submit,
-		private ?FinderEvidenceSafetyAvailability $safety,
 		private ?FinderReportProcessingScheduler $scheduler,
 		private FeatureFlagReader $feature_flags,
 		private PublicFormRequestGuard $request_guard,
@@ -56,9 +53,7 @@ final readonly class FinderReportFormHandler {
 	/** Check all fail-closed runtime controls before rendering intake. */
 	public function is_available(): bool {
 		return null !== $this->submit
-			&& null !== $this->safety
 			&& null !== $this->scheduler
-			&& $this->safety->is_available()
 			&& $this->scheduler->is_available()
 			&& $this->feature_flags->is_enabled( FeatureFlag::FINDER_CONTACT )
 			&& $this->feature_flags->is_enabled( FeatureFlag::FINDER_EVIDENCE );

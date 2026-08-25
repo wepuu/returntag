@@ -34,24 +34,22 @@ final readonly class SubmitFinderReport {
 	/**
 	 * Create the use case.
 	 *
-	 * @param PublicTagStateReader             $tags Public Tag state reader.
-	 * @param FeatureFlagReader                $feature_flags Operational controls.
-	 * @param FinderEvidenceSafetyAvailability $safety Safety availability.
-	 * @param FinderReportRateLimiter          $rate_limiter Abuse limiter.
-	 * @param FinderEvidenceSourceInspector    $inspector Source inspector.
-	 * @param PrivateMediaStorage              $storage Private storage.
-	 * @param FinderReportMessageProtector     $messages Message encryption.
-	 * @param FinderReportRepository           $reports Report persistence.
-	 * @param FinderReportMediaRepository      $media Media persistence.
-	 * @param EventRepository                  $events Audit Events.
-	 * @param TransactionManager               $transactions Atomic boundary.
-	 * @param FinderReportProcessingScheduler  $scheduler Background scheduler.
-	 * @param Clock                            $clock UTC clock.
+	 * @param PublicTagStateReader            $tags Public Tag state reader.
+	 * @param FeatureFlagReader               $feature_flags Operational controls.
+	 * @param FinderReportRateLimiter         $rate_limiter Abuse limiter.
+	 * @param FinderEvidenceSourceInspector   $inspector Source inspector.
+	 * @param PrivateMediaStorage             $storage Private storage.
+	 * @param FinderReportMessageProtector    $messages Message encryption.
+	 * @param FinderReportRepository          $reports Report persistence.
+	 * @param FinderReportMediaRepository     $media Media persistence.
+	 * @param EventRepository                 $events Audit Events.
+	 * @param TransactionManager              $transactions Atomic boundary.
+	 * @param FinderReportProcessingScheduler $scheduler Background scheduler.
+	 * @param Clock                           $clock UTC clock.
 	 */
 	public function __construct(
 		private PublicTagStateReader $tags,
 		private FeatureFlagReader $feature_flags,
-		private FinderEvidenceSafetyAvailability $safety,
 		private FinderReportRateLimiter $rate_limiter,
 		private FinderEvidenceSourceInspector $inspector,
 		private PrivateMediaStorage $storage,
@@ -86,7 +84,6 @@ final readonly class SubmitFinderReport {
 		if (
 			! $this->feature_flags->is_enabled( FeatureFlag::FINDER_CONTACT )
 			|| ! $this->feature_flags->is_enabled( FeatureFlag::FINDER_EVIDENCE )
-			|| ! $this->safety->is_available()
 		) {
 			throw new FinderReportSubmissionException( 'Finder Report submission is unavailable.' );
 		}

@@ -17,16 +17,18 @@
 * Plugin directory: `plugin/tagcore`
 
 * Current baseline: TagCore `0.5.0`, Schema `14`, capability contract `6`, and
-  ForgeTag Theme `0.1.0` at canonical `origin/main@9400ae9`
+  ForgeTag Theme `0.1.0` at canonical `origin/main@301ba4f`
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
-  portion of Milestone 5 are accepted;
-  production Finder safety, delivery, privacy, dispute, WooCommerce onboarding,
-  Recovery, and release gates remain open in the [delivery roadmap](ROADMAP.md)
+  portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
+  moderation and removes it from the phase-one release gates; delivery,
+  privacy, dispute, WooCommerce onboarding, Recovery, and release gates remain
+  open in the [delivery roadmap](ROADMAP.md)
 
 * Current workstream: the canonical baseline after RT-320 through RT-324 is
-  re-certified by RT-331; external-service gates precede the remaining P0 path
-  to TagCore `0.9.0`
+  re-certified by RT-331; RT-332 aligns the Finder runtime and product contract
+  with the approved no-content-review decision before the remaining P0 path to
+  TagCore `0.9.0`
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1031,8 +1033,9 @@ Stage 2 adds an uncomposed, independently testable media kernel inside TagCore:
   rejection;
 * GD decode, JPEG orientation handling, metadata-removing re-encoding, and
   controlled 1600-pixel review plus 800-pixel/200-KiB email derivatives;
-* an explicit content-safety port where only `approved` creates an approved
-  marker and the shipped default always fails unavailable;
+* an explicit provider-neutral content-moderation port where only `approved`
+  creates an approved marker; ADR 0028 later made this port dormant and removed
+  it from the current runtime path;
 * XChaCha20-Poly1305 encrypted filesystem objects and separately encrypted,
   purpose-bound opaque references using independent external keys;
 * private-root, traversal, symlink, overwrite, key-reuse, purpose-confusion,
@@ -1056,12 +1059,13 @@ message and object data, persists before enqueue, and returns only generic
 privacy-safe states.
 
 Processing is asynchronous and report-ID-only. It validates persisted source
-facts, strips metadata through controlled derivatives, requires an explicit
-approved safety decision, converges state transitions transactionally,
-recovers missing or stale work, and deletes expired objects through bounded
-cleanup. The runtime and `returntag_finder_evidence_enabled` flag default off;
-missing private configuration or the shipped unavailable reviewer prevents the
-form from opening. Owner notification, Finder email verification,
+facts, strips metadata through controlled derivatives, converges state
+transitions transactionally, recovers missing or stale work, and deletes
+expired objects through bounded cleanup. ADR 0028 later removed the explicit
+moderation decision and reviewer availability from this runtime path. The
+runtime and `returntag_finder_evidence_enabled` flag default off; missing
+private configuration or queue availability prevents the form from opening.
+Owner notification, Finder email verification,
 Conversation linkage, Schema changes, dependencies, Theme business logic,
 release, and deployment remain outside Stage 3. TagCore remains `0.4.0`, Theme
 remains `0.1.0`, and Schema remains `10`.

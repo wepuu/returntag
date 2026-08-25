@@ -88,7 +88,7 @@ final class WordPressFinderReportOwnerNotificationSender implements FinderReport
 			esc_html__( 'A finder submitted evidence through ForgeTag.', 'tagcore' ),
 			esc_html__( 'Item recovery report', 'tagcore' ),
 			esc_html__( 'A finder submitted evidence', 'tagcore' ),
-			esc_html__( 'The processed photo below passed ForgeTag safety checks.', 'tagcore' ),
+			esc_html__( 'ForgeTag processed the photo below to remove metadata, but did not review its content.', 'tagcore' ),
 			self::EVIDENCE_CID,
 			esc_attr__( 'Processed evidence photo', 'tagcore' ),
 			$message_section,
@@ -105,7 +105,7 @@ final class WordPressFinderReportOwnerNotificationSender implements FinderReport
 	private function text_body( ?string $message ): string {
 		$lines = array(
 			__( 'A finder submitted evidence through ForgeTag.', 'tagcore' ),
-			__( 'The processed evidence photo is included inline in this email.', 'tagcore' ),
+			__( 'ForgeTag processed the evidence photo to remove metadata, but did not review its content. The photo is included inline in this email.', 'tagcore' ),
 		);
 
 		if ( null !== $message ) {

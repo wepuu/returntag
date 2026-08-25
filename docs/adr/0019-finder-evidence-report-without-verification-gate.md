@@ -2,6 +2,11 @@
 
 **Status:** Accepted
 
+> **Partial supersession:** ADR 0028 supersedes this ADR's content-moderation
+> and reviewer-availability gates. Its private-media, technical-processing,
+> one-way notification, privacy, retention, and feature-control requirements
+> remain accepted.
+
 **Date:** 2026-08-04
 
 **Scope:** Phase-one Finder Report intake, evidence processing, Owner alert,

@@ -348,10 +348,10 @@ if ( null !== $view->activation_form ) {
 									<p class="returntag-public__review-row"><strong><?php esc_html_e( 'Message', 'tagcore' ); ?></strong><span data-returntag-finder-message-review><?php esc_html_e( 'No message added', 'tagcore' ); ?></span></p>
 									<p class="returntag-public__review-row"><strong><?php esc_html_e( 'Photo', 'tagcore' ); ?></strong><span data-returntag-finder-photo-review><?php esc_html_e( 'One required image', 'tagcore' ); ?></span></p>
 								</div>
-								<p class="returntag-public__finder-disclosure"><?php esc_html_e( 'Submitting does not guarantee owner notification. The photo must pass processing and safety review first. This report does not open a conversation.', 'tagcore' ); ?></p>
+								<p class="returntag-public__finder-disclosure"><?php esc_html_e( 'Submitting does not guarantee owner notification. ForgeTag processes the photo to remove metadata, but does not currently review its content. This report does not open a conversation.', 'tagcore' ); ?></p>
 								<div class="returntag-public__finder-actions">
 									<button class="returntag-public__secondary" type="button" data-returntag-finder-back><?php esc_html_e( 'Back', 'tagcore' ); ?></button>
-									<button class="returntag-public__submit" type="submit"><?php esc_html_e( 'Send report for review', 'tagcore' ); ?></button>
+									<button class="returntag-public__submit" type="submit"><?php esc_html_e( 'Send report', 'tagcore' ); ?></button>
 								</div>
 							</fieldset>
 

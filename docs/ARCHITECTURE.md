@@ -819,7 +819,7 @@ business Event, Migration, Schema, or plugin-version change.
 
 RT-315 freezes a TagCore-owned Finder Report workflow. Stage 1 adds the Domain
 vocabulary, typed persistence ports, `$wpdb` adapters, and Schema 9/10. Stage 2
-adds an uncomposed media-safety kernel; neither stage adds a runtime route or
+adds an uncomposed private-media kernel; neither stage adds a runtime route or
 public write path. `PublicSite` will own the mobile-first form,
 same-site and CSRF decision, bounded multipart input, generic responses,
 accessibility, privacy headers, and output escaping. It accepts an optional
@@ -837,9 +837,10 @@ decide whether notification or reply is allowed.
 Infrastructure Stage 2 provides purpose-bound XChaCha20-Poly1305 filesystem
 storage, separately encrypted opaque references, server-side Fileinfo and GD
 signature/decode validation, JPEG orientation handling, metadata-removing
-re-encoding, controlled derivatives, and a fail-closed content-safety port.
-The default reviewer is unavailable and can never approve evidence; production
-must supply an approved provider. Stage 3 composes atomic rate limiting and
+re-encoding, controlled derivatives, and dormant provider-neutral moderation
+ports. Under ADR 0028 the current runtime does not compose a reviewer and
+`ready` means that the technical and privacy pipeline completed; it is not a
+content-safety classification. Stage 3 composes atomic rate limiting and
 bounded retention cleanup. Stage 4 adds a unique report-ID-only Action
 Scheduler notification, a current-Owner resolver, a privacy-minimized
 WordPress mail adapter, and stale-claim convergence. Public WordPress media
@@ -848,8 +849,10 @@ only a processed inline CID derivative, resolves the current Owner at send
 time, and carries only an internal report ID in queue arguments.
 
 The dedicated `returntag_finder_evidence_enabled` control fails closed and is
-checked with the existing Finder contact and email-dispatch controls. Image or
-safety failure blocks notification. Finder email verification is optional for
+checked with the existing Finder contact and email-dispatch controls. Image
+validation, decode, storage, re-encoding, queue, or privacy-control failure
+blocks notification. Reviewer availability is not a runtime dependency.
+Finder email verification is optional for
 the first one-way alert but remains mandatory before the Owner gains a reply
 path or any message is delivered to the Finder.
 

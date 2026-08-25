@@ -1005,6 +1005,13 @@ EXIF, GPS, device identifiers, location, public media URLs, plaintext object
 credentials, or access Tokens. Object bytes remain outside WordPress public
 uploads and the Media Library.
 
+Under ADR 0028 the existing `ready` evidence state records successful technical
+and privacy processing: signature/MIME validation, bounded decode, re-encoding,
+metadata removal, controlled derivative creation, and private storage. It is
+not a content-moderation result. The current runtime stores no moderation
+provider, model, policy, label, score, raw response, or approval field, and this
+decision requires no Schema change.
+
 Stage 1 includes fresh-install, Schema-8 upgrade, idempotent retry,
 missing-predecessor, unique-cardinality, and typed Repository tests. Object/database
 compensation, runtime locking evidence, and a bounded retention Worker remain

@@ -66,18 +66,20 @@ JPEG/PNG/WebP containers from bytes, confirms Fileinfo/decode agreement,
 applies JPEG orientation, strips metadata through re-encoding, and creates the
 bounded review and email JPEGs. `SodiumFilesystemPrivateMediaStorage` encrypts
 object bytes and opaque references with separate purpose-bound external keys,
-rejects public or symlink roots, and exposes no path or URL. The default safety
-reviewer always fails unavailable until an approved provider is composed.
+rejects public or symlink roots, and exposes no path or URL. Dormant reviewer
+adapters remain available for a future separately approved moderation ticket,
+but ADR 0028 excludes them from the current production composition.
 
 RT-315 Stage 3 adds fail-closed production composition for the Finder Report
 runtime, a required single-upload boundary, XChaCha20-Poly1305 message
 encryption, option-backed atomic abuse budgets and idempotency claims, and
 Action Scheduler processing/recovery/cleanup hooks. Intake remains unavailable
 unless the dedicated private root and key material are externally configured,
-both Finder controls are enabled, and the
-`returntag_finder_evidence_safety_reviewer` filter supplies an approved adapter
-that implements both safety review and availability contracts. No shipped
-adapter can approve content by default.
+both Finder controls are enabled, and the queue boundary is available. The
+runtime performs signature/MIME validation, bounded decode and re-encoding,
+metadata removal, controlled derivative creation, and private storage; it does
+not call or require a content-moderation adapter. Public and email copy disclose
+that ForgeTag does not currently review image content.
 
 RT-315 Stage 4 composes a unique report-ID-only notification action, hourly
 missing-work recovery, stale-claim convergence, current active-Owner lookup,

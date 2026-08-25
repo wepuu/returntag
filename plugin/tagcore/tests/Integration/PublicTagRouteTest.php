@@ -836,7 +836,9 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'required', $html );
 		self::assertStringContainsString( 'Report details', $html );
 		self::assertStringContainsString( 'Review and send', $html );
-		self::assertStringContainsString( 'Send report for review', $html );
+		self::assertStringContainsString( 'Send report', $html );
+		self::assertStringContainsString( 'does not currently review its content', $html );
+		self::assertStringNotContainsString( 'safety review', $html );
 		self::assertStringNotContainsString( 'finder_email', $html );
 		self::assertStringNotContainsString( 'finder_name', $html );
 		self::assertStringNotContainsString( 'name="country"', $html );
