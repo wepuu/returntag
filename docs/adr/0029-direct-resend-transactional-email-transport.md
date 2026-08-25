@@ -120,4 +120,3 @@ or rewrite accepted business actions or delivery history.
 - [Resend send-email API](https://resend.com/docs/api-reference/emails/send-email)
 - [Resend webhook verification](https://resend.com/docs/webhooks/verify-webhooks-requests)
 - [Resend webhook delivery behavior](https://resend.com/docs/webhooks/introduction)
-
