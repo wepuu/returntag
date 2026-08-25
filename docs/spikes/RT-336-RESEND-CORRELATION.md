@@ -2,21 +2,27 @@
 
 **Issue:** [RT-336](https://github.com/wepuu/returntag/issues/96)
 
-**Status:** `BLOCKED` pending the RT-333 staging environment
+**Status:** `IN_PROGRESS`; ADR 0029 records the direct-adapter decision and PR
+acceptance remains pending
 
 **Production impact:** none; this spike does not change TagCore runtime, Schema,
 Options, feature flags, or email dispatch
 
-## 1. Decision to prove
+## 1. Decision
 
-RT-337 must use exactly one transactional-email transport:
+RT-337 must use exactly one transactional-email transport. ADR 0029 selects:
 
-1. keep `wp_mail()` plus WP Mail SMTP only if TagCore can obtain the Resend
-   Email ID through a supported, stable public contract; or
-2. use a provider-neutral TagCore gateway with a direct Resend adapter.
+1. a provider-neutral TagCore gateway; and
+2. one direct Resend Infrastructure adapter.
+
+The alternative `wp_mail()` path failed its public-contract gate during source
+review: its observable `X-Msg-ID` value is an undocumented implementation detail,
+not a supported provider-ID interface. A live send could demonstrate the current
+detail but cannot make it a stable contract. The staging probe is retained only
+as reproducible investigation evidence; it is no longer a release gate.
 
 There must not be two selectable production paths. Provider acceptance remains
-different from confirmed delivery in either design.
+different from confirmed delivery.
 
 ## 2. Current repository boundary
 
@@ -58,10 +64,8 @@ Sources:
 - [WP Mail SMTP mailcatcher send path](https://github.com/awesomemotive/WP-Mail-SMTP/blob/master/src/MailCatcherTrait.php)
 - [WordPress `wp_mail()` hooks](https://github.com/WordPress/wordpress-develop/blob/trunk/src/wp-includes/pluggable.php)
 
-The current engineering inference is that the available correlation path is
-technically observable but not yet proven to be a supported stable contract.
-No production design is selected until the staging evidence and compatibility
-assessment below are signed.
+The available correlation path is technically observable but fails the approved
+stable-public-contract condition. ADR 0029 therefore selects the direct adapter.
 
 ## 4. Staging probe
 
@@ -120,7 +124,7 @@ provider_id_missing
 provider_id_ambiguous
 ```
 
-## 5. Required evidence matrix
+## 5. Optional investigation evidence matrix
 
 | Case | Expected safe evidence |
 |---|---|
@@ -145,7 +149,7 @@ Record separately in the restricted staging evidence store:
 Do not attach secrets, addresses, message content, raw provider responses, or a
 complete provider ID to GitHub.
 
-## 6. Binary decision rule
+## 6. Applied binary decision rule
 
 Retain `wp_mail()` plus WP Mail SMTP only if all of these are true:
 
@@ -157,9 +161,10 @@ Retain `wp_mail()` plus WP Mail SMTP only if all of these are true:
   implemented without recipient, subject, or body matching;
 - failure and rollback do not require a second runtime transport.
 
-If any condition fails, RT-337 must implement the provider-neutral direct
-Resend adapter. This is the current recommended outcome because the inspected
-`X-Msg-ID` path is not a documented provider-ID API.
+The public compatibility condition failed: the inspected `X-Msg-ID` path is not
+a documented provider-ID API. RT-337 must therefore implement the
+provider-neutral direct Resend adapter. No further WP Mail SMTP send is required
+to select the transport.
 
 ## 7. Follow-on contract constraints
 
