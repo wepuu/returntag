@@ -27,6 +27,24 @@ step; the selected intent still grants no authority. The native dialog remains
 the focus trap and inert-background boundary, while mobile and failed-script
 requests retain the ordinary link fallback.
 
+RT-323 keeps `/t/{tag_id}` as the only post-entry authority and extends only
+its presentation contract. An unregistered Tag renders one server-driven
+three-step journey: request an email OTP, verify the email and code, then make
+an explicit activation POST. A logged-in visitor starts at the final explicit
+activation step; no browser field carries an email, Owner ID, or internal
+challenge identifier. After commit, state is resolved again so an Owner sees a
+Tag-specific Account deep link while another visitor converges to the Finder
+experience.
+
+An active non-Owner receives the existing two-step Finder Report form with an
+optional bounded message and exactly one required private evidence image. The
+form does not request location or require identity. Optional Finder email
+verification remains a separate continuation after report acceptance and is
+required before a two-way Conversation. The Application resolver continues to
+own all Tag, Batch, feature-control, identity, and privacy decisions; this
+layer supplies ForgeTag consumer copy, semantic forms, safe state feedback,
+and responsive presentation only.
+
 RT-325 closes the Secure Reply presentation and accessibility release gate.
 The controller remains the only adapter that exchanges one-time bearer links,
 creates 30-minute role-bound sessions, submits messages, and performs terminal

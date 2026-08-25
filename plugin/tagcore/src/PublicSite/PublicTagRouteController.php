@@ -243,11 +243,11 @@ final class PublicTagRouteController {
 		$this->enqueue_assets();
 
 		try {
-			$this->renderer->render( $page, $form, $finder_form );
+			$this->renderer->render( $page, $form, $finder_form, $tag_id );
 		} catch ( RuntimeException ) {
 			wp_die(
-				esc_html__( 'ReturnTag is temporarily unavailable.', 'tagcore' ),
-				esc_html__( 'ReturnTag unavailable', 'tagcore' ),
+				esc_html__( 'ForgeTag is temporarily unavailable.', 'tagcore' ),
+				esc_html__( 'ForgeTag unavailable', 'tagcore' ),
 				array( 'response' => 500 )
 			);
 		}

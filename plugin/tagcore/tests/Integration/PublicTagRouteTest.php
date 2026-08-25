@@ -253,7 +253,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		$page = $this->route->resolve_page();
 
 		self::assertSame( PublicTagPageState::INVALID, $page->state );
-		self::assertStringContainsString( 'We could not find this ReturnTag', $this->renderer->render_to_string( $page ) );
+		self::assertStringContainsString( 'We could not find this ForgeTag', $this->renderer->render_to_string( $page ) );
 	}
 
 	/**
@@ -290,7 +290,37 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'value="verify_code"', $html );
 		self::assertStringContainsString( 'Email me a code', $html );
 		self::assertStringContainsString( 'Verify code', $html );
+		self::assertStringContainsString( 'aria-label="Activation progress"', $html );
+		self::assertMatchesRegularExpression( '/<li[^>]*aria-current="step"[^>]*><span>1<\/span>Verify email<\/li>/', $html );
 		self::assertStringNotContainsString( 'owner@example.test', $html );
+	}
+
+	/**
+	 * Server feedback advances the same activation page without exposing a challenge identifier.
+	 */
+	public function test_activation_progress_is_derived_from_safe_server_state(): void {
+		$code_html     = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::REQUEST_ACCEPTED
+			)
+		);
+		$activate_html = $this->renderer->render_to_string(
+			PublicTagPage::activation_entry( TagType::CLASSIC_TAG ),
+			new ActivationOtpFormView(
+				home_url( '/t/A7R2W9' ),
+				'test-nonce',
+				ActivationOtpFormState::AUTHENTICATED
+			)
+		);
+
+		self::assertMatchesRegularExpression( '/<li class="is-complete"[^>]*><span>1<\/span>Verify email<\/li>/', $code_html );
+		self::assertMatchesRegularExpression( '/<li[^>]*aria-current="step"[^>]*><span>2<\/span>Confirm code<\/li>/', $code_html );
+		self::assertMatchesRegularExpression( '/<li[^>]*aria-current="step"[^>]*><span>3<\/span>Activate tag<\/li>/', $activate_html );
+		self::assertStringContainsString( 'New customers get an account after verification', $code_html );
+		self::assertStringNotContainsString( 'challenge', $code_html );
 	}
 
 	/**
@@ -309,9 +339,9 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'id="returntag-smart-guide-title"', $html );
 		self::assertStringContainsString( 'Two separate recovery systems', $html );
 		self::assertStringContainsString( 'Location tracking is managed in Apple Find My or the compatible finding app.', $html );
-		self::assertStringContainsString( 'ReturnTag QR recovery', $html );
+		self::assertStringContainsString( 'ForgeTag QR recovery', $html );
 		self::assertStringContainsString( 'QR recovery works independently', $html );
-		self::assertStringContainsString( 'ReturnTag does not verify pairing', $html );
+		self::assertStringContainsString( 'ForgeTag does not verify pairing', $html );
 		self::assertStringContainsString( 'Email me a code', $html );
 		self::assertStringNotContainsString( 'Connected to Apple', $html );
 		self::assertStringNotContainsString( 'Apple pairing verified', $html );
@@ -362,7 +392,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		);
 
 		self::assertStringContainsString( 'You are signed in', $html );
-		self::assertStringContainsString( 'You can now activate this ReturnTag.', $html );
+		self::assertStringContainsString( 'Review the final action below to activate this ForgeTag.', $html );
 		self::assertStringContainsString( '<form', $html );
 		self::assertStringContainsString( 'value="activate_tag"', $html );
 		self::assertStringContainsString( 'value="test-nonce"', $html );
@@ -771,6 +801,21 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringNotContainsString( 'A7R2W9', $html );
 	}
 
+	/** Active owners receive a Tag-specific Account deep link and no Finder form. */
+	public function test_owner_entry_links_to_the_matching_tag_detail(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::owner_entry( TagType::CLASSIC_TAG ),
+			null,
+			null,
+			TagId::from_canonical( 'A7R2W9' )
+		);
+
+		self::assertStringContainsString( 'This ForgeTag is yours', $html );
+		self::assertStringContainsString( 'Manage this tag', $html );
+		self::assertStringContainsString( '/account/tags/A7R2W9/', $html );
+		self::assertStringNotContainsString( 'returntag-public__finder-form', $html );
+	}
+
 	/** Finder intake renders only the approved optional-message and required-photo contract. */
 	public function test_finder_report_form_uses_private_evidence_contract(): void {
 		$html = $this->renderer->render_to_string(
@@ -789,9 +834,25 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'name="returntag_finder_photo"', $html );
 		self::assertStringContainsString( 'type="file"', $html );
 		self::assertStringContainsString( 'required', $html );
+		self::assertStringContainsString( 'Report details', $html );
+		self::assertStringContainsString( 'Review and send', $html );
 		self::assertStringContainsString( 'Send report for review', $html );
 		self::assertStringNotContainsString( 'finder_email', $html );
 		self::assertStringNotContainsString( 'finder_name', $html );
+		self::assertStringNotContainsString( 'name="country"', $html );
+		self::assertStringNotContainsString( 'name="city"', $html );
+		self::assertStringNotContainsString( 'Owner verified', $html );
+	}
+
+	/** Finder presentation explains the recoverable fail-closed state when intake is unavailable. */
+	public function test_finder_entry_without_runtime_shows_safe_unavailable_feedback(): void {
+		$html = $this->renderer->render_to_string(
+			PublicTagPage::finder_entry( TagType::CLASSIC_TAG, 'Travel bag', false, null )
+		);
+
+		self::assertStringContainsString( 'Private reporting is temporarily unavailable', $html );
+		self::assertStringContainsString( 'Please keep the item secure and try again later.', $html );
+		self::assertStringNotContainsString( 'returntag-public__finder-form', $html );
 	}
 
 	/** Accepted reports offer optional private continuation without exposing identity. */

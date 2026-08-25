@@ -90,7 +90,7 @@ const checkReplacementTheme = async () => {
 	assert(
 		scan.response.status === 404 &&
 			scan.body.includes( 'returntag-public--invalid' ) &&
-			scan.body.includes( 'We could not find this ReturnTag' ),
+			scan.body.includes( 'We could not find this ForgeTag' ),
 		'Canonical Tag route depends on ForgeTag Theme.'
 	);
 };

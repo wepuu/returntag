@@ -97,7 +97,7 @@ test.describe( 'RT-322 TagCore entry surfaces', () => {
 
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'We could not find this ReturnTag',
+				name: 'We could not find this ForgeTag',
 			} )
 		).toBeVisible();
 	} );

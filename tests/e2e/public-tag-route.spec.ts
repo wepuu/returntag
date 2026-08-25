@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-test.describe( 'RT-303 public Tag state pages', () => {
+test.describe( 'RT-323 public Tag state pages', () => {
 	test( 'renders an unknown ID as a private theme-independent page', async ( {
-		browserName,
 		page,
 	} ) => {
 		const consoleErrors: string[] = [];
@@ -46,9 +45,10 @@ test.describe( 'RT-303 public Tag state pages', () => {
 
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'We could not find this ReturnTag',
+				name: 'We could not find this ForgeTag',
 			} )
 		).toBeVisible();
+		const brandLink = page.getByRole( 'link', { name: 'ForgeTag home' } );
 		await expect(
 			page.getByRole( 'link', { name: 'Return to homepage' } )
 		).toHaveAttribute( 'href', /\/$/ );
@@ -61,12 +61,9 @@ test.describe( 'RT-303 public Tag state pages', () => {
 			name: 'Return to homepage',
 		} );
 
-		if ( browserName === 'webkit' ) {
-			await homeLink.focus();
-		} else {
-			await page.keyboard.press( 'Tab' );
-		}
-
+		await brandLink.focus();
+		await expect( brandLink ).toBeFocused();
+		await page.keyboard.press( 'Tab' );
 		await expect( homeLink ).toBeFocused();
 
 		const focusStyle = await homeLink.evaluate( ( element ) => {
@@ -167,7 +164,7 @@ test.describe( 'RT-303 public Tag state pages', () => {
 		expect( response?.headers().location ).toBeUndefined();
 		await expect(
 			page.getByRole( 'heading', {
-				name: 'We could not find this ReturnTag',
+				name: 'We could not find this ForgeTag',
 			} )
 		).toBeVisible();
 		await expect( page.locator( 'body' ) ).not.toContainText( 'A7R2W0' );
