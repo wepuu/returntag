@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\PublicSite;
 
+use ReturnTag\TagCore\Application\PublicTag\PublicTagPageState;
+
 /**
  * Contains translated strings and already-approved optional public fields.
  */
@@ -17,6 +19,7 @@ final readonly class PublicTagPageView {
 	 * Create a render-ready public page.
 	 *
 	 * @param string                     $body_class HTML body modifier.
+	 * @param PublicTagPageState         $state Server-derived public page state.
 	 * @param string                     $eyebrow Short section label.
 	 * @param string                     $title Page heading.
 	 * @param string                     $message Supporting copy.
@@ -32,6 +35,7 @@ final readonly class PublicTagPageView {
 	 */
 	public function __construct(
 		public string $body_class,
+		public PublicTagPageState $state,
 		public string $eyebrow,
 		public string $title,
 		public string $message,

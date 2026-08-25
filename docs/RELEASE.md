@@ -926,3 +926,40 @@ security, delivery, migration, rollback, backup, and recovery evidence. The
 roadmap does not grant permission to create a tag, publish an artifact, enable
 a production flag, or deploy. Those operations retain their separate approval
 and immutable-artifact requirements.
+
+## RT-323 Activate and Report presentation acceptance
+
+RT-323 keeps TagCore `0.5.0`, Schema `14`, all public URLs and POST contracts,
+and the existing dependency and lock files. It adds no Migration, Option,
+Hook, API, queue, email behavior, artifact, deployment, or production
+configuration. Release acceptance must exercise the canonical `/t/{tag_id}`
+route for invalid, unavailable, unregistered, active Owner, active Finder,
+suspended, and retired states.
+
+For activation, verify the server-derived three-step progress at OTP request,
+OTP verification, and explicit activation; a logged-in visitor must start at
+the explicit activation action. After activation, resolve committed state and
+confirm the current Owner receives `/account/tags/{tag_id}/` while another
+visitor receives Finder recovery. HTML, URLs, browser history, and feedback
+must not disclose email, OTP, Owner ID, or an internal challenge identifier.
+
+For Finder recovery, verify the optional bounded message, one required private
+evidence image, review-before-submit behavior, processing/safety disclosure,
+and optional verified-email continuation. Confirm that no location field,
+unsupported verification badge, other party email, private item name, scan
+history, media reference, or internal processing state is exposed. Feature or
+dependency failures must retain the existing fail-closed unavailable state.
+
+Chrome acceptance uses `1440`, `1024`, `816`, `390`, `320`, and a
+`720`-CSS-pixel 200-percent equivalent viewport. Check keyboard order, visible
+focus, labels, error association and announcements, no-JavaScript submission,
+Back/refresh behavior, image control layout, horizontal overflow, console
+errors, and same-origin resource failures. External demo IDs are comparison
+references only; they are not ForgeTag fixtures, and any optional photo,
+location collection, or unsupported Owner-verification claim is intentionally
+excluded.
+
+Containment continues to use the existing activation, Finder contact, Finder
+evidence, and email dispatch controls. Code rollback removes only the RT-323
+presentation changes and preserves Schema 14, users, ownership, challenges,
+Finder Reports, private evidence, Conversations, Messages, and Events.

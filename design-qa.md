@@ -370,6 +370,49 @@ final result: passed
 
 ---
 
+# RT-323 Canonical Activate / Report Flow QA
+
+## Evidence contract
+
+- Date: 2026-08-25.
+- Baseline: `main@4bbfe2c`, TagCore `0.5.0`, Schema `14`, WordPress `7.0.2`,
+  PHP `8.4`, and the isolated local ports `8894/8895`.
+- Synthetic IDs: `K7M4P9`, `C7R3W9`, `Q7T4M9`, `H7K4P9`, and `M7P4R9`.
+  No external demo IDs, production data, email addresses, or private media
+  were copied into the environment.
+- Reproducible local captures: `test-results/rt323-activation-*.png`,
+  `test-results/rt323-finder-*.png`, and `test-results/rt323-owner-*.png`.
+
+## Verified states and interaction
+
+- An unregistered Tag renders ForgeTag consumer copy, the server-derived
+  Verify email / Confirm code / Activate tag sequence, labelled OTP forms, and
+  no client challenge identifier.
+- The authenticated current Owner renders `This ForgeTag is yours`, no Finder
+  form, and the exact same-site `/account/tags/C7R3W9/` action.
+- An active non-Owner renders the approved public label but never the private
+  `item_name`. With no approved safety adapter, Finder intake fails closed with
+  a visible retry instruction and no form.
+- Suspended and retired Tags render distinct read-only explanations without
+  identity, form, or private-item output.
+- Chromium desktop and mobile state tests passed. The activation page also
+  passed `1440`, `1024`, `816`, `720`, `390`, and `320` CSS-pixel widths plus
+  a JavaScript-disabled `390` baseline, with no horizontal overflow.
+
+## Visual result
+
+- The rebuilt public bundle presents the Forge red status rail and actions,
+  cloud background, bounded white surface, high-contrast progress states, and
+  responsive Owner primary action. The first pre-build screenshots were
+  rejected because they loaded stale compiled CSS and are not acceptance
+  evidence.
+- No actionable P0, P1, or P2 visual issue remained after rebuilding and
+  repeating the state matrix.
+
+final result: passed with Finder submission correctly blocked by unavailable safety dependency
+
+---
+
 # RT-314 Homepage Detail Pass - Chrome QA
 
 - Brand proof strip: at `1440px`, `Millions`, `Trusted`, and `Travel Brand`

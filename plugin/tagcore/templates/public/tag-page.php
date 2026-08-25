@@ -12,6 +12,17 @@ declare(strict_types=1);
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+$activation_step = 1;
+if ( null !== $view->activation_form ) {
+	$activation_step = match ( $view->activation_form->state ) {
+		ReturnTag\TagCore\PublicSite\ActivationOtpFormState::REQUEST_ACCEPTED,
+		ReturnTag\TagCore\PublicSite\ActivationOtpFormState::VERIFICATION_INVALID => 2,
+		ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED,
+		ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR => 3,
+		default => 1,
+	};
+}
 ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -20,17 +31,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="referrer" content="no-referrer">
 	<meta name="robots" content="noindex,nofollow,noarchive">
-	<?php /* translators: %s: Current ReturnTag page title. */ ?>
-	<title><?php echo esc_html( sprintf( __( '%s - ReturnTag', 'tagcore' ), $view->title ) ); ?></title>
+	<?php /* translators: %s: Current ForgeTag page title. */ ?>
+	<title><?php echo esc_html( sprintf( __( '%s - ForgeTag', 'tagcore' ), $view->title ) ); ?></title>
 	<?php wp_print_styles( ReturnTag\TagCore\PublicSite\PublicTagRouteController::STYLE_HANDLE ); ?>
 </head>
 <body class="<?php echo esc_attr( 'returntag-public ' . $view->body_class ); ?>">
 	<header class="returntag-public__header">
-		<span class="returntag-public__wordmark">ReturnTag</span>
+		<a class="returntag-public__wordmark" href="<?php echo esc_url( home_url( '/' ) ); ?>" aria-label="<?php esc_attr_e( 'ForgeTag home', 'tagcore' ); ?>">ForgeTag</a>
 	</header>
 
 	<main class="returntag-public__main">
 		<section class="returntag-public__status" aria-labelledby="returntag-public-title">
+			<div class="returntag-public__surface">
 			<div class="returntag-public__status-title">
 				<p class="returntag-public__eyebrow"><?php echo esc_html( $view->eyebrow ); ?></p>
 				<h1 id="returntag-public-title"><?php echo esc_html( $view->title ); ?></h1>
@@ -66,10 +78,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<?php if ( null !== $view->activation_form ) : ?>
 				<div class="returntag-public__activation">
+					<ol class="returntag-public__activation-progress" aria-label="<?php esc_attr_e( 'Activation progress', 'tagcore' ); ?>">
+						<li class="<?php echo esc_attr( $activation_step > 1 ? 'is-complete' : '' ); ?>"
+							<?php if ( 1 === $activation_step ) : ?>
+								aria-current="step"
+							<?php endif; ?>
+						><span>1</span><?php esc_html_e( 'Verify email', 'tagcore' ); ?></li>
+						<li class="<?php echo esc_attr( $activation_step > 2 ? 'is-complete' : '' ); ?>"
+							<?php if ( 2 === $activation_step ) : ?>
+								aria-current="step"
+							<?php endif; ?>
+						><span>2</span><?php esc_html_e( 'Confirm code', 'tagcore' ); ?></li>
+						<li
+							<?php if ( 3 === $activation_step ) : ?>
+								aria-current="step"
+							<?php endif; ?>
+						><span>3</span><?php esc_html_e( 'Activate tag', 'tagcore' ); ?></li>
+					</ol>
 					<?php if ( in_array( $view->activation_form->state, array( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::AUTHENTICATED, ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR ), true ) ) : ?>
 						<div class="returntag-public__notice returntag-public__notice--success" role="status">
 							<h2><?php esc_html_e( 'You are signed in', 'tagcore' ); ?></h2>
-							<p><?php esc_html_e( 'Your identity is confirmed. You can now activate this ReturnTag.', 'tagcore' ); ?></p>
+							<p><?php esc_html_e( 'Your identity is confirmed. Review the final action below to activate this ForgeTag.', 'tagcore' ); ?></p>
 						</div>
 						<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::ACTIVATION_ERROR === $view->activation_form->state ) : ?>
 							<div class="returntag-public__notice returntag-public__notice--error" role="alert">
@@ -108,7 +137,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<div class="returntag-public__field">
 									<label for="returntag-activation-email"><?php esc_html_e( 'Email address', 'tagcore' ); ?></label>
 									<p id="returntag-activation-email-help" class="returntag-public__field-help">
-										<?php esc_html_e( 'We will send a six-digit verification code. Your email is not shown publicly.', 'tagcore' ); ?>
+										<?php esc_html_e( 'We will send a six-digit verification code. New customers get an account after verification; your email is never shown publicly.', 'tagcore' ); ?>
 									</p>
 									<input
 										id="returntag-activation-email"
@@ -157,7 +186,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									?>
 								</h2>
 								<p class="returntag-public__verification-intro">
-									<?php esc_html_e( 'Enter the same email address and the six-digit code from your message.', 'tagcore' ); ?>
+									<?php esc_html_e( 'Enter the same email address and the six-digit code from your message. New customers get an account after verification.', 'tagcore' ); ?>
 								</p>
 
 								<?php if ( ReturnTag\TagCore\PublicSite\ActivationOtpFormState::VERIFICATION_INVALID === $view->activation_form->state ) : ?>
@@ -225,7 +254,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<section class="returntag-public__finder" aria-labelledby="returntag-finder-title">
 					<?php if ( ReturnTag\TagCore\PublicSite\FinderReportFormState::ACCEPTED === $view->finder_report_form->state ) : ?>
 						<div class="returntag-public__finder-success" role="status">
-							<span class="returntag-public__finder-success-mark" aria-hidden="true">✓</span>
 							<p class="returntag-public__eyebrow"><?php esc_html_e( 'Report received', 'tagcore' ); ?></p>
 							<h2 id="returntag-finder-title"><?php esc_html_e( 'Thank you for helping', 'tagcore' ); ?></h2>
 							<p class="returntag-public__finder-copy"><?php esc_html_e( 'Your report was received and is being checked. If the evidence is approved, the current owner can be notified securely.', 'tagcore' ); ?></p>
@@ -333,6 +361,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</form>
 					<?php endif; ?>
 				</section>
+			<?php elseif ( ReturnTag\TagCore\Application\PublicTag\PublicTagPageState::FINDER_ENTRY === $view->state ) : ?>
+				<div class="returntag-public__notice returntag-public__notice--error" role="status">
+					<h2><?php esc_html_e( 'Private reporting is temporarily unavailable', 'tagcore' ); ?></h2>
+					<p><?php esc_html_e( 'We cannot safely accept a report right now. Please keep the item secure and try again later.', 'tagcore' ); ?></p>
+				</div>
 			<?php endif; ?>
 
 			<?php if ( null !== $view->product_type_label || null !== $view->public_label ) : ?>
@@ -364,6 +397,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<a class="returntag-public__home-link" href="<?php echo esc_url( $view->action_url ); ?>">
 				<?php echo esc_html( $view->action_label ); ?>
 			</a>
+			</div>
 		</section>
 	</main>
 	<?php wp_print_footer_scripts(); ?>
