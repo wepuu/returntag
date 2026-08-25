@@ -28,19 +28,20 @@ object bytes, public URLs, filenames, Finder email, workflow orchestration, or
 delete path.
 
 RT-315 Stage 2 adds bounded source and derivative values, the image-processing
-and private-storage ports, a content-safety reviewer port, and the
-`ReviewFinderEvidence` use case. Only an explicit `approved` decision creates
-`ApprovedFinderEvidence`; rejection and unavailable providers fail closed. No
-Application type carries Tag ID, item name, email, filename, path, URL, or
-provider credentials into the safety request.
+and private-storage ports, plus dormant provider-neutral content-moderation
+ports and the uncomposed `ReviewFinderEvidence` use case. ADR 0028 removes
+moderation and reviewer availability from the current runtime authorization
+path. No Application type carries Tag ID, item name, email, filename, path,
+URL, or provider credentials into a future moderation request.
 
 RT-315 Stage 3 composes the one-way intake use case, optional 10–500 character
 plain-text message encryption, atomic rate budgets, report/media state claims,
-metadata-free lifecycle Events, asynchronous safety processing, stale-work
+metadata-free lifecycle Events, asynchronous technical processing, stale-work
 recovery, and bounded retention cleanup. The queue boundary carries only the
 internal Finder Report identifier. A report can become ready only after its
-source matches persisted inspection facts and an approved reviewer accepts the
-metadata-stripped derivative.
+source matches persisted inspection facts and the controlled, metadata-stripped
+derivatives are stored. `ready` is not a content-safety classification, and the
+current runtime does not call a reviewer.
 
 RT-315 Stage 4 adds `NotifyFinderReportOwner` and stale-notification
 convergence. The use case rechecks all three operational controls, claims a

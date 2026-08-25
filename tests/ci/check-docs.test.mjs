@@ -82,6 +82,11 @@ describe( 'findMissingFinderEvidenceContract', () => {
 					'The initial flow is deliberately one-way',
 					'**Schema before/after:** `8 -> 8`',
 				].join( '\n' ),
+			'docs/adr/0028-defer-finder-image-content-moderation.md': [
+				'The current Finder Report runtime',
+				'does not currently review image',
+				'Content moderation is not a',
+			].join( '\n' ),
 			'docs/ARCHITECTURE.md': [
 				'Finder evidence-report contract',
 				'Infrastructure Stage 2 provides purpose-bound',
@@ -92,7 +97,7 @@ describe( 'findMissingFinderEvidenceContract', () => {
 			].join( '\n' ),
 			'docs/SECURITY.md': [
 				'RT-315 Finder evidence-report security contract',
-				'Content-safety review is mandatory',
+				'The current phase performs no content review',
 				'RETURNTAG_TAGCORE_PRIVATE_MEDIA_OBJECT_KEY_V1',
 			].join( '\n' ),
 			'docs/RELEASE.md': [

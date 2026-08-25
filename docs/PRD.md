@@ -1086,14 +1086,14 @@ Owner 邮件只允许内嵌通过安全检查的派生缩略图，不得附带�
 
 ### 17.3 单向 Finder Report
 
-Finder Report 与双向 Conversation 是两个独立模型。报告提交后，系统先持久化报告与隔离的凭证，再由后台任务完成解码、重新编码、元数据清理和内容安全检查。只有凭证状态为可用时，系统才能解析发送时的当前 Owner 并排队通知；处理失败、被拒绝、超时或安全服务不可用时必须失败关闭，不向 Owner 发送不安全或空内容通知。
+Finder Report 与双向 Conversation 是两个独立模型。报告提交后，系统先持久化报告与隔离的凭证，再由后台任务完成签名与 MIME 校验、受限解码、重新编码和元数据清理。只有这些技术与隐私处理成功、凭证状态为可用时，系统才能解析发送时的当前 Owner 并排队通知；校验、解码、存储、重新编码、队列或隐私控制失败时必须失败关闭，不向 Owner 发送空内容或未经技术处理的通知。当前阶段不审核或分类图片内容，界面和邮件必须明确披露这一限制，且不得将图片描述为安全、已审核、已扫描或已批准。
 
 正确流程：
 
 ```text
 Finder 提交选填留言和一张必填凭证照片
 → 创建独立 Finder Report 并隔离凭证
-→ 后台处理与内容安全检查
+→ 后台技术处理与元数据清理（当前不审核图片内容）
 → 解析发送时的当前 Owner
 → 幂等排队并发送含内嵌派生缩略图的 Owner 通知
 ```
@@ -1497,7 +1497,7 @@ rejected
 deleted
 ```
 
-原图和派生图必须位于 WordPress 公共 uploads/媒体库之外的加密私有存储。数据库只保存不具备公开访问能力的对象引用和必要的非敏感处理元数据。RT-315 阶段 1 通过 expand Migration `0010` 创建该表和类型化 Repository。阶段 2 增加未注册到公开流程的加密私有存储、图片校验/去元数据派生和失败关闭的内容安全接口；公开上传与持久化编排仍由后续阶段实现。
+原图和派生图必须位于 WordPress 公共 uploads/媒体库之外的加密私有存储。数据库只保存不具备公开访问能力的对象引用和必要的非敏感处理元数据。RT-315 阶段 1 通过 expand Migration `0010` 创建该表和类型化 Repository。阶段 2 增加未注册到公开流程的加密私有存储、图片校验/去元数据派生和预留的 provider-neutral 内容审核接口；当前运行时不组合或调用该审核接口，公开上传与持久化编排由后续阶段实现。
 
 ---
 
@@ -1694,7 +1694,7 @@ failed
 
 不能将 `wp_mail()` 返回成功等同于邮件已经送达。
 
-Finder Report 的 Owner 通知必须在报告和安全派生图提交后异步排队。队列参数只能包含内部 report ID；Worker 在发送前重新解析当前 Owner，验证 Finder evidence 开关、Finder contact 开关和 Email dispatch 开关，并以 report ID 与派生版本建立幂等键。重复任务不得重复通知，永久失败不得无限重试。内嵌图使用本地 MIME CID，不能是远程 URL 或原始附件。
+Finder Report 的 Owner 通知必须在报告和受控派生图完成技术处理并提交后异步排队。队列参数只能包含内部 report ID；Worker 在发送前重新解析当前 Owner，验证 Finder evidence 开关、Finder contact 开关和 Email dispatch 开关，并以 report ID 与派生版本建立幂等键。重复任务不得重复通知，永久失败不得无限重试。内嵌图使用本地 MIME CID，不能是远程 URL 或原始附件。
 
 ---
 
@@ -1715,7 +1715,7 @@ Finder Report 的 Owner 通知必须在报告和安全派生图提交后异步�
 
 - 初次 Finder Report 无需邮箱验证；Finder 邮箱在开启双向 Conversation 前必须验证；
 - Message for the owner 选填，填写时限制 10–500 字符；
-- Item photo 必填且恰好一张，并执行签名/MIME 校验、像素和大小限制、解码重编码、元数据清理、内容安全检查和私有加密存储；
+- Item photo 必填且恰好一张，并执行签名/MIME 校验、像素和大小限制、解码重编码、元数据清理和私有加密存储；当前阶段不审核图片内容，且必须向 Finder 与 Owner 明确披露；
 - HTML 全部转义；
 - 禁止脚本；
 - 禁止 Item photo 之外的通用附件；
@@ -1765,7 +1765,7 @@ activation_enabled
 | 某批次 ID 泄露 | 关闭该 Batch Activation |
 | 邮件出现隐私问题 | 关闭 Email Dispatch |
 | Finder 垃圾消息暴增 | 关闭 Finder Contact |
-| Finder 凭证处理、内容安全或媒体隐私异常 | 关闭 Finder Evidence；未通过处理的报告不得通知 Owner |
+| Finder 凭证技术处理、存储或媒体隐私异常 | 关闭 Finder Evidence；未通过技术处理的报告不得通知 Owner |
 | Woo Hook 异常 | 关闭 Woo Account Provisioning |
 | Owner Account 权限、隐私或写入异常 | 关闭 Owner Account；不得改变已有所有权、Finder 或 Secure Reply 状态 |
 
@@ -1924,7 +1924,7 @@ Trusted Contact
 
 30. Finder 无需注册完整账户、提供邮箱或验证邮箱即可提交初次单向 Finder Report。
 31. Message for the owner 为选填且填写时限制为 10–500 字符；Item photo 为必填且恰好一张。
-32. 只有通过处理和内容安全检查的派生图才可通知 Owner。
+32. 只有通过签名/MIME 校验、受限解码、重新编码、元数据清理和私有存储控制的派生图才可通知 Owner；当前阶段不审核或分类图片内容，且不得作出相反声明。
 33. 初次 Owner 通知不得创建或暗示可回复的 Conversation；Finder 邮箱验证成功前，Owner 不能向 Finder 发送回复。
 34. Finder 选填并验证邮箱后，系统才可创建或关联 canonical Conversation 并开启双向中转。
 35. Owner 看不到 Finder 真实邮箱。
@@ -2142,7 +2142,7 @@ Owner 权限测试
 
 ```text
 Finder Report 表单（Message 选填、Item photo 必填）
-私有凭证存储、处理、内容安全与保留
+私有凭证存储、技术处理、披露与保留
 无需邮箱验证的单向 Owner 通知
 Finder 可选邮箱验证
 验证后 Conversation 创建或关联
@@ -2319,4 +2319,4 @@ ForgeTag 一期采用以下最终产品模型：
 - 以独立平行系统方式支持 Smart Tag 智能网络；
 - 以 Git、CI、Migration、Feature Flag 和版本化发布支持持续迭代与回滚。
 
-由于公开 ID 同时承担激活凭证，Batch 激活开关、限流、原子认领、导出审计和所有权争议流程均属于一期强制能力，而不是后续优化项。Owner 身份仍通过邮箱 OTP 验证；Finder 初次单向报告不需要邮箱验证，但任何双向回复都必须先完成 Finder 邮箱验证。Finder 凭证的私有存储、处理、内容安全、幂等通知和专用紧急开关同样属于上线前强制能力。
+由于公开 ID 同时承担激活凭证，Batch 激活开关、限流、原子认领、导出审计和所有权争议流程均属于一期强制能力，而不是后续优化项。Owner 身份仍通过邮箱 OTP 验证；Finder 初次单向报告不需要邮箱验证，但任何双向回复都必须先完成 Finder 邮箱验证。Finder 凭证的私有存储、技术处理、无内容审核披露、幂等通知和专用紧急开关同样属于上线前强制能力。内容审核服务属于未来候选能力，不是一期上线门禁；接入前必须另行批准 PRD、ADR、供应商、校准策略和发布控制。

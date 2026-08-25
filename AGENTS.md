@@ -513,9 +513,14 @@ Sensitive pages must use the approved no-cache, no-referrer, and no-index contro
 
 ### 10.5 Abuse and safety
 
-- Initial Finder Report submission does not require email verification, but
-  its required evidence image must pass validation, re-encoding, metadata
-  removal, and content-safety review before owner notification.
+- Initial Finder Report submission does not require email verification. Its
+  required evidence image must pass validation, bounded decoding, re-encoding,
+  metadata removal, encrypted private storage, and the approved technical and
+  privacy controls before owner notification.
+- The current phase does not review or classify Finder image content. Do not
+  claim that an image is safe, approved, moderated, scanned, or reviewed.
+  Integrating a content-moderation provider requires a separately approved PRD,
+  ADR, ticket, rollout control, and release evidence.
 - Finder email verification remains mandatory before two-way conversation or
   reply delivery.
 - Limit optional Finder Report messages and conversation messages to their
@@ -607,8 +612,8 @@ returntag_woocommerce_account_enabled
 ```
 
 Finder evidence intake and processing adds this independent fail-closed
-control, which must default disabled until the complete RT-315 media-safety
-contract is implemented:
+control, which must default disabled until the complete RT-315 private-media
+technical and privacy contract is implemented:
 
 ```text
 returntag_finder_evidence_enabled
@@ -678,7 +683,7 @@ Prioritize end-to-end coverage for:
 
 ```text
 scan -> OTP -> activation
-finder evidence submit -> safe processing -> owner notification
+finder evidence submit -> technical processing -> owner notification
 finder optional email verification -> owner secure reply -> finder delivery
 ownership transfer -> previous-owner access revoked
 batch generation -> export -> release -> activation

@@ -24,7 +24,7 @@ use ReturnTag\TagCore\Domain\FinderReport\PrivateMediaObjectKind;
 use RuntimeException;
 use Throwable;
 
-/** Claims, processes, reviews, stores, and converges one evidence record. */
+/** Claims, technically processes, stores, and converges one evidence record. */
 final readonly class ProcessFinderReportEvidence {
 	/**
 	 * Create the use case.
@@ -33,7 +33,6 @@ final readonly class ProcessFinderReportEvidence {
 	 * @param FinderReportMediaRepository  $media Media persistence.
 	 * @param PrivateMediaStorage          $storage Private storage.
 	 * @param FinderEvidenceImageProcessor $processor Image processor.
-	 * @param ReviewFinderEvidence         $review Safety review use case.
 	 * @param EventRepository              $events Audit Events.
 	 * @param TransactionManager           $transactions Atomic boundary.
 	 * @param Clock                        $clock UTC clock.
@@ -43,7 +42,6 @@ final readonly class ProcessFinderReportEvidence {
 		private FinderReportMediaRepository $media,
 		private PrivateMediaStorage $storage,
 		private FinderEvidenceImageProcessor $processor,
-		private ReviewFinderEvidence $review,
 		private EventRepository $events,
 		private TransactionManager $transactions,
 		private Clock $clock
@@ -113,22 +111,21 @@ final readonly class ProcessFinderReportEvidence {
 				throw new RuntimeException( 'Finder evidence processing is unavailable.' );
 			}
 
-			$approved      = $this->review->review( $processed );
-			$review_object = $this->storage->put( PrivateMediaObjectKind::REVIEW, $approved->evidence->review->bytes );
-			$email_object  = $this->storage->put( PrivateMediaObjectKind::EMAIL, $approved->evidence->email->bytes );
+			$review_object = $this->storage->put( PrivateMediaObjectKind::REVIEW, $processed->review->bytes );
+			$email_object  = $this->storage->put( PrivateMediaObjectKind::EMAIL, $processed->email->bytes );
 			$review_value  = MediaDerivative::review(
 				$review_object->reference_ciphertext,
 				$review_object->sha256,
 				$review_object->byte_count,
-				$approved->evidence->review->width,
-				$approved->evidence->review->height
+				$processed->review->width,
+				$processed->review->height
 			);
 			$email_value   = MediaDerivative::email(
 				$email_object->reference_ciphertext,
 				$email_object->sha256,
 				$email_object->byte_count,
-				$approved->evidence->email->width,
-				$approved->evidence->email->height
+				$processed->email->width,
+				$processed->email->height
 			);
 
 			$this->transactions->transactional(
@@ -140,7 +137,7 @@ final readonly class ProcessFinderReportEvidence {
 						throw new RuntimeException( 'Finder evidence state transition failed.' );
 					}
 
-					$this->append_event( 'finder_report_evidence_ready', $finder_report_id, 'approved', $now );
+					$this->append_event( 'finder_report_evidence_ready', $finder_report_id, 'processed', $now );
 				}
 			);
 		} catch ( Throwable $exception ) {
@@ -162,7 +159,7 @@ final readonly class ProcessFinderReportEvidence {
 	}
 
 	/**
-	 * Fail closed after any terminal processing or safety error.
+	 * Fail closed after any terminal technical-processing error.
 	 *
 	 * @param int                $finder_report_id Internal report identifier.
 	 * @param \DateTimeImmutable $now Current UTC time.

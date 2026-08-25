@@ -13,18 +13,14 @@ use ReturnTag\TagCore\Application\FinderReport\CleanupFinderReportEvidence;
 use ReturnTag\TagCore\Application\FinderReport\DispatchFinderEmailOtp;
 use ReturnTag\TagCore\Application\FinderReport\FinderEmailVerification;
 use ReturnTag\TagCore\Application\FinderReport\ConvergeStaleFinderReportNotifications;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyAvailability;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyReviewer;
 use ReturnTag\TagCore\Application\FinderReport\FinderReportEventIdentityPolicy;
 use ReturnTag\TagCore\Application\FinderReport\ProcessFinderReportEvidence;
-use ReturnTag\TagCore\Application\FinderReport\ReviewFinderEvidence;
 use ReturnTag\TagCore\Application\FinderReport\NotifyFinderReportOwner;
 use ReturnTag\TagCore\Application\FinderReport\SubmitFinderReport;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Infrastructure\Media\GdFinderEvidenceImageProcessor;
 use ReturnTag\TagCore\Infrastructure\Media\PrivateMediaSecrets;
 use ReturnTag\TagCore\Infrastructure\Media\SodiumFilesystemPrivateMediaStorage;
-use ReturnTag\TagCore\Infrastructure\Media\UnavailableFinderEvidenceSafetyReviewer;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbEventRepository;
@@ -74,21 +70,6 @@ final class FinderReportRuntimeFactory {
 			$public_roots = array( $uploads['basedir'] );
 			$storage      = new SodiumFilesystemPrivateMediaStorage( $root, $keys, $public_roots );
 			$processor    = new GdFinderEvidenceImageProcessor();
-			$fallback     = new UnavailableFinderEvidenceSafetyReviewer();
-
-			/**
-			 * Select an approved Finder evidence reviewer supplied by trusted code.
-			 *
-			 * The default can never approve evidence. Implementations must also expose
-			 * explicit availability so the public intake boundary can fail closed.
-			 *
-			 * @param mixed $fallback Default-deny reviewer.
-			 */
-			$reviewer = apply_filters( 'returntag_finder_evidence_safety_reviewer', $fallback );
-
-			if ( ! $reviewer instanceof FinderEvidenceSafetyReviewer || ! $reviewer instanceof FinderEvidenceSafetyAvailability ) {
-				return null;
-			}
 
 			$gateway       = new WpdbGateway( $database );
 			$tables        = new TableNames( $database->prefix );
@@ -112,7 +93,6 @@ final class FinderReportRuntimeFactory {
 				$media,
 				$storage,
 				$processor,
-				new ReviewFinderEvidence( $reviewer ),
 				$events,
 				$transactions,
 				$clock
@@ -128,7 +108,6 @@ final class FinderReportRuntimeFactory {
 			$submit             = new SubmitFinderReport(
 				new WpdbPublicTagStateReader( $gateway, $tables, $dates ),
 				new WordPressOptionFeatureFlagReader(),
-				$reviewer,
 				new WordPressOptionFinderReportRateLimiter( $database, get_current_blog_id() ),
 				$processor,
 				$storage,
@@ -202,7 +181,6 @@ final class FinderReportRuntimeFactory {
 				$notify,
 				$converge,
 				$notifications,
-				$reviewer,
 				$email_verification,
 				$email_dispatch,
 				$relay?->ensure_access

@@ -118,7 +118,6 @@ final class PublicSiteBootstrap {
 			),
 			new FinderReportFormHandler(
 				$finder_runtime?->submit,
-				$finder_runtime?->safety,
 				$finder_runtime?->scheduler,
 				$feature_flags,
 				$request_guard,

@@ -11,7 +11,6 @@ namespace ReturnTag\TagCore\Infrastructure\FinderReport;
 
 use ReturnTag\TagCore\Application\FinderReport\CleanupFinderReportEvidence;
 use ReturnTag\TagCore\Application\FinderReport\ConvergeStaleFinderReportNotifications;
-use ReturnTag\TagCore\Application\FinderReport\FinderEvidenceSafetyAvailability;
 use ReturnTag\TagCore\Application\FinderReport\FinderEmailVerification;
 use ReturnTag\TagCore\Application\FinderReport\DispatchFinderEmailOtp;
 use ReturnTag\TagCore\Application\FinderReport\NotifyFinderReportOwner;
@@ -37,7 +36,6 @@ final readonly class FinderReportRuntime {
 	 * @param NotifyFinderReportOwner                               $notify Owner notification use case.
 	 * @param ConvergeStaleFinderReportNotifications                $converge Notification convergence.
 	 * @param ActionSchedulerFinderReportOwnerNotificationScheduler $notification_scheduler Notification scheduler.
-	 * @param FinderEvidenceSafetyAvailability                      $safety Safety availability.
 	 * @param FinderEmailVerification|null                          $email_verification Optional Stage 5 workflow.
 	 * @param DispatchFinderEmailOtp|null                           $email_dispatch Optional Stage 5 Worker.
 	 * @param EnsureConversationAccess|null                         $ensure_conversation_access Optional Stage 6 access trigger.
@@ -52,7 +50,6 @@ final readonly class FinderReportRuntime {
 		public NotifyFinderReportOwner $notify,
 		public ConvergeStaleFinderReportNotifications $converge,
 		public ActionSchedulerFinderReportOwnerNotificationScheduler $notification_scheduler,
-		public FinderEvidenceSafetyAvailability $safety,
 		public ?FinderEmailVerification $email_verification = null,
 		public ?DispatchFinderEmailOtp $email_dispatch = null,
 		public ?EnsureConversationAccess $ensure_conversation_access = null

@@ -64,7 +64,7 @@ interface FinderReportRepository {
 	public function claim_processing( int $finder_report_id, DateTimeImmutable $now, DateTimeImmutable $stale_before ): bool;
 
 	/**
-	 * Mark a processing report ready after approved evidence.
+	 * Mark a processing report ready after controlled technical processing.
 	 *
 	 * @param int               $finder_report_id Internal identifier.
 	 * @param DateTimeImmutable $now Current UTC time.

@@ -124,7 +124,7 @@ final class WpdbFinderReportMediaRepository implements FinderReportMediaReposito
 	}
 
 	/**
-	 * Persist approved controlled derivatives.
+	 * Persist technically processed controlled derivatives.
 	 *
 	 * @param int               $finder_report_id Internal identifier.
 	 * @param MediaDerivative   $review Review derivative.
