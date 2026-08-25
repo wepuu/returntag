@@ -1,7 +1,8 @@
 # ReturnTag Release Baseline
 
-**Status:** Engineering quality and artifact automation available through
-Schema 14; the P0-to-v1.0 release sequence is tracked in the
+**Status:** Engineering quality and artifact automation re-certified against
+runtime baseline `main@9400ae9`, TagCore 0.5.0, Schema 14, capability contract
+6, and ForgeTag Theme 0.1.0; the P0-to-v1.0 release sequence is tracked in the
 [delivery roadmap](ROADMAP.md)
 
 **Plugin artifact:** `tagcore-v{version}.zip`
@@ -964,6 +965,22 @@ evidence, and email dispatch controls. Code rollback removes only the RT-323
 presentation changes and preserves Schema 14, users, ownership, challenges,
 Finder Reports, private evidence, Conversations, Messages, and Events.
 
+## RT-321 Commerce presentation acceptance
+
+RT-321 keeps TagCore `0.5.0`, Schema `14`, capability contract `6`, and
+ForgeTag Theme `0.1.0`. It changes only source-controlled WooCommerce Shop,
+Product, Cart, and Checkout presentation, responsive behavior, and associated
+tests. It adds no Migration, Tag allocation, order-to-Tag mapping, Option,
+feature flag, provider dependency, email behavior, artifact, or deployment.
+
+Final CI run `32812393279` passed all fourteen required checks, including PHP
+8.3 through 8.5, the supported WordPress/WooCommerce and database matrices,
+complete browser E2E, and the Quality Gate. Acceptance includes WooCommerce
+enabled and disabled behavior, keyboard and visible-focus checks, and no
+horizontal overflow at the required responsive and 200-percent text layouts.
+Rollback reverts only the Theme presentation files and preserves all Plugin,
+Schema, order, Tag, ownership, and audit data.
+
 ## RT-324 Owner Account presentation acceptance
 
 RT-324 keeps TagCore `0.5.0`, Schema `14`, all Account routes, Options, hooks,
@@ -986,3 +1003,15 @@ Containment and rollback remain unchanged: disable
 `returntag_owner_account_enabled` or revert the RT-324 presentation files
 without deleting accepted ownership, Tag data, Conversations, Messages,
 Tokens, transfers, or audit Events.
+
+## RT-331 canonical main re-certification
+
+RT-331 records `origin/main@9400ae9` as the reproducible baseline after the
+RT-320 through RT-324 sequence. The executable contract remains TagCore
+`0.5.0`, Schema `14`, capability contract `6`, and ForgeTag Theme `0.1.0`.
+This documentation-only re-certification adds no runtime, Migration,
+dependency, Option, Hook, route, feature flag, artifact, or deployment.
+
+Release authority is unchanged. The remaining production provider, privacy,
+dispute, Recovery, WooCommerce onboarding, staging, and release-candidate gates
+in the delivery roadmap must still close before `0.9.0` can be approved.

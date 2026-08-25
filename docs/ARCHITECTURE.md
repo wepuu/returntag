@@ -1,7 +1,8 @@
 # ReturnTag Architecture
 
-**Status:** TagCore 0.5.0 at Schema 14 with RT-329 governance merged;
-remaining P0 and release work is tracked in the
+**Status:** Re-certified against runtime baseline `main@9400ae9`: TagCore 0.5.0 at
+Schema 14 with capability contract 6 and the RT-320 through RT-324 consumer
+presentation sequence merged; remaining P0 and release work is tracked in the
 [delivery roadmap](ROADMAP.md)
 
 **Plugin:** TagCore (`plugin/tagcore`)

@@ -1,7 +1,9 @@
 # ReturnTag Database Baseline
 
-**Status:** TagCore 0.5.0 at current Schema 14; future additive persistence and
-release order is tracked in the [delivery roadmap](ROADMAP.md)
+**Status:** Re-certified against runtime baseline `main@9400ae9`: TagCore 0.5.0 at
+current Schema 14 and capability contract 6; the RT-320 through RT-324 sequence
+adds no migration or Schema change. Future additive persistence and release
+order is tracked in the [delivery roadmap](ROADMAP.md)
 
 **Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `14`
 

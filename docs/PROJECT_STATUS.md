@@ -17,14 +17,16 @@
 * Plugin directory: `plugin/tagcore`
 
 * Current baseline: TagCore `0.5.0`, Schema `14`, capability contract `6`, and
-  ForgeTag Theme `0.1.0`
+  ForgeTag Theme `0.1.0` at canonical `origin/main@9400ae9`
 
-* Current delivery state: Milestones 0 through 3 are accepted; Milestones 4,
-  5, and 7 remain in progress with merged foundations and the open P0 gates
-  recorded in the [delivery roadmap](ROADMAP.md)
+* Current delivery state: Milestones 0 through 4 and the consumer presentation
+  portion of Milestone 5 are accepted;
+  production Finder safety, delivery, privacy, dispute, WooCommerce onboarding,
+  Recovery, and release gates remain open in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: RT-320 global shell, metadata, Search, and 404 closure,
-  followed by RT-321 through RT-324 and the remaining P0 path to TagCore `0.9.0`
+* Current workstream: the canonical baseline after RT-320 through RT-324 is
+  re-certified by RT-331; external-service gates precede the remaining P0 path
+  to TagCore `0.9.0`
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -149,6 +151,16 @@ The following tickets are considered implemented in the current baseline:
 * RT-330 - Canonical v1.0 delivery roadmap and unfinished-work recovery controls
 
 * RT-319 - Actual-page frontend audit and frozen cross-surface visual contract
+
+* RT-320 - ForgeTag global shell, metadata, Search, and 404 presentation
+
+* RT-321 - ForgeTag WooCommerce Shop, Product, Cart, and Checkout presentation
+
+* RT-322 - Manual Tag ID desktop, mobile, and no-JavaScript entry surfaces
+
+* RT-323 - Canonical public Tag, activation, Finder, and unavailable-state presentation
+
+* RT-324 - Owner Account sign-in, Tag, lifecycle, and Conversation presentation
 
 Do not reimplement or redesign these items without first inspecting the existing implementation and receiving explicit approval.
 
@@ -1228,3 +1240,18 @@ gaps, and keeps `0.9.0` as the release-candidate target after P0 closure.
 RT-330 is documentation-only. It does not change TagCore `0.5.0`, Schema `14`,
 the ForgeTag Theme, a runtime interface, a feature-flag value, a dependency, an
 artifact, production configuration, or deployment authorization.
+
+## RT-331 canonical main re-certification
+
+RT-320 through RT-324 are merged on canonical `origin/main@9400ae9`. RT-321's
+final CI run `32812393279` passed all fourteen checks, including PHP 8.3, 8.4,
+and 8.5; the supported WordPress, WooCommerce, MySQL, and MariaDB matrix;
+JavaScript and asset checks; documentation checks; complete browser E2E; and
+the Quality Gate. This supersedes RT-330's recovery-era classification of
+those worktrees as unfinished.
+
+The re-certified executable versions remain TagCore `0.5.0`, Schema `14`,
+capability contract `6`, and ForgeTag Theme `0.1.0`. RT-331 changes no runtime,
+Schema, migration, dependency, Option, Hook, route, feature flag, artifact,
+production configuration, or deployment authorization. Local design prototype
+material remains excluded from the repository.
