@@ -31,12 +31,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$tag_type_label = static fn( \ReturnTag\TagCore\Domain\Tag\TagType $type ): string => match ( $type ) {
+$tag_type_label            = static fn( \ReturnTag\TagCore\Domain\Tag\TagType $type ): string => match ( $type ) {
 	\ReturnTag\TagCore\Domain\Tag\TagType::STICKER => __( 'Sticker', 'tagcore' ),
 	\ReturnTag\TagCore\Domain\Tag\TagType::CLASSIC_TAG => __( 'Classic Tag', 'tagcore' ),
 	\ReturnTag\TagCore\Domain\Tag\TagType::SMART_TAG => __( 'Smart Tag', 'tagcore' ),
 };
-$status_label   = static fn( \ReturnTag\TagCore\Domain\Tag\TagStatus $status ): string => match ( $status ) {
+$status_label              = static fn( \ReturnTag\TagCore\Domain\Tag\TagStatus $status ): string => match ( $status ) {
 	\ReturnTag\TagCore\Domain\Tag\TagStatus::UNREGISTERED => __( 'Unregistered', 'tagcore' ),
 	\ReturnTag\TagCore\Domain\Tag\TagStatus::ACTIVE => __( 'Active', 'tagcore' ),
 	\ReturnTag\TagCore\Domain\Tag\TagStatus::SUSPENDED => __( 'Suspended', 'tagcore' ),
@@ -68,10 +68,18 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 		</a>
 		<?php if ( AccountRoute::SIGN_IN !== $view->route ) : ?>
 			<nav class="returntag-account__navigation" aria-label="<?php esc_attr_e( 'Owner account', 'tagcore' ); ?>">
-				<a class="returntag-account__overview-link" href="<?php echo esc_url( $view->overview_url ); ?>">
+				<a class="returntag-account__overview-link<?php echo esc_attr( AccountRoute::OVERVIEW === $view->route || AccountRoute::TAG === $view->route ? ' is-current' : '' ); ?>" href="<?php echo esc_url( $view->overview_url ); ?>"
+				<?php
+				if ( AccountRoute::OVERVIEW === $view->route || AccountRoute::TAG === $view->route ) :
+					?>
+					aria-current="page"<?php endif; ?>>
 					<?php esc_html_e( 'My Tags', 'tagcore' ); ?>
 				</a>
-				<a class="returntag-account__overview-link" href="<?php echo esc_url( $view->urls->conversations() ); ?>">
+				<a class="returntag-account__overview-link<?php echo esc_attr( AccountRoute::CONVERSATIONS === $view->route ? ' is-current' : '' ); ?>" href="<?php echo esc_url( $view->urls->conversations() ); ?>"
+				<?php
+				if ( AccountRoute::CONVERSATIONS === $view->route ) :
+					?>
+					aria-current="page"<?php endif; ?>>
 					<?php esc_html_e( 'Conversations', 'tagcore' ); ?>
 				</a>
 			</nav>
@@ -147,39 +155,20 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 				<h1 id="returntag-account-title"><?php echo esc_html( $view->title ); ?></h1>
 				<p class="returntag-entry__introduction"><?php esc_html_e( 'View the ForgeTags currently connected to this account.', 'tagcore' ); ?></p>
 
-				<section class="returntag-account__edit-card returntag-account__test-email" aria-labelledby="returntag-account-test-email-title">
-					<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Notification check', 'tagcore' ); ?></p>
-					<h2 id="returntag-account-test-email-title"><?php esc_html_e( 'Test your email', 'tagcore' ); ?></h2>
-					<p class="returntag-account__test-email-copy"><?php esc_html_e( 'Send a test notification to the email on this account. The address is resolved securely and is never entered in this form.', 'tagcore' ); ?></p>
-					<?php if ( null !== $view->test_email_result ) : ?>
-						<div class="returntag-account__feedback" role="status" aria-live="polite">
-							<?php echo esc_html( match ( $view->test_email_result ) {
-								OwnerTestEmailResult::ACCEPTED => __( 'If email delivery is available, a test message will arrive shortly.', 'tagcore' ),
-								OwnerTestEmailResult::THROTTLED => __( 'Too many test messages were requested. Please try again later.', 'tagcore' ),
-								OwnerTestEmailResult::UNAVAILABLE => __( 'The test email is temporarily unavailable.', 'tagcore' ),
-							} ); ?>
-						</div>
-					<?php endif; ?>
-					<form action="<?php echo esc_url( $view->overview_url ); ?>" method="post">
-						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->test_email_nonce ); ?>">
-						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION ); ?>">
-						<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Send test email', 'tagcore' ); ?></button>
-					</form>
-				</section>
-
 				<?php if ( null === $view->collection || OwnerTagAccessState::READY !== $view->collection->state || null === $view->collection->page ) : ?>
-					<p class="returntag-account__empty"><?php esc_html_e( 'This Tag is unavailable.', 'tagcore' ); ?></p>
+					<div class="returntag-account__empty"><strong><?php esc_html_e( 'Your Tags are temporarily unavailable.', 'tagcore' ); ?></strong><p class="returntag-account__empty-copy"><?php esc_html_e( 'Refresh the page or try again later.', 'tagcore' ); ?></p></div>
 				<?php elseif ( array() === $view->collection->page->items ) : ?>
-					<p class="returntag-account__empty"><?php esc_html_e( 'No ForgeTags are connected to this account yet.', 'tagcore' ); ?></p>
+					<div class="returntag-account__empty"><strong><?php esc_html_e( 'No ForgeTags are connected yet.', 'tagcore' ); ?></strong><p class="returntag-account__empty-copy"><?php esc_html_e( 'Activate a Tag to add it to this account.', 'tagcore' ); ?></p></div>
 				<?php else : ?>
 					<ul class="returntag-account__tag-list">
 						<?php foreach ( $view->collection->page->items as $record ) : ?>
-							<?php $tag = $record->data; ?>
+							<?php $owned_tag = $record->data; ?>
 							<li>
-								<a class="returntag-account__tag-card" href="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>">
-									<span class="returntag-account__tag-type"><?php echo esc_html( $tag_type_label( $tag->tag_type ) ); ?></span>
-									<strong><?php echo esc_html( $tag->item_name ?? $tag->public_label ?? __( 'Unnamed item', 'tagcore' ) ); ?></strong>
-									<span class="returntag-account__tag-meta"><?php echo esc_html( $tag->tag_id . ' · ' . $status_label( $tag->tag_status ) ); ?></span>
+								<a class="returntag-account__tag-card" href="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>">
+									<span class="returntag-account__tag-card-topline"><span class="returntag-account__tag-type"><?php echo esc_html( $tag_type_label( $owned_tag->tag_type ) ); ?></span><span class="returntag-account__status returntag-account__status--<?php echo esc_attr( $owned_tag->tag_status->value ); ?>"><?php echo esc_html( $status_label( $owned_tag->tag_status ) ); ?></span></span>
+									<strong><?php echo esc_html( $owned_tag->item_name ?? $owned_tag->public_label ?? __( 'Unnamed item', 'tagcore' ) ); ?></strong>
+									<span class="returntag-account__tag-id"><?php /* translators: %s: Public six-character Tag ID. */ echo esc_html( sprintf( __( 'Tag ID %s', 'tagcore' ), $owned_tag->tag_id ) ); ?></span>
+									<span class="returntag-account__card-action"><?php esc_html_e( 'Manage Tag', 'tagcore' ); ?></span>
 								</a>
 							</li>
 						<?php endforeach; ?>
@@ -188,6 +177,32 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 						<a class="returntag-account__next" href="<?php echo esc_url( $view->urls->overview( $view->collection->page->next_cursor ) ); ?>"><?php esc_html_e( 'View more Tags', 'tagcore' ); ?></a>
 					<?php endif; ?>
 				<?php endif; ?>
+
+				<section class="returntag-account__utility" aria-labelledby="returntag-account-test-email-title">
+					<div>
+						<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Account notification', 'tagcore' ); ?></p>
+						<h2 id="returntag-account-test-email-title"><?php esc_html_e( 'Check email delivery', 'tagcore' ); ?></h2>
+						<p class="returntag-account__test-email-copy"><?php esc_html_e( 'Send a test notification to the email securely connected to this account.', 'tagcore' ); ?></p>
+					</div>
+					<?php if ( null !== $view->test_email_result ) : ?>
+						<div class="returntag-account__feedback" role="status" aria-live="polite">
+							<?php
+							echo esc_html(
+								match ( $view->test_email_result ) {
+								OwnerTestEmailResult::ACCEPTED => __( 'If email delivery is available, a test message will arrive shortly.', 'tagcore' ),
+								OwnerTestEmailResult::THROTTLED => __( 'Too many test messages were requested. Please try again later.', 'tagcore' ),
+								OwnerTestEmailResult::UNAVAILABLE => __( 'The test email is temporarily unavailable.', 'tagcore' ),
+								}
+							);
+							?>
+						</div>
+					<?php endif; ?>
+					<form action="<?php echo esc_url( $view->overview_url ); ?>" method="post">
+						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->test_email_nonce ); ?>">
+						<input type="hidden" name="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTestEmailFormHandler::ACTION ); ?>">
+						<button class="returntag-account__secondary" type="submit"><?php esc_html_e( 'Send test email', 'tagcore' ); ?></button>
+					</form>
+				</section>
 			</section>
 		<?php elseif ( AccountRoute::CONVERSATIONS === $view->route ) : ?>
 			<section class="returntag-account__dashboard" aria-labelledby="returntag-account-title">
@@ -204,7 +219,11 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 				<?php if ( null === $view->conversations || OwnerConversationAccessState::READY !== $view->conversations->state ) : ?>
 					<p class="returntag-account__empty"><?php esc_html_e( 'Recovery conversations are unavailable.', 'tagcore' ); ?></p>
 				<?php elseif ( array() === $view->conversations->items ) : ?>
-					<p class="returntag-account__empty"><?php esc_html_e( 'No recovery conversations are available for this account.', 'tagcore' ); ?></p>
+					<div class="returntag-account__empty">
+						<strong><?php esc_html_e( 'No recovery conversations yet.', 'tagcore' ); ?></strong>
+						<p class="returntag-account__empty-copy"><?php esc_html_e( 'When a Finder starts an eligible private conversation, its status will appear here.', 'tagcore' ); ?></p>
+						<a class="returntag-account__text-link" href="<?php echo esc_url( $view->overview_url ); ?>"><?php esc_html_e( 'Return to My Tags', 'tagcore' ); ?></a>
+					</div>
 				<?php else : ?>
 					<ul class="returntag-account__conversation-list">
 						<?php foreach ( $view->conversations->items as $conversation ) : ?>
@@ -245,21 +264,23 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 					<h1 id="returntag-account-title"><?php esc_html_e( 'Tag unavailable', 'tagcore' ); ?></h1>
 					<p class="returntag-account__empty"><?php esc_html_e( 'This Tag is unavailable.', 'tagcore' ); ?></p>
 				<?php else : ?>
-					<?php $tag = $view->detail->tag->data; ?>
-					<p class="returntag-entry__eyebrow"><?php echo esc_html( $tag_type_label( $tag->tag_type ) ); ?></p>
-					<h1 id="returntag-account-title"><?php echo esc_html( $tag->item_name ?? $tag->public_label ?? __( 'Unnamed item', 'tagcore' ) ); ?></h1>
+					<?php $owned_tag = $view->detail->tag->data; ?>
+					<p class="returntag-entry__eyebrow"><?php echo esc_html( $tag_type_label( $owned_tag->tag_type ) ); ?></p>
+					<h1 id="returntag-account-title"><?php echo esc_html( $owned_tag->item_name ?? $owned_tag->public_label ?? __( 'Unnamed item', 'tagcore' ) ); ?></h1>
+					<div class="returntag-account__identity" aria-label="<?php esc_attr_e( 'Tag identity and visibility', 'tagcore' ); ?>">
 					<dl class="returntag-account__details">
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Tag ID', 'tagcore' ); ?></dt><dd><?php echo esc_html( $tag->tag_id ); ?></dd></div>
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Status', 'tagcore' ); ?></dt><dd><?php echo esc_html( $status_label( $tag->tag_status ) ); ?></dd></div>
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Private item name', 'tagcore' ); ?></dt><dd><?php echo esc_html( $tag->item_name ?? __( 'Not added', 'tagcore' ) ); ?></dd></div>
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Public label', 'tagcore' ); ?></dt><dd><?php echo esc_html( $tag->public_label ?? __( 'Not added', 'tagcore' ) ); ?></dd></div>
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Lost Mode', 'tagcore' ); ?></dt><dd><?php echo esc_html( $tag->lost_mode ? __( 'On', 'tagcore' ) : __( 'Off', 'tagcore' ) ); ?></dd></div>
-						<?php if ( $tag->lost_mode && null !== $tag->lost_message ) : ?>
-							<div class="returntag-account__detail"><dt><?php esc_html_e( 'Lost Message', 'tagcore' ); ?></dt><dd><?php echo esc_html( $tag->lost_message ); ?></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Tag ID', 'tagcore' ); ?></dt><dd><?php echo esc_html( $owned_tag->tag_id ); ?></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Status', 'tagcore' ); ?></dt><dd><span class="returntag-account__status returntag-account__status--<?php echo esc_attr( $owned_tag->tag_status->value ); ?>"><?php echo esc_html( $status_label( $owned_tag->tag_status ) ); ?></span></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Private item name', 'tagcore' ); ?> <span class="returntag-account__visibility returntag-account__visibility--private"><?php esc_html_e( 'Only you', 'tagcore' ); ?></span></dt><dd><?php echo esc_html( $owned_tag->item_name ?? __( 'Not added', 'tagcore' ) ); ?></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Public label', 'tagcore' ); ?> <span class="returntag-account__visibility"><?php esc_html_e( 'Finder-visible', 'tagcore' ); ?></span></dt><dd><?php echo esc_html( $owned_tag->public_label ?? __( 'Not added', 'tagcore' ) ); ?></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Lost Mode', 'tagcore' ); ?> <span class="returntag-account__visibility"><?php esc_html_e( 'Finder-visible', 'tagcore' ); ?></span></dt><dd><?php echo esc_html( $owned_tag->lost_mode ? __( 'On', 'tagcore' ) : __( 'Off', 'tagcore' ) ); ?></dd></div>
+						<?php if ( $owned_tag->lost_mode && null !== $owned_tag->lost_message ) : ?>
+							<div class="returntag-account__detail"><dt><?php esc_html_e( 'Lost Message', 'tagcore' ); ?> <span class="returntag-account__visibility"><?php esc_html_e( 'Finder-visible', 'tagcore' ); ?></span></dt><dd><?php echo esc_html( $owned_tag->lost_message ); ?></dd></div>
 						<?php endif; ?>
-						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Last updated', 'tagcore' ); ?></dt><dd><?php echo esc_html( wp_date( (string) get_option( 'date_format' ), $tag->updated_at->getTimestamp() ) ); ?></dd></div>
+						<div class="returntag-account__detail"><dt><?php esc_html_e( 'Last updated', 'tagcore' ); ?></dt><dd><?php echo esc_html( wp_date( (string) get_option( 'date_format' ), $owned_tag->updated_at->getTimestamp() ) ); ?></dd></div>
 					</dl>
-					<?php if ( \ReturnTag\TagCore\Domain\Tag\TagStatus::ACTIVE !== $tag->tag_status ) : ?>
+					</div>
+					<?php if ( \ReturnTag\TagCore\Domain\Tag\TagStatus::ACTIVE !== $owned_tag->tag_status ) : ?>
 						<p class="returntag-account__notice"><?php esc_html_e( 'This Tag is read-only in its current status.', 'tagcore' ); ?></p>
 					<?php else : ?>
 						<?php if ( AccountTagMutationState::NONE !== $view->tag_feedback->state ) : ?>
@@ -281,7 +302,7 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 									AccountTagMutationState::NONE => '',
 								};
 								echo esc_html( $message );
-								?>
+	?>
 							</div>
 						<?php endif; ?>
 
@@ -289,17 +310,17 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 							<section class="returntag-account__edit-card" aria-labelledby="returntag-account-metadata-title">
 								<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Item details', 'tagcore' ); ?></p>
 								<h2 id="returntag-account-metadata-title"><?php esc_html_e( 'Name your item', 'tagcore' ); ?></h2>
-								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTagMutationFormHandler::UPDATE_METADATA ); ?>">
 									<div class="returntag-entry__field">
 										<label for="returntag-item-name"><?php esc_html_e( 'Private item name', 'tagcore' ); ?></label>
-										<input class="returntag-entry__input" id="returntag-item-name" name="<?php echo esc_attr( AccountTagMutationFormHandler::ITEM_NAME_FIELD ); ?>" type="text" maxlength="191" value="<?php echo esc_attr( $tag->item_name ?? '' ); ?>" aria-describedby="returntag-item-name-help">
+										<input class="returntag-entry__input" id="returntag-item-name" name="<?php echo esc_attr( AccountTagMutationFormHandler::ITEM_NAME_FIELD ); ?>" type="text" maxlength="191" value="<?php echo esc_attr( $owned_tag->item_name ?? '' ); ?>" aria-describedby="returntag-item-name-help">
 										<p class="returntag-account__field-help" id="returntag-item-name-help"><?php esc_html_e( 'Only you can see this name.', 'tagcore' ); ?></p>
 									</div>
 									<div class="returntag-entry__field">
 										<label for="returntag-public-label"><?php esc_html_e( 'Public label', 'tagcore' ); ?></label>
-										<input class="returntag-entry__input" id="returntag-public-label" name="<?php echo esc_attr( AccountTagMutationFormHandler::PUBLIC_LABEL_FIELD ); ?>" type="text" maxlength="191" value="<?php echo esc_attr( $tag->public_label ?? '' ); ?>" aria-describedby="returntag-public-label-help">
+										<input class="returntag-entry__input" id="returntag-public-label" name="<?php echo esc_attr( AccountTagMutationFormHandler::PUBLIC_LABEL_FIELD ); ?>" type="text" maxlength="191" value="<?php echo esc_attr( $owned_tag->public_label ?? '' ); ?>" aria-describedby="returntag-public-label-help">
 										<p class="returntag-account__field-help" id="returntag-public-label-help"><?php esc_html_e( 'Finders may see this label. Do not include private contact details.', 'tagcore' ); ?></p>
 									</div>
 									<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Save item details', 'tagcore' ); ?></button>
@@ -309,16 +330,16 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 							<section class="returntag-account__edit-card" aria-labelledby="returntag-account-lost-title">
 								<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Recovery settings', 'tagcore' ); ?></p>
 								<h2 id="returntag-account-lost-title"><?php esc_html_e( 'Lost Mode', 'tagcore' ); ?></h2>
-								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTagMutationFormHandler::UPDATE_LOST_STATE ); ?>">
 									<label class="returntag-account__toggle" for="returntag-lost-mode">
-										<input class="returntag-account__toggle-input" id="returntag-lost-mode" name="<?php echo esc_attr( AccountTagMutationFormHandler::LOST_MODE_FIELD ); ?>" type="checkbox" value="1" <?php checked( $tag->lost_mode ); ?>>
+										<input class="returntag-account__toggle-input" id="returntag-lost-mode" name="<?php echo esc_attr( AccountTagMutationFormHandler::LOST_MODE_FIELD ); ?>" type="checkbox" value="1" <?php checked( $owned_tag->lost_mode ); ?>>
 										<span class="returntag-account__toggle-copy"><strong><?php esc_html_e( 'Mark this item as lost', 'tagcore' ); ?></strong><small class="returntag-account__toggle-help"><?php esc_html_e( 'Finder contact remains available even when Lost Mode is off.', 'tagcore' ); ?></small></span>
 									</label>
 									<div class="returntag-entry__field">
 										<label for="returntag-lost-message"><?php esc_html_e( 'Lost Message', 'tagcore' ); ?> <span><?php esc_html_e( '— optional', 'tagcore' ); ?></span></label>
-										<textarea class="returntag-entry__input returntag-account__textarea" id="returntag-lost-message" name="<?php echo esc_attr( AccountTagMutationFormHandler::LOST_MESSAGE_FIELD ); ?>" maxlength="500" rows="5" aria-describedby="returntag-lost-message-help"><?php echo esc_textarea( $tag->lost_message ?? '' ); ?></textarea>
+										<textarea class="returntag-entry__input returntag-account__textarea" id="returntag-lost-message" name="<?php echo esc_attr( AccountTagMutationFormHandler::LOST_MESSAGE_FIELD ); ?>" maxlength="500" rows="5" aria-describedby="returntag-lost-message-help"><?php echo esc_textarea( $owned_tag->lost_message ?? '' ); ?></textarea>
 										<p class="returntag-account__field-help" id="returntag-lost-message-help"><?php esc_html_e( 'Finders may see this message while Lost Mode is on. Do not include passwords, codes, financial details, identity documents, or a complete home address.', 'tagcore' ); ?></p>
 									</div>
 									<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Save recovery settings', 'tagcore' ); ?></button>
@@ -326,13 +347,13 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 							</section>
 						</div>
 
-						<?php if ( \ReturnTag\TagCore\Domain\Tag\TagType::SMART_TAG === $tag->tag_type ) : ?>
+						<?php if ( \ReturnTag\TagCore\Domain\Tag\TagType::SMART_TAG === $owned_tag->tag_type ) : ?>
 							<section class="returntag-account__edit-card returntag-account__smart-setup" aria-labelledby="returntag-account-smart-title">
 								<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Smart Tag guide', 'tagcore' ); ?></p>
 								<h2 id="returntag-account-smart-title"><?php esc_html_e( 'Smart Setup acknowledgement', 'tagcore' ); ?></h2>
 								<p><?php esc_html_e( 'This records only that you completed the static setup guide. ForgeTag does not verify pairing, location, battery, device state, or an Apple or Google account.', 'tagcore' ); ?></p>
-								<?php if ( null === $tag->owner_pairing_ack_at ) : ?>
-									<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<?php if ( null === $owned_tag->owner_pairing_ack_at ) : ?>
+									<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
 										<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
 										<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountTagMutationFormHandler::ACKNOWLEDGE_SMART_SETUP ); ?>">
 										<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'I completed the setup guide', 'tagcore' ); ?></button>
@@ -347,24 +368,30 @@ $conversation_status_label = static fn( ConversationStatus $status ): string => 
 							<p class="returntag-entry__eyebrow"><?php esc_html_e( 'Danger zone', 'tagcore' ); ?></p>
 							<h2 id="returntag-account-danger-title"><?php esc_html_e( 'Transfer or retire this Tag', 'tagcore' ); ?></h2>
 							<p><?php esc_html_e( 'Both actions require a fresh code sent to the email on this account. Transfer completes only after the recipient signs in and accepts. Retirement is permanent.', 'tagcore' ); ?></p>
-							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+							<div class="returntag-account__danger-toolbar">
+							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
 								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
 								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::REQUEST_CODE ); ?>">
 								<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Send verification code', 'tagcore' ); ?></button>
 							</form>
-							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+							<form action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
 								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>">
 								<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::CANCEL ); ?>">
 								<button class="returntag-account__secondary" type="submit"><?php esc_html_e( 'Cancel pending transfer', 'tagcore' ); ?></button>
 							</form>
+							</div>
 							<div class="returntag-account__danger-grid">
-								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<form class="returntag-entry__form returntag-account__danger-action" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
+									<h3><?php esc_html_e( 'Transfer ownership', 'tagcore' ); ?></h3>
+									<p class="returntag-account__danger-copy"><?php esc_html_e( 'Invite another person. You remain the Owner until they accept.', 'tagcore' ); ?></p>
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>"><input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::TRANSFER ); ?>">
 									<label for="returntag-transfer-email"><?php esc_html_e( 'Recipient email', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__email" id="returntag-transfer-email" name="<?php echo esc_attr( AccountLifecycleFormHandler::TARGET_EMAIL ); ?>" type="email" maxlength="254" autocomplete="email" required>
 									<label for="returntag-transfer-code"><?php esc_html_e( 'Verification code', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__code" id="returntag-transfer-code" name="<?php echo esc_attr( AccountLifecycleFormHandler::CODE ); ?>" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>
 									<button class="returntag-entry__submit" type="submit"><?php esc_html_e( 'Invite new owner', 'tagcore' ); ?></button>
 								</form>
-								<form class="returntag-entry__form" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $tag->tag_id ) ) ); ?>" method="post">
+								<form class="returntag-entry__form returntag-account__danger-action returntag-account__danger-action--retire" action="<?php echo esc_url( $view->urls->tag( TagId::from_canonical( $owned_tag->tag_id ) ) ); ?>" method="post">
+									<h3><?php esc_html_e( 'Retire this Tag', 'tagcore' ); ?></h3>
+									<p class="returntag-account__danger-copy"><?php esc_html_e( 'Retirement is permanent. The Tag ID and audit history are preserved.', 'tagcore' ); ?></p>
 									<input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::NONCE_FIELD ); ?>" value="<?php echo esc_attr( $view->tag_nonce ); ?>"><input type="hidden" name="<?php echo esc_attr( AccountTagMutationFormHandler::ACTION_FIELD ); ?>" value="<?php echo esc_attr( AccountLifecycleFormHandler::RETIRE ); ?>">
 									<label for="returntag-retire-id"><?php esc_html_e( 'Type the Tag ID to confirm', 'tagcore' ); ?></label><input class="returntag-entry__input" id="returntag-retire-id" name="<?php echo esc_attr( AccountLifecycleFormHandler::CONFIRM_TAG ); ?>" pattern="[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}" maxlength="6" autocomplete="off" required>
 									<label for="returntag-retire-code"><?php esc_html_e( 'Verification code', 'tagcore' ); ?></label><input class="returntag-entry__input returntag-account__code" id="returntag-retire-code" name="<?php echo esc_attr( AccountLifecycleFormHandler::CODE ); ?>" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required>

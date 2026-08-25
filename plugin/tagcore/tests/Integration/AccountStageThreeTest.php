@@ -35,6 +35,23 @@ use WP_UnitTestCase;
 
 /** Verifies privacy-minimized rendering and explicit POST continuation. */
 final class AccountStageThreeTest extends WP_UnitTestCase {
+	/** Empty conversations provide direction without exposing private relay data. */
+	public function test_empty_conversation_page_points_back_to_owned_tags(): void {
+		$html = ( new AccountTemplateRenderer( RETURNTAG_TAGCORE_DIR, new AccountUrlProvider() ) )->render_to_string(
+			AccountRoute::CONVERSATIONS,
+			new AccountFormResult( AccountFormState::READY ),
+			null,
+			null,
+			null,
+			new OwnerConversationCollection( OwnerConversationAccessState::READY, array() )
+		);
+
+		self::assertStringContainsString( 'No recovery conversations yet.', $html );
+		self::assertStringContainsString( 'Return to My Tags', $html );
+		self::assertStringNotContainsString( 'finder_email', $html );
+		self::assertStringNotContainsString( 'owner_email', $html );
+	}
+
 	/** Summary cards expose only status, bounded activity, and the POST action. */
 	public function test_conversation_page_renders_privacy_minimized_summary(): void {
 		$now  = $this->now();

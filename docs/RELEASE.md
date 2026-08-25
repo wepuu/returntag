@@ -963,3 +963,26 @@ Containment continues to use the existing activation, Finder contact, Finder
 evidence, and email dispatch controls. Code rollback removes only the RT-323
 presentation changes and preserves Schema 14, users, ownership, challenges,
 Finder Reports, private evidence, Conversations, Messages, and Events.
+
+## RT-324 Owner Account presentation acceptance
+
+RT-324 keeps TagCore `0.5.0`, Schema `14`, all Account routes, Options, hooks,
+POST contracts, dependencies, and lock files unchanged. Release acceptance
+must verify that My Tags precedes the secondary email-delivery utility; active,
+suspended, retired, unavailable, and empty states remain server driven; and the
+Tag identity panel visibly distinguishes `Only you` from `Finder-visible`
+fields without exposing either party's email, Messages, Tokens, evidence,
+location, or internal processing state.
+
+Review `/account/sign-in/`, `/account/`, `/account/tags/{tag_id}/`, and
+`/account/conversations/` at `1440`, `1024`, `816`, `390`, `320`, and a
+`720`-CSS-pixel 200-percent equivalent viewport. Confirm no horizontal
+overflow, a stable navigation row at `320`, labelled controls, visible focus,
+directional empty states, no-JavaScript form operation, and separate Transfer
+and permanent Retire sections. Transferred Tag detail requests must remain
+generic and suspended or retired Tags must remain read-only.
+
+Containment and rollback remain unchanged: disable
+`returntag_owner_account_enabled` or revert the RT-324 presentation files
+without deleting accepted ownership, Tag data, Conversations, Messages,
+Tokens, transfers, or audit Events.

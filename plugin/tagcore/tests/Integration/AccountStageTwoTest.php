@@ -52,6 +52,10 @@ final class AccountStageTwoTest extends WP_UnitTestCase {
 		self::assertStringContainsString( 'name="returntag_lost_message"', $html );
 		self::assertStringContainsString( 'maxlength="191"', $html );
 		self::assertStringContainsString( 'maxlength="500"', $html );
+		self::assertStringContainsString( 'Transfer ownership', $html );
+		self::assertStringContainsString( 'Retire this Tag', $html );
+		self::assertStringContainsString( 'You remain the Owner until they accept.', $html );
+		self::assertStringContainsString( 'The Tag ID and audit history are preserved.', $html );
 		self::assertStringNotContainsString( 'name="owner_id"', $html );
 		self::assertStringNotContainsString( 'value="acknowledge_smart_setup"', $html );
 	}
@@ -61,6 +65,8 @@ final class AccountStageTwoTest extends WP_UnitTestCase {
 		$html = $this->render_tag( $this->tag( TagType::CLASSIC_TAG, TagStatus::SUSPENDED ) );
 
 		self::assertStringContainsString( 'read-only in its current status', $html );
+		self::assertStringContainsString( 'Only you', $html );
+		self::assertStringContainsString( 'Finder-visible', $html );
 		self::assertStringNotContainsString( 'returntag_account_tag_action', $html );
 	}
 
