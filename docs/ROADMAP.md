@@ -1,9 +1,9 @@
 # ReturnTag v1.0 Delivery Roadmap
 
-**Status:** Approved implementation path recorded by RT-330
+**Status:** Approved implementation path re-certified by RT-331
 
-**Baseline:** `origin/main` commit `ec60d38`, TagCore `0.5.0`, Schema `14`,
-ForgeTag Theme `0.1.0`
+**Runtime implementation baseline:** canonical `main` commit `9400ae9`,
+TagCore `0.5.0`, Schema `14`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
 
@@ -31,16 +31,16 @@ Every work item uses exactly one delivery status:
 
 | Status | Meaning |
 |---|---|
-| `Planned` | Scope and dependency are recorded, but implementation has not started. |
-| `In progress` | A scoped Issue or local branch has active work that is not merged. |
-| `Merged` | The scoped change is on `main` and its required CI completed successfully. |
-| `Accepted` | The merged behavior also passed its required functional, privacy, accessibility, and actual-page acceptance. |
-| `Release ready` | External runtime dependencies, immutable artifacts, staging verification, and rollback evidence are complete. |
-| `Released` | The approved immutable artifact was deployed and post-deployment verification was recorded. |
+| `PLANNED` | Scope and dependency are recorded, but implementation has not started. |
+| `IN_PROGRESS` | A scoped Issue or local branch has active work that is not merged. |
+| `BLOCKED` | A recorded external decision, account, credential, or predecessor prevents implementation or acceptance. |
+| `MERGED` | The scoped change is on `main` and its required CI completed successfully. |
+| `ACCEPTED` | The merged behavior also passed its required functional, privacy, accessibility, and actual-page acceptance. |
+| `RELEASE_READY` | External runtime dependencies, immutable artifacts, staging verification, and rollback evidence are complete. |
 
-Code that exists only in a dirty worktree is `In progress`, not `Merged`.
+Code that exists only in a dirty worktree is `IN_PROGRESS`, not `MERGED`.
 Documentation, unit tests, or a successful CI run do not by themselves make a
-user-visible flow `Accepted`. A production feature flag remaining disabled is
+user-visible flow `ACCEPTED`. A production feature flag remaining disabled is
 not a defect when the required external dependency has not passed its release
 gate.
 
@@ -48,15 +48,15 @@ gate.
 
 | Area | Status | Current evidence and remaining boundary |
 |---|---|---|
-| Milestone 0: engineering | `Accepted` | Repository, Composer, tests, CI, artifacts, flags, and logging are on `main`. |
-| Milestone 1: persistence | `Accepted` | Numbered migrations and repository boundaries are on `main`; Schema has since advanced to `14`. |
-| Milestone 2: manufacturing | `Accepted` | Batch creation, secure Tag ID generation, audited export, lifecycle controls, search, and capacity coverage are on `main`. |
-| Milestone 3: activation | `Accepted` | Canonical scan, OTP, passwordless Session, atomic activation, convergence, limits, and Smart Tag static guidance are on `main`. |
-| Milestone 4: Owner | `In progress` | Owner Account and lifecycle services are on `main`; RT-324 consumer-page acceptance remains open. |
-| Milestone 5: Finder relay | `In progress` | Evidence processing, one-way notification, optional email verification, Secure Reply, and participant safety are on `main`; RT-323 page acceptance and an approved production safety reviewer remain open. |
-| Milestone 6: WooCommerce | `Planned` | Theme compatibility exists, but TagCore has no Completed Hook runtime beyond the directory contract. |
-| Milestone 7: operations | `In progress` | RT-326 through RT-329 provide query, lifecycle, Finder Report decisions, roles, Audit, and Retention. The complete PRD 20.3 ownership-dispute case workflow remains open. |
-| Milestone 8: release readiness | `In progress` | CI and artifact automation exist; production dependencies, full compatibility, security, backup/restore, rollback, and release-candidate acceptance remain open. |
+| Milestone 0: engineering | `ACCEPTED` | Repository, Composer, tests, CI, artifacts, flags, and logging are on `main`. |
+| Milestone 1: persistence | `ACCEPTED` | Numbered migrations and repository boundaries are on `main`; Schema has since advanced to `14`. |
+| Milestone 2: manufacturing | `ACCEPTED` | Batch creation, secure Tag ID generation, audited export, lifecycle controls, search, and capacity coverage are on `main`. |
+| Milestone 3: activation | `ACCEPTED` | Canonical scan, OTP, passwordless Session, atomic activation, convergence, limits, and Smart Tag static guidance are on `main`. |
+| Milestone 4: Owner | `ACCEPTED` | Owner services and RT-324 Account presentation are on `main`; production enablement remains a separate release gate. |
+| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted; the approved production safety reviewer and provider delivery bridge remain open. |
+| Milestone 6: WooCommerce | `PLANNED` | RT-321 commerce presentation is accepted, but TagCore has no Completed Order onboarding runtime. |
+| Milestone 7: operations | `IN_PROGRESS` | RT-326 through RT-329 provide query, lifecycle, Finder Report decisions, roles, Audit, and Retention. The complete ownership-dispute workflow remains open. |
+| Milestone 8: release readiness | `IN_PROGRESS` | CI and artifact automation exist; production dependencies, full compatibility, security, rollback, and release-candidate acceptance remain open. |
 
 The merged operations baseline is TagCore `0.5.0`, Schema `14`, and capability
 contract version `6`. This describes implementation state only. It is not a
@@ -66,7 +66,7 @@ published Milestone 7 release and does not authorize production enablement.
 
 ### [RT-330](https://github.com/wepuu/returntag/issues/82) - v1.0 roadmap reconciliation
 
-Status: `Merged`
+Status: `MERGED`
 
 RT-330 establishes this roadmap and aligns status statements in the related
 documents. It changes no runtime, Schema, dependency, Option, feature-flag
@@ -97,15 +97,15 @@ The original worktrees remain present and unchanged at the time of this audit.
 | Work item | Branch and current head | Recovery facts |
 |---|---|---|
 | [RT-319](https://github.com/wepuu/returntag/issues/65) | Recovered independently and merged as `ec60d38` | The audit, page-state matrix, findings, and privacy-reviewed Chrome evidence are now on `main`; user reference assets remain unchanged. |
-| [RT-320](https://github.com/wepuu/returntag/issues/66) | Recovery fingerprint remains at `9ebe744`; scoped work is ported to `feat/RT-320-global-shell-metadata-recovered` from `ec60d38` | The original worktree remains unchanged. The recovered branch contains only RT-320 Theme, tests, documentation, and privacy-reviewed QA evidence. |
-| [RT-321](https://github.com/wepuu/returntag/issues/67) | `feat/RT-321-commerce-presentation` at `e125538` | Clean worktree with existing [Draft PR #68](https://github.com/wepuu/returntag/pull/68). Update it only after RT-320 is merged, then rebase or port onto the new baseline. |
-| [RT-322](https://github.com/wepuu/returntag/issues/69) | `feat/RT-322-tag-entry-surfaces` at `9ebe744` | Behind `main` by five commits; 12 tracked files contain 336 insertions and 27 deletions. |
-| [RT-323](https://github.com/wepuu/returntag/issues/70) | `feat/RT-323-activate-report-flow` at `9ebe744` | Behind `main` by five commits; nine tracked files contain 365 insertions and 50 deletions. |
-| [RT-324](https://github.com/wepuu/returntag/issues/71) | `feat/RT-324-owner-account-surfaces` at `9ebe744` | Behind `main` by five commits; eight tracked files contain 331 insertions and 48 deletions. |
+| [RT-320](https://github.com/wepuu/returntag/issues/66) | Merged as `61e6cbf` through PR #85 | Global shell, metadata, Search, and 404 acceptance are on canonical `main`. |
+| [RT-321](https://github.com/wepuu/returntag/issues/67) | Merged as `9400ae9` through PR #89 | Commerce presentation passed the complete compatibility, accessibility, E2E, and Quality Gate matrix. Stale Draft PR #68 was closed as superseded. |
+| [RT-322](https://github.com/wepuu/returntag/issues/69) | Merged as `4bbfe2c` through PR #86 | Desktop dialog, mobile entry, no-JavaScript fallback, and canonical redirect acceptance are on `main`. |
+| [RT-323](https://github.com/wepuu/returntag/issues/70) | Merged as `f9f6adf` through PR #87 | Public Tag state, activation, Finder, privacy, and actual-page acceptance are on `main`. |
+| [RT-324](https://github.com/wepuu/returntag/issues/71) | Merged as `446a71d` through PR #88 | Owner Account presentation and authorization regression acceptance are on `main`. |
 
-The counts above are recovery fingerprints, not estimates of completion. Before
-mutation, compare the live worktree to this inventory and investigate any
-difference instead of overwriting it.
+The original RT-330 counts were recovery fingerprints, not estimates of
+completion. The table now records their canonical merge evidence; historical
+worktrees must not be treated as a newer implementation source than `main`.
 
 ## 5. Phase B: consumer frontend closure
 
@@ -114,13 +114,13 @@ work items.
 
 | Order | Work item | Status | Exit gate |
 |---|---|---|---|
-| 1 | [RT-319](https://github.com/wepuu/returntag/issues/65) actual-page audit and visual contract | `Accepted` | Audit report, page-state matrix, P0/P1/P2 findings, privacy-reviewed durable Chrome evidence, and reproduction steps are merged. |
-| 2 | [RT-320](https://github.com/wepuu/returntag/issues/66) global shell, metadata, Search, and 404 | `In progress` | Consumer brand, metadata, fallback templates, responsive shell, and production-safe copy pass Theme checks and Chrome acceptance. |
-| 3 | [RT-321](https://github.com/wepuu/returntag/issues/67) commerce presentation | `In progress` | The existing Draft PR is updated after RT-320; Shop, Product, Cart, and Checkout pass the WooCommerce and responsive matrix. |
-| 4 | [RT-322](https://github.com/wepuu/returntag/issues/69) Tag entry surfaces | `In progress` | Desktop dialog, mobile input page, no-JavaScript fallback, focus behavior, and canonical `303` routing pass. |
-| 5 | [RT-323](https://github.com/wepuu/returntag/issues/70) public Activate and Report flow | `In progress` | Canonical activation, Owner, Finder, evidence, and unavailable states pass controlled-fixture and actual-page acceptance. |
-| 6 | [RT-324](https://github.com/wepuu/returntag/issues/71) Owner Account surfaces | `In progress` | Sign-in, Overview, My Tags, Tag Detail, Conversations, privacy boundaries, and responsive navigation pass. |
-| 7 | [RT-325](https://github.com/wepuu/returntag/issues/72) regression rerun | `Merged` | Secure Reply remains compliant after RT-323 and RT-324 merge across all required states and viewports. |
+| 1 | [RT-319](https://github.com/wepuu/returntag/issues/65) actual-page audit and visual contract | `ACCEPTED` | Audit report, page-state matrix, P0/P1/P2 findings, privacy-reviewed durable Chrome evidence, and reproduction steps are merged. |
+| 2 | [RT-320](https://github.com/wepuu/returntag/issues/66) global shell, metadata, Search, and 404 | `ACCEPTED` | Consumer brand, metadata, fallback templates, responsive shell, and production-safe copy passed Theme checks and Chrome acceptance. |
+| 3 | [RT-322](https://github.com/wepuu/returntag/issues/69) Tag entry surfaces | `ACCEPTED` | Desktop dialog, mobile input page, no-JavaScript fallback, focus behavior, and canonical `303` routing passed. |
+| 4 | [RT-323](https://github.com/wepuu/returntag/issues/70) public Activate and Report flow | `ACCEPTED` | Canonical activation, Owner, Finder, evidence, and unavailable states passed controlled-fixture and actual-page acceptance. |
+| 5 | [RT-324](https://github.com/wepuu/returntag/issues/71) Owner Account surfaces | `ACCEPTED` | Sign-in, Overview, My Tags, Tag Detail, Conversations, privacy boundaries, and responsive navigation passed. |
+| 6 | [RT-321](https://github.com/wepuu/returntag/issues/67) commerce presentation | `ACCEPTED` | Shop, Product, Cart, and Checkout passed the WooCommerce, responsive, accessibility, and complete E2E matrix. |
+| 7 | [RT-325](https://github.com/wepuu/returntag/issues/72) regression rerun | `MERGED` | Secure Reply remains compliant across the required states and viewports. |
 
 Development-only ratings, sales figures, tenure statements, testimonials, and
 recovery stories may remain in an explicit Demo fixture. They must be disabled
@@ -128,11 +128,22 @@ by default and excluded from the production consumer path unless their claims
 and translations have approved evidence. Demo copy cannot become a runtime
 authorization, business-state input, or release claim.
 
-## 6. Phase C: remaining P0 business capability
+## 6. Phase C: canonical baseline and remaining P0 business capability
 
-### RT-331 - WooCommerce completed-order guidance
+### [RT-331](https://github.com/wepuu/returntag/issues/90) - canonical main re-certification
 
-Status: `Planned`
+Status: `ACCEPTED`
+
+Re-certify `origin/main@9400ae9` after the RT-320 through RT-324 frontend
+sequence. Exit requires one reproducible baseline, matching Plugin, Schema,
+capability, and Theme versions, current architecture/database/release evidence,
+clean full checks, and explicit exclusion of local prototype assets. RT-331
+changes no runtime, Schema, dependency, Option, feature flag, artifact, or
+production configuration.
+
+### Proposed RT-344 and RT-345 - WooCommerce completed-order guidance
+
+Status: `PLANNED`
 
 Freeze the Completed Hook contract in ADR 0028 and implement it inside the
 TagCore `WooCommerce` layer. The workflow may use WooCommerce public CRUD APIs
@@ -147,9 +158,9 @@ feature-flag, HPOS, and order-separation tests. The existing
 `returntag_woocommerce_account_enabled` control remains default disabled until
 staging acceptance.
 
-### RT-332 - staff-created ownership-dispute contract
+### Proposed RT-341 - staff-created ownership-dispute contract
 
-Status: `Planned`
+Status: `PLANNED`
 
 Freeze the phase-one ownership-dispute contract in ADR 0029 before persistence
 or UI implementation. The only intake is a capability-protected staff console;
@@ -163,9 +174,9 @@ The design must reuse RT-327 lifecycle actions and RT-328 evidence custody where
 their preconditions match. It must not duplicate state machines, reveal either
 party's email, or accept unrestricted files or free-form operational logging.
 
-### RT-333 - ownership-dispute runtime
+### Proposed RT-342 - ownership-dispute runtime
 
-Status: `Planned`
+Status: `PLANNED`
 
 Implement the approved contract through additive, numbered persistence and
 internal Cookie-authenticated Admin interfaces. Every mutation requires the
@@ -177,9 +188,14 @@ retention, and previous-Owner revocation are release gates.
 
 ## 7. Phase D: production dependencies and 0.9.0 candidate
 
-### RT-334 - production Finder evidence safety adapter
+Before those runtime tickets, Proposed RT-332 through RT-334 explicitly own
+AWS Rekognition, Resend, and Cloudflare Turnstile account, region, DNS,
+least-privilege credential, environment-separation, and rotation gates. They
+remain `BLOCKED` until the approved external resources exist.
 
-Status: `Planned`
+### Proposed RT-335 - production Finder evidence safety adapter
+
+Status: `BLOCKED`
 
 Select and integrate an approved safety reviewer behind the existing
 `FinderEvidenceSafetyReviewer` interface. Provider unavailable, timeout,
@@ -187,20 +203,31 @@ malformed response, or uncertain result must fail closed. Provider credentials,
 original evidence, storage paths, and raw responses must not enter the
 repository, ordinary logs, Events, URLs, or public responses.
 
-### RT-335 - operational readiness
+### Proposed RT-336 through RT-343 - delivery, risk, privacy, and lifecycle gates
 
-Status: `Planned`
+Status: `BLOCKED`
 
-In an isolated staging environment, verify external key injection, private
-media storage, WP Mail SMTP transport, sender-domain authentication, Action
-Scheduler with real Cron or WP-CLI, queue monitoring, retention schedules, and
-the documented feature-flag enablement and containment order. Tests that
-intercept `wp_mail()` do not satisfy this gate. No production credential is
-stored in Git or copied into acceptance evidence.
+This sequence covers the Resend Message-ID spike and webhook bridge, risk-based
+Turnstile adapter, versioned privacy contract and export/deletion runtime,
+ownership-dispute contract/runtime, and missing high-risk transactional
+notifications. Each provider integration remains behind a provider-neutral
+port and a default-off containment control. Privacy, signature, idempotency,
+out-of-order delivery, fail-closed behavior, and PII-safe logging are release
+gates. The stable external privacy-policy identifier and provider accounts are
+explicit blockers.
 
-### RT-336 - TagCore 0.9.0 release candidate
+### Proposed RT-346 and RT-347 - Confirmed Recovery and history
 
-Status: `Planned`
+Status: `PLANNED`
+
+Freeze the Recovery persistence and concurrency contract, then implement the
+current-Owner-only confirmation, required Finder Report or Conversation link,
+atomic Lost Mode and Conversation closure, token/session revocation, and
+privacy-minimized Owner/Admin history. No new Finder completion email is added.
+
+### Proposed RT-348 - TagCore 0.9.0 release candidate
+
+Status: `BLOCKED`
 
 After all P0 work is merged and accepted, advance TagCore directly from
 `0.5.0` to `0.9.0`; do not publish empty retrospective 0.6.0, 0.7.0, or 0.8.0
@@ -212,9 +239,9 @@ authorized operations.
 
 ## 8. Phase E: Milestone 8 and v1.0
 
-### RT-337 - v1.0 release acceptance
+### Proposed RT-349 - v1.0 release acceptance
 
-Status: `Planned`
+Status: `PLANNED`
 
 The final gate includes:
 
@@ -264,6 +291,8 @@ the sequence. Every update must link the relevant Issue or PR and preserve the
 distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
-The current active work item is
-[RT-320](https://github.com/wepuu/returntag/issues/66). After RT-320 is merged,
-the next implementation work is RT-321 through RT-324 in the order above.
+RT-331 is the latest accepted work item. The next critical-path gates are the
+external-service account/configuration tickets Proposed RT-332 through RT-334;
+they remain `BLOCKED` until those resources exist. Contract-first P0 work may
+then proceed in the dependency order above. Proposed numbers are not assigned
+Issue IDs until their single-purpose Issues are created.
