@@ -45,6 +45,7 @@ use ReturnTag\TagCore\Infrastructure\Security\FinderEmailVerificationSecrets;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumFinderEmailProtector;
 use ReturnTag\TagCore\Infrastructure\Security\SodiumFinderReportMessageProtector;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressFinderEmailOtpSender;
+use ReturnTag\TagCore\Infrastructure\Email\TransactionalEmailRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\SystemClock;
 use ReturnTag\TagCore\Infrastructure\Conversation\ConversationRelayRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\WordPressOptionFeatureFlagReader;
@@ -126,7 +127,7 @@ final class FinderReportRuntimeFactory {
 				$storage,
 				new SodiumFinderReportMessageProtector( $msg ),
 				new WordPressFinderReportOwnerRecipientResolver( new WpdbPublicTagStateReader( $gateway, $tables, $dates ) ),
-				new WordPressFinderReportOwnerNotificationSender(),
+				new WordPressFinderReportOwnerNotificationSender( TransactionalEmailRuntimeFactory::create_or_unavailable( $database ) ),
 				$events,
 				$transactions,
 				$clock
@@ -162,7 +163,7 @@ final class FinderReportRuntimeFactory {
 					$email_store,
 					$email_protector,
 					new PhpActivationOtpCodeGenerator(),
-					new WordPressFinderEmailOtpSender(),
+					new WordPressFinderEmailOtpSender( TransactionalEmailRuntimeFactory::create_or_unavailable( $database ) ),
 					$clock
 				);
 			} catch ( Throwable ) {

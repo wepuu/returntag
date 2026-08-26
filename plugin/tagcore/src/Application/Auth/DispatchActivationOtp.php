@@ -98,7 +98,8 @@ final readonly class DispatchActivationOtp {
 
 			$recipient = $this->protector->decrypt_email( $sent->data->email_ciphertext, $tag_id );
 
-			return $this->email->send( $recipient, $code )
+			$idempotency_key = hash( 'sha256', "returntag:activation-otp:v1\0" . $challenge_id );
+			return $this->email->send( $recipient, $code, $idempotency_key )
 				? ActivationOtpDispatchResult::ACCEPTED_BY_MAILER
 				: ActivationOtpDispatchResult::MAILER_REJECTED;
 		} finally {

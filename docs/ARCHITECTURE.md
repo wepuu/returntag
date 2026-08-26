@@ -1,9 +1,9 @@
 # ReturnTag Architecture
 
-**Status:** Re-certified against runtime baseline `main@9400ae9`: TagCore 0.5.0 at
-Schema 14 with capability contract 6 and the RT-320 through RT-324 consumer
-presentation sequence merged; remaining P0 and release work is tracked in the
-[delivery roadmap](ROADMAP.md)
+**Status:** Runtime architecture through RT-337: TagCore 0.5.0 at target Schema
+15 with capability contract 6. The re-certified consumer presentation baseline
+is preserved and the remaining P0 and release work is tracked in the [delivery
+roadmap](ROADMAP.md)
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -944,3 +944,24 @@ metadata or correlation identifiers. `RetentionTaskManager` exposes health and
 queues one wrapper action that invokes an existing bounded cleanup hook, then
 records a metadata-free completion result. The manual-run feature flag is
 checked only by the Admin command and never disables recurring maintenance.
+
+## 30. RT-337 direct transactional email boundary
+
+ADR 0029 supersedes the earlier `wp_mail()` transport statement for
+TagCore-owned transactional email. Business-specific sender adapters build a
+provider-neutral, in-memory `TransactionalEmail` and delegate to
+`TransactionalEmailGateway`. The sole runtime implementation is the direct
+Resend HTTPS adapter; TagCore does not inspect WP Mail SMTP APIs, tables,
+headers, settings, or logs.
+
+Workers provide purpose-scoped SHA-256 idempotency keys derived only from
+internal business identifiers. The gateway creates a metadata-only delivery
+row before the provider request, supplies the same key to Resend, and records
+provider acceptance as `sent`. Missing Schema or external configuration selects
+an explicit unavailable adapter that fails closed without a second transport.
+
+The REST boundary verifies Svix headers against the exact raw body before JSON
+mapping. Infrastructure discards the payload after extracting allowlisted event
+identity, message identity, type, and time. Repository row locks and the
+Application transition policy deduplicate and converge out-of-order events. A
+recurring Action Scheduler worker retries valid, uncorrelated metadata rows.

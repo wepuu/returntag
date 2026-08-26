@@ -36,6 +36,7 @@ use ReturnTag\TagCore\Infrastructure\Auth\WordPressPasswordlessAccountProvisione
 use ReturnTag\TagCore\Infrastructure\Email\WordPressAccountOtpEmailSender;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTestEmailSender;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTransferEmailSender;
+use ReturnTag\TagCore\Infrastructure\Email\TransactionalEmailRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbAccountOtpStore;
@@ -119,7 +120,8 @@ final class AccountBootstrap {
 		$test_events     = new WpdbEventRepository( $gateway, $tables, $dates, new DenyAllEventMetadataPolicy(), new OwnerTestEmailEventIdentityPolicy() );
 		$test_claims     = new WordPressOptionOwnerTestEmailDispatchClaimStore( $wpdb, get_current_blog_id() );
 		$test_email      = new RequestOwnerTestEmail( $session, $flags, new WordPressOptionOwnerTestEmailRateLimiter(), $test_events, new ActionSchedulerOwnerTestEmailScheduler(), $clock );
-		( new OwnerTestEmailActionHandler( new DispatchOwnerTestEmail( $flags, new WordPressAuthenticatedUserEmailReader(), $test_claims, new WordPressOwnerTestEmailSender(), $test_events, $clock ) ) )->register();
+		$email_gateway   = TransactionalEmailRuntimeFactory::create_or_unavailable( $wpdb );
+		( new OwnerTestEmailActionHandler( new DispatchOwnerTestEmail( $flags, new WordPressAuthenticatedUserEmailReader(), $test_claims, new WordPressOwnerTestEmailSender( $email_gateway ), $test_events, $clock ) ) )->register();
 
 		self::register_cleanup( $store, $limiter, $tag_limiter, $test_claims, $clock );
 
@@ -162,7 +164,7 @@ final class AccountBootstrap {
 				$store,
 				$protector,
 				new PhpActivationOtpCodeGenerator(),
-				new WordPressAccountOtpEmailSender(),
+				new WordPressAccountOtpEmailSender( $email_gateway ),
 				$clock
 			);
 
@@ -173,7 +175,7 @@ final class AccountBootstrap {
 			$transfer_scheduler = new ActionSchedulerOwnerTransferScheduler();
 			$lifecycle          = new ManageOwnerLifecycle( $session, $user_emails, $flags, $store, $protector, $limiter, $lifecycle_store, $transfer_scheduler, $clock );
 			$accept_transfer    = new AcceptOwnerTransfer( $session, $user_emails, $protector, $flags, $lifecycle_store, $clock );
-			( new OwnerTransferActionHandler( new DispatchOwnerTransferInvitation( $flags, $lifecycle_store, $protector, new WordPressOwnerTransferEmailSender(), $clock ) ) )->register();
+			( new OwnerTransferActionHandler( new DispatchOwnerTransferInvitation( $flags, $lifecycle_store, $protector, new WordPressOwnerTransferEmailSender( $email_gateway ), $clock ) ) )->register();
 		}
 
 		try {

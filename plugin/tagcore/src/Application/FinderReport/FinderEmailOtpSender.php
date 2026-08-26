@@ -17,6 +17,7 @@ interface FinderEmailOtpSender {
 	 *
 	 * @param EmailAddress $recipient Private recipient.
 	 * @param string       $code Six-digit code.
+	 * @param string       $idempotency_key Opaque stable business key.
 	 */
-	public function send( EmailAddress $recipient, string $code ): bool;
+	public function send( EmailAddress $recipient, string $code, string $idempotency_key ): bool;
 }

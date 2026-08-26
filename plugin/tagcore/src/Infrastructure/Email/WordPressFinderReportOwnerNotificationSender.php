@@ -11,11 +11,20 @@ namespace ReturnTag\TagCore\Infrastructure\Email;
 
 use ReturnTag\TagCore\Application\FinderReport\FinderReportOwnerNotificationEmail;
 use ReturnTag\TagCore\Application\FinderReport\FinderReportOwnerNotificationSender;
-use Throwable;
+use ReturnTag\TagCore\Application\Email\TransactionalEmail;
+use ReturnTag\TagCore\Application\Email\TransactionalEmailAttachment;
+use ReturnTag\TagCore\Application\Email\TransactionalEmailGateway;
 
 /** Sends one HTML/text notification with a local inline CID JPEG. */
 final class WordPressFinderReportOwnerNotificationSender implements FinderReportOwnerNotificationSender {
 	private const EVIDENCE_CID = 'returntag-finder-evidence@returntag.invalid';
+
+	/**
+	 * Create the business-specific adapter.
+	 *
+	 * @param TransactionalEmailGateway $gateway Provider-neutral gateway.
+	 */
+	public function __construct( private readonly TransactionalEmailGateway $gateway ) {}
 
 	/**
 	 * Submit one privacy-minimized Owner alert through WordPress.
@@ -26,45 +35,8 @@ final class WordPressFinderReportOwnerNotificationSender implements FinderReport
 		$subject    = __( 'A finder submitted a report about your ForgeTag', 'tagcore' );
 		$html       = $this->html_body( $email->message );
 		$text       = $this->text_body( $email->message );
-		$configured = false;
-		$embedder   = static function ( mixed $mailer ) use ( $email, $text, &$configured ): void {
-			if (
-				! $mailer instanceof \PHPMailer\PHPMailer\PHPMailer
-			) {
-				return;
-			}
-
-			$mailer->clearReplyTos();
-			$mailer->clearCCs();
-			$mailer->clearBCCs();
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer public API.
-			$mailer->AltBody = $text;
-			$configured      = (bool) $mailer->addStringEmbeddedImage(
-				$email->evidence_jpeg,
-				self::EVIDENCE_CID,
-				'evidence.jpg',
-				'base64',
-				'image/jpeg',
-				'inline'
-			);
-		};
-
-		add_action( 'phpmailer_init', $embedder );
-
-		try {
-			$accepted = wp_mail(
-				$email->recipient->value,
-				$subject,
-				$html,
-				array( 'Content-Type: text/html; charset=UTF-8' )
-			);
-		} catch ( Throwable ) {
-			$accepted = false;
-		} finally {
-			remove_action( 'phpmailer_init', $embedder );
-		}
-
-		return $configured && $accepted;
+		$attachment = new TransactionalEmailAttachment( 'evidence.jpg', 'image/jpeg', $email->evidence_jpeg, self::EVIDENCE_CID );
+		return $this->gateway->send( new TransactionalEmail( 'finder_owner_report', $email->idempotency_key, $email->recipient, $subject, $text, $html, array( $attachment ) ) )->accepted;
 	}
 
 	/**

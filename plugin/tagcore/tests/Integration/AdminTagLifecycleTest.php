@@ -365,7 +365,7 @@ final class AdminTagLifecycleTest extends WP_UnitTestCase {
 	 */
 	private function migrate( wpdb $database ): void {
 		$runner = new MigrationRunner( ( new MigrationRegistryFactory( $database ) )->create(), new WordPressSchemaVersionStore(), new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 ) );
-		self::assertSame( 14, $runner->migrate()->ending_version );
+		self::assertSame( 15, $runner->migrate()->ending_version );
 	}
 
 	/**

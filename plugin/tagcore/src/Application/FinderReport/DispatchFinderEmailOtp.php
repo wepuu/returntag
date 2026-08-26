@@ -56,7 +56,7 @@ final readonly class DispatchFinderEmailOtp {
 		try {
 			$issued = $this->store->claim_for_dispatch( $challenge_id, $this->protector->hash_code( $code ), $now->add( new DateInterval( 'PT10M' ) ), $now );
 			if ( null !== $issued ) {
-				$this->sender->send( $this->protector->decrypt_email( $issued->data->email_ciphertext, $report_id ), $code );
+				$this->sender->send( $this->protector->decrypt_email( $issued->data->email_ciphertext, $report_id ), $code, hash( 'sha256', "returntag:finder-email-otp:v1\0" . $challenge_id ) );
 			}
 		} finally {
 			if ( function_exists( 'sodium_memzero' ) ) {

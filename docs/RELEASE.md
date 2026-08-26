@@ -1,9 +1,9 @@
 # ReturnTag Release Baseline
 
-**Status:** Engineering quality and artifact automation re-certified against
-runtime baseline `main@9400ae9`, TagCore 0.5.0, Schema 14, capability contract
-6, and ForgeTag Theme 0.1.0; the P0-to-v1.0 release sequence is tracked in the
-[delivery roadmap](ROADMAP.md)
+**Status:** Engineering quality and artifact automation through RT-337 at
+TagCore 0.5.0, target Schema 15, capability contract 6, and ForgeTag Theme
+0.1.0; the P0-to-v1.0 release sequence is tracked in the [delivery
+roadmap](ROADMAP.md)
 
 **Plugin artifact:** `tagcore-v{version}.zip`
 
@@ -1021,3 +1021,17 @@ dependency, Option, Hook, route, feature flag, artifact, or deployment.
 Release authority is unchanged. The remaining production provider, privacy,
 dispute, Recovery, WooCommerce onboarding, staging, and release-candidate gates
 in the delivery roadmap must still close before `0.9.0` can be approved.
+
+## RT-337 dark-deployment and rollback contract
+
+RT-337 advances Schema `14 -> 15` without changing the TagCore plugin version.
+The direct Resend path remains dark until staging has environment-specific send
+and webhook credentials, a registered HTTPS webhook, tracking disabled, and
+synthetic evidence for acceptance, delivery, delay, bounce, complaint,
+duplicate, replay, out-of-order, revoked credential, and outage behavior.
+
+Enable the delivery projection and verified webhook before business email
+dispatch. The immediate kill switch is `returntag_email_dispatch_enabled`;
+there is no `wp_mail()` fallback. Code rollback may retain Schema 15 because
+previous stable code ignores both additive tables. Do not drop delivery or
+webhook history during rollback.

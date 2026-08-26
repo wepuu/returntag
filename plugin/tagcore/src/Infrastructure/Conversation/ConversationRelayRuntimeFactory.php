@@ -18,6 +18,7 @@ use ReturnTag\TagCore\Application\Conversation\SubmitConversationMessage;
 use ReturnTag\TagCore\Application\Conversation\ConversationRelayEventIdentityPolicy;
 use ReturnTag\TagCore\Application\Persistence\DenyAllEventMetadataPolicy;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressConversationRelayEmailSender;
+use ReturnTag\TagCore\Infrastructure\Email\TransactionalEmailRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressConversationRelayLinkBuilder;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressConversationRelayOwnerResolver;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
@@ -62,7 +63,7 @@ final class ConversationRelayRuntimeFactory {
 				new ExchangeConversationLink( $store, $protector, $clock ),
 				new ReadConversationThread( $store, $protector, $clock ),
 				new SubmitConversationMessage( $flags, $store, $protector, new WordPressOptionConversationMessageRateLimiter( new WordPressOptionFinderEmailRateLimiter( $database, get_current_blog_id() ) ), $scheduler, $clock ),
-				new DispatchConversationMessage( $flags, $store, $protector, $finder, new WordPressConversationRelayOwnerResolver(), new WordPressConversationRelayEmailSender(), new WordPressConversationRelayLinkBuilder(), $clock ),
+				new DispatchConversationMessage( $flags, $store, $protector, $finder, new WordPressConversationRelayOwnerResolver(), new WordPressConversationRelayEmailSender( TransactionalEmailRuntimeFactory::create_or_unavailable( $database ) ), new WordPressConversationRelayLinkBuilder(), $clock ),
 				new ConvergeConversationDispatch( $store, $scheduler, $clock ),
 				new ApplyConversationSafetyAction( $store, $protector, $clock )
 			);

@@ -16,8 +16,9 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current baseline: TagCore `0.5.0`, Schema `14`, capability contract `6`, and
-  ForgeTag Theme `0.1.0` at canonical `origin/main@301ba4f`
+* Current merged baseline: TagCore `0.5.0`, Schema `14`, capability contract
+  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@7593711`; RT-337 PR
+  #100 is the unmerged Schema 15 candidate
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
   portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
@@ -25,10 +26,9 @@
   privacy, dispute, WooCommerce onboarding, Recovery, and release gates remain
   open in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: the canonical baseline after RT-320 through RT-324 is
-  re-certified by RT-331; RT-332 aligns the Finder runtime and product contract
-  with the approved no-content-review decision before the remaining P0 path to
-  TagCore `0.9.0`
+* Current workstream: RT-336 is merged and RT-337 implements the direct Resend
+  delivery projection and signed webhook before staging acceptance and the
+  remaining P0 path to TagCore `0.9.0`
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 

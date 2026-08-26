@@ -71,7 +71,7 @@ final readonly class DispatchConversationMessage {
 				$this->store->mark_failed( $message_id, $now );
 				return false;
 			}
-			if ( ! $this->sender->send( $recipient, $recipient_role, $message, $this->links->build( $raw ) ) ) {
+			if ( ! $this->sender->send( $recipient, $recipient_role, $message, $this->links->build( $raw ), hash( 'sha256', "returntag:conversation-message:v1\0" . $message_id ) ) ) {
 				$this->store->revoke_token( $link->token_id, $now );
 				$this->store->mark_failed( $message_id, $now );
 				return false;

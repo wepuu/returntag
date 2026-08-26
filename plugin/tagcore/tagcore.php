@@ -56,6 +56,10 @@ if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\ConversationRelayBoots
 	ReturnTag\TagCore\Infrastructure\Queue\ConversationRelayBootstrap::register();
 }
 
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Email\EmailWebhookBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Email\EmailWebhookBootstrap::register();
+}
+
 if ( class_exists( ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::class ) ) {
 	ReturnTag\TagCore\PublicSite\PublicSiteBootstrap::register( RETURNTAG_TAGCORE_FILE );
 }

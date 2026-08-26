@@ -105,4 +105,14 @@ final class TableNames {
 	public function tag_transfers(): string {
 		return $this->wordpress_prefix . 'returntag_tag_transfers';
 	}
+
+	/** Return the provider-neutral email delivery projection table. */
+	public function email_deliveries(): string {
+		return $this->wordpress_prefix . 'returntag_email_deliveries';
+	}
+
+	/** Return the verified email webhook event table. */
+	public function email_webhook_events(): string {
+		return $this->wordpress_prefix . 'returntag_email_webhook_events';
+	}
 }

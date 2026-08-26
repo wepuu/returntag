@@ -160,9 +160,11 @@ final class ActivationOtpWorkflowTest extends TestCase {
 			 *
 			 * @param EmailAddress $recipient Target address.
 			 * @param string       $code OTP code.
+			 * @param string       $idempotency_key Opaque stable business key.
 			 */
-			public function send( EmailAddress $recipient, string $code ): bool {
+			public function send( EmailAddress $recipient, string $code, string $idempotency_key ): bool {
 				TestCase::assertSame( 'owner@example.test', $recipient->value );
+				TestCase::assertSame( 64, strlen( $idempotency_key ) );
 				$this->codes[] = $code;
 				return true;
 			}

@@ -17,6 +17,7 @@ interface OwnerTransferEmailSender {
 	 *
 	 * @param EmailAddress $recipient Encrypted-at-rest recipient resolved in Worker memory.
 	 * @param string       $url One-time invitation URL.
+	 * @param string       $idempotency_key Opaque stable business key.
 	 */
-	public function send( EmailAddress $recipient, string $url ): bool;
+	public function send( EmailAddress $recipient, string $url, string $idempotency_key ): bool;
 }

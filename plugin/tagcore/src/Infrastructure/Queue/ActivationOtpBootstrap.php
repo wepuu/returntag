@@ -15,6 +15,7 @@ use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
 use ReturnTag\TagCore\Application\Tag\TagActivationAvailabilityPolicy;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressActivationOtpEmailSender;
+use ReturnTag\TagCore\Infrastructure\Email\TransactionalEmailRuntimeFactory;
 use ReturnTag\TagCore\Infrastructure\Migration\TableNames;
 use ReturnTag\TagCore\Infrastructure\Persistence\DatabaseDateTimeCodec;
 use ReturnTag\TagCore\Infrastructure\Persistence\WpdbActivationOtpRequestStore;
@@ -121,7 +122,7 @@ final class ActivationOtpBootstrap {
 			$store,
 			$protector,
 			new PhpActivationOtpCodeGenerator(),
-			new WordPressActivationOtpEmailSender(),
+			new WordPressActivationOtpEmailSender( TransactionalEmailRuntimeFactory::create_or_unavailable( $wpdb ) ),
 			new SystemClock()
 		);
 
