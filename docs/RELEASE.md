@@ -1,9 +1,9 @@
 # ReturnTag Release Baseline
 
-**Status:** Engineering quality and artifact automation re-certified against
-runtime baseline `main@9400ae9`, TagCore 0.5.0, Schema 14, capability contract
-6, and ForgeTag Theme 0.1.0; the P0-to-v1.0 release sequence is tracked in the
-[delivery roadmap](ROADMAP.md)
+**Status:** Engineering quality and artifact automation through RT-337 at
+TagCore 0.5.0, target Schema 15, capability contract 6, and ForgeTag Theme
+0.1.0; the P0-to-v1.0 release sequence is tracked in the [delivery
+roadmap](ROADMAP.md)
 
 **Plugin artifact:** `tagcore-v{version}.zip`
 

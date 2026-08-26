@@ -1,7 +1,7 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security and privacy contracts through RT-329 at TagCore 0.5.0 and
-Schema 14; remaining P0 production gates are tracked in the
+**Status:** Security and privacy contracts through RT-337 at TagCore 0.5.0 and
+target Schema 15; remaining P0 production gates are tracked in the
 [delivery roadmap](ROADMAP.md)
 
 ## 1. Purpose

@@ -1,9 +1,9 @@
 # ReturnTag Architecture
 
-**Status:** Re-certified against runtime baseline `main@9400ae9`: TagCore 0.5.0 at
-Schema 14 with capability contract 6 and the RT-320 through RT-324 consumer
-presentation sequence merged; remaining P0 and release work is tracked in the
-[delivery roadmap](ROADMAP.md)
+**Status:** Runtime architecture through RT-337: TagCore 0.5.0 at target Schema
+15 with capability contract 6. The re-certified consumer presentation baseline
+is preserved and the remaining P0 and release work is tracked in the [delivery
+roadmap](ROADMAP.md)
 
 **Plugin:** TagCore (`plugin/tagcore`)
 

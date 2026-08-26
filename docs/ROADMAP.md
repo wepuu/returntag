@@ -2,7 +2,7 @@
 
 **Status:** Approved implementation path re-certified by RT-331 and aligned by RT-332
 
-**Runtime implementation baseline:** canonical `main` commit `095c18a`,
+**Runtime implementation baseline:** canonical `main` commit `7593711`,
 TagCore `0.5.0`, Schema `14`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
@@ -53,7 +53,7 @@ gate.
 | Milestone 2: manufacturing | `ACCEPTED` | Batch creation, secure Tag ID generation, audited export, lifecycle controls, search, and capacity coverage are on `main`. |
 | Milestone 3: activation | `ACCEPTED` | Canonical scan, OTP, passwordless Session, atomic activation, convergence, limits, and Smart Tag static guidance are on `main`. |
 | Milestone 4: Owner | `ACCEPTED` | Owner services and RT-324 Account presentation are on `main`; production enablement remains a separate release gate. |
-| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted. ADR 0028 defers content moderation; the provider delivery bridge remains open. |
+| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted. ADR 0028 defers content moderation; RT-337 delivery-bridge implementation is in PR #100 and still requires staging acceptance. |
 | Milestone 6: WooCommerce | `PLANNED` | RT-321 commerce presentation is accepted, but TagCore has no Completed Order onboarding runtime. |
 | Milestone 7: operations | `IN_PROGRESS` | RT-326 through RT-329 provide query, lifecycle, Finder Report decisions, roles, Audit, and Retention. The complete ownership-dispute workflow remains open. |
 | Milestone 8: release readiness | `IN_PROGRESS` | CI and artifact automation exist; production dependencies, full compatibility, security, rollback, and release-candidate acceptance remain open. |
@@ -228,7 +228,7 @@ out-of-order delivery, fail-closed behavior, and PII-safe logging are release
 gates. The stable external privacy-policy identifier and provider accounts are
 explicit blockers.
 
-RT-336 is active on Issue #96. ADR 0029 applies the approved binary decision:
+RT-336 is merged through PR #98 at canonical `main@7593711`. ADR 0029 applies the approved binary decision:
 the WP Mail SMTP `X-Msg-ID` implementation detail does not satisfy the stable
 public-interface condition, so RT-337 uses one provider-neutral direct Resend
 adapter. There is no permanent dual path and no automatic `wp_mail()` fallback.
@@ -254,14 +254,15 @@ Schema 16 - privacy requests
 Schema 17 - ownership disputes
 ```
 
-RT-337 is `IN_PROGRESS` on a branch stacked above RT-336. The repository now
+RT-337 is `IN_PROGRESS` in [PR #100](https://github.com/wepuu/returntag/pull/100),
+based directly on canonical `main@7593711`. The candidate repository now
 contains the additive Schema 15 contract, provider-neutral gateway, direct
 Resend adapter, environment-only configuration, signed webhook boundary,
 event deduplication, out-of-order convergence, and pending-event worker. This
-is implementation evidence only: acceptance remains blocked until RT-336
-merges, the branch is replayed on canonical main, staging secrets are injected,
-the HTTPS webhook is registered, and the synthetic delivery/failure matrix is
-recorded. No production enablement is authorized.
+is implementation evidence only: acceptance remains blocked until the PR
+merges, staging secrets are injected, the HTTPS webhook is registered, and the
+synthetic delivery/failure matrix is recorded. No production enablement is
+authorized.
 
 No empty moderation migration is reserved. Each migration still requires fresh
 install, previous-Schema upgrade, idempotent retry, previous-code compatibility,

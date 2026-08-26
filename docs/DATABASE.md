@@ -1,11 +1,11 @@
 # ReturnTag Database Baseline
 
-**Status:** Re-certified against runtime baseline `main@9400ae9`: TagCore 0.5.0 at
-current Schema 14 and capability contract 6; the RT-320 through RT-324 sequence
-adds no migration or Schema change. Future additive persistence and release
-order is tracked in the [delivery roadmap](ROADMAP.md)
+**Status:** Runtime database contract through RT-337: TagCore 0.5.0 at target
+Schema 15 and capability contract 6. RT-337 additively extends the re-certified
+Schema 14 baseline with metadata-only email delivery state; remaining additive
+persistence and release order is tracked in the [delivery roadmap](ROADMAP.md)
 
-**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`; current target version `14`
+**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`, `returntag_email_deliveries`, `returntag_email_webhook_events`; current target version `15`
 
 ## 1. Purpose
 
