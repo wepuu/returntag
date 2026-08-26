@@ -11,6 +11,8 @@ namespace ReturnTag\TagCore\Infrastructure\Email;
 
 use InvalidArgumentException;
 use ReturnTag\TagCore\Application\Auth\AccountOtpEmailSender;
+use ReturnTag\TagCore\Application\Email\TransactionalEmail;
+use ReturnTag\TagCore\Application\Email\TransactionalEmailGateway;
 use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 
 /**
@@ -18,13 +20,20 @@ use ReturnTag\TagCore\Domain\Auth\EmailAddress;
  */
 final class WordPressAccountOtpEmailSender implements AccountOtpEmailSender {
 	/**
+	 * Create the business-specific adapter.
+	 *
+	 * @param TransactionalEmailGateway $gateway Provider-neutral gateway.
+	 */
+	public function __construct( private readonly TransactionalEmailGateway $gateway ) {}
+	/**
 	 * Submit one Account code through WordPress mail.
 	 *
 	 * @param EmailAddress $recipient Requested recipient.
 	 * @param string       $code Exact six-digit code.
+	 * @param string       $idempotency_key Opaque stable business key.
 	 * @throws InvalidArgumentException When the code shape is invalid.
 	 */
-	public function send( EmailAddress $recipient, string $code ): bool {
+	public function send( EmailAddress $recipient, string $code, string $idempotency_key ): bool {
 		if ( 1 !== preg_match( '/^\d{6}$/D', $code ) ) {
 			throw new InvalidArgumentException( 'Account OTP code is invalid.' );
 		}
@@ -36,11 +45,6 @@ final class WordPressAccountOtpEmailSender implements AccountOtpEmailSender {
 			$code
 		);
 
-		return wp_mail(
-			$recipient->value,
-			$subject,
-			$body,
-			array( 'Content-Type: text/plain; charset=UTF-8' )
-		);
+		return $this->gateway->send( new TransactionalEmail( 'account_otp', $idempotency_key, $recipient, $subject, $body ) )->accepted;
 	}
 }

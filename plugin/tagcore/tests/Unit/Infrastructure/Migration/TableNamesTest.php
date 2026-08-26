@@ -116,4 +116,12 @@ final class TableNamesTest extends TestCase {
 
 		self::assertSame( 'rt_test_returntag_tag_transfers', $table_names->tag_transfers() );
 	}
+
+	/** Schema 15 email tables must preserve the active prefix. */
+	public function test_email_tables_use_supplied_wordpress_prefix(): void {
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_email_deliveries', $table_names->email_deliveries() );
+		self::assertSame( 'rt_test_returntag_email_webhook_events', $table_names->email_webhook_events() );
+	}
 }

@@ -1192,3 +1192,27 @@ retention boundaries or bypass `hold_until`. Metadata-free request,
 completion, or fixed-category failure Events are appended; no audit Event,
 accepted Message, Tag ID, Owner Claim, or manufacturing export is deleted.
 Rollback disables the manual-run flag and preserves Schema and all Events.
+
+## 29. Schema 15 transactional email delivery projection
+
+RT-337 adds `returntag_email_deliveries` and
+`returntag_email_webhook_events`. Both tables contain metadata only. They must
+not store recipient or sender addresses, subjects, bodies, attachment bytes,
+complete provider responses, or raw webhook payloads.
+
+The delivery table uses a unique opaque SHA-256 idempotency key and a unique
+`(provider, provider_message_id)` correlation key. Provider acceptance advances
+`queued -> sent`; only a verified provider event establishes `delivered`,
+`deferred`, `bounced`, `complained`, or provider terminal `failed`.
+`delivered_at` records provider event time rather than HTTP acceptance time.
+
+The event table deduplicates `(provider, provider_event_id)` and stores only the
+provider message ID, allowlisted type, optional mapped state, event time,
+receive time, processing time, and attempt count. Open and click events remain
+processed, unmapped metadata and never change delivery state. Valid events that
+arrive before correlation remain pending for a bounded worker retry.
+
+Migration `0015` is additive, verifies Schema 14 first, supports fresh install
+and `14 -> 15` retry, and performs no data rewrite. Previous code ignores both
+tables. Rollback disables email dispatch and the webhook runtime while
+preserving delivery history.

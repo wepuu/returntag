@@ -117,7 +117,7 @@ final class PublicTagRouteTest extends WP_UnitTestCase {
 			new WordPressSchemaVersionStore(),
 			new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 )
 		);
-		self::assertSame( 14, $runner->migrate()->ending_version );
+		self::assertSame( 15, $runner->migrate()->ending_version );
 
 		update_option( FeatureFlag::GLOBAL_ACTIVATION->value, '1', false );
 		update_option( FeatureFlag::FINDER_CONTACT->value, '1', false );

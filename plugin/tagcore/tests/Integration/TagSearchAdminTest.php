@@ -425,7 +425,7 @@ final class TagSearchAdminTest extends WP_UnitTestCase {
 			new WordPressAdvisoryMigrationLock( $database, get_current_blog_id(), 0 )
 		);
 
-		self::assertSame( 14, $runner->migrate()->ending_version );
+		self::assertSame( 15, $runner->migrate()->ending_version );
 	}
 
 	/**

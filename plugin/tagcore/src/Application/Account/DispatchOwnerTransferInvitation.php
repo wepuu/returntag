@@ -42,7 +42,7 @@ final readonly class DispatchOwnerTransferInvitation {
 			return; }
 		$recipient = $this->protector->decrypt_email( $claim['email'], $claim['lookup'] );
 		$url       = add_query_arg( 'transfer_token', rawurlencode( $token ), home_url( '/account/transfer/' ) );
-		$this->store->finish_invitation( $transfer_id, $this->email->send( $recipient, $url ), $now );
+		$this->store->finish_invitation( $transfer_id, $this->email->send( $recipient, $url, hash( 'sha256', "returntag:owner-transfer:v1\0" . $transfer_id ) ), $now );
 		if ( function_exists( 'sodium_memzero' ) ) {
 			sodium_memzero( $token ); }
 	}

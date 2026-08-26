@@ -1,6 +1,6 @@
 <?php
 /**
- * Owner lifecycle WordPress mail boundary tests.
+ * Owner lifecycle provider-neutral email boundary tests.
  *
  * @package ReturnTag\TagCore\Tests
  */
@@ -9,55 +9,57 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Tests\Integration;
 
+use ReturnTag\TagCore\Application\Email\TransactionalEmail;
+use ReturnTag\TagCore\Application\Email\TransactionalEmailGateway;
+use ReturnTag\TagCore\Application\Email\TransactionalEmailResult;
 use ReturnTag\TagCore\Domain\Auth\EmailAddress;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTestEmailSender;
 use ReturnTag\TagCore\Infrastructure\Email\WordPressOwnerTransferEmailSender;
 use WP_UnitTestCase;
 
-/** Verifies WP Mail SMTP compatibility without a live SMTP configuration. */
+/** Verifies lifecycle messages expose no cross-party address or reply route. */
 final class OwnerLifecycleEmailTest extends WP_UnitTestCase {
-	/** Test Email uses wp_mail with a plaintext, privacy-safe payload. */
-	public function test_test_email_is_interceptable_at_wordpress_mail_boundary(): void {
-		$captured = null;
-		$filter   = static function ( ?bool $preempt, array $attributes ) use ( &$captured ): bool {
-			unset( $preempt );
-			$captured = $attributes;
-			return true;
-		};
-		add_filter( 'pre_wp_mail', $filter, 10, 2 );
-		try {
-			$accepted = ( new WordPressOwnerTestEmailSender() )->send( new EmailAddress( 'owner@example.test' ) );
-		} finally {
-			remove_filter( 'pre_wp_mail', $filter, 10 );
-		}
+	/** Test Email delegates one private plaintext request. */
+	public function test_test_email_uses_provider_neutral_gateway(): void {
+		$gateway  = $this->gateway();
+		$accepted = ( new WordPressOwnerTestEmailSender( $gateway ) )->send( new EmailAddress( 'owner@example.test' ), str_repeat( 'a', 64 ) );
 
 		self::assertTrue( $accepted );
-		self::assertIsArray( $captured );
-		self::assertSame( 'owner@example.test', $captured['to'] );
-		self::assertSame( array( 'Content-Type: text/plain; charset=UTF-8' ), $captured['headers'] );
-		self::assertStringNotContainsString( 'Reply-To', implode( "\n", $captured['headers'] ) );
+		self::assertSame( 'owner@example.test', $gateway->email->recipient->value );
+		self::assertSame( 'owner_test', $gateway->email->purpose );
+		self::assertStringNotContainsString( 'Reply-To', $gateway->email->text );
 	}
 
-	/** Transfer invitation contains only target email and opaque acceptance URL. */
-	public function test_transfer_email_does_not_expose_current_owner_address_or_reply_headers(): void {
-		$captured = null;
-		$filter   = static function ( ?bool $preempt, array $attributes ) use ( &$captured ): bool {
-			unset( $preempt );
-			$captured = $attributes;
-			return true;
-		};
-		add_filter( 'pre_wp_mail', $filter, 10, 2 );
-		try {
-			$accepted = ( new WordPressOwnerTransferEmailSender() )->send( new EmailAddress( 'recipient@example.test' ), 'https://example.test/account/transfer/?transfer_token=opaque' );
-		} finally {
-			remove_filter( 'pre_wp_mail', $filter, 10 );
-		}
+	/** Transfer contains only the target and opaque same-site acceptance URL. */
+	public function test_transfer_email_preserves_private_boundary(): void {
+		$gateway  = $this->gateway();
+		$accepted = ( new WordPressOwnerTransferEmailSender( $gateway ) )->send( new EmailAddress( 'recipient@example.test' ), 'https://example.test/account/transfer/?transfer_token=opaque', str_repeat( 'b', 64 ) );
 
 		self::assertTrue( $accepted );
-		self::assertIsArray( $captured );
-		self::assertSame( 'recipient@example.test', $captured['to'] );
-		self::assertStringContainsString( 'transfer_token=opaque', $captured['message'] );
-		self::assertStringNotContainsString( 'current-owner@example.test', $captured['message'] );
-		self::assertStringNotContainsString( 'Reply-To', implode( "\n", $captured['headers'] ) );
+		self::assertSame( 'recipient@example.test', $gateway->email->recipient->value );
+		self::assertStringContainsString( 'transfer_token=opaque', $gateway->email->text );
+		self::assertStringNotContainsString( 'current-owner@example.test', $gateway->email->text );
+	}
+
+	/** Return a capture-only provider-neutral gateway. */
+	private function gateway(): TransactionalEmailGateway {
+		return new class() implements TransactionalEmailGateway {
+			/**
+			 * Captured private request.
+			 *
+			 * @var TransactionalEmail
+			 */
+			public TransactionalEmail $email;
+
+			/**
+			 * Capture one request.
+			 *
+			 * @param TransactionalEmail $email Private in-memory request.
+			 */
+			public function send( TransactionalEmail $email ): TransactionalEmailResult {
+				$this->email = $email;
+				return TransactionalEmailResult::accepted( 'email_synthetic' );
+			}
+		};
 	}
 }

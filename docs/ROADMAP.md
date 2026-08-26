@@ -234,10 +234,12 @@ public-interface condition, so RT-337 uses one provider-neutral direct Resend
 adapter. There is no permanent dual path and no automatic `wp_mail()` fallback.
 
 RT-333 has partial account-readiness evidence: the sending domain, DKIM, SPF,
-and monitoring-mode DMARC are present, and open/click tracking is not configured.
-It remains incomplete until exposed credentials are rotated, staging and
-production credentials are isolated, the signed webhook endpoint exists, and
-synthetic staging dispatch and revocation evidence pass.
+and monitoring-mode DMARC are present, open/click tracking is not configured,
+the exposed credential was revoked, and a restricted staging replacement was
+created and saved outside the repository. It remains incomplete until staging
+runtime injection is verified, a separate production credential exists, the
+signed webhook endpoint is registered, and synthetic dispatch, webhook,
+revocation, and rotation evidence pass.
 
 [RT-339](https://github.com/wepuu/returntag/issues/97) freezes the privacy data
 map and is blocked for acceptance until the approved external policy has a
@@ -251,6 +253,15 @@ Schema 15 - email deliveries and webhook events
 Schema 16 - privacy requests
 Schema 17 - ownership disputes
 ```
+
+RT-337 is `IN_PROGRESS` on a branch stacked above RT-336. The repository now
+contains the additive Schema 15 contract, provider-neutral gateway, direct
+Resend adapter, environment-only configuration, signed webhook boundary,
+event deduplication, out-of-order convergence, and pending-event worker. This
+is implementation evidence only: acceptance remains blocked until RT-336
+merges, the branch is replayed on canonical main, staging secrets are injected,
+the HTTPS webhook is registered, and the synthetic delivery/failure matrix is
+recorded. No production enablement is authorized.
 
 No empty moderation migration is reserved. Each migration still requires fresh
 install, previous-Schema upgrade, idempotent retry, previous-code compatibility,

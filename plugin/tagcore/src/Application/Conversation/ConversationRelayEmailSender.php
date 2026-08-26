@@ -20,6 +20,7 @@ interface ConversationRelayEmailSender {
 	 * @param MessageSenderRole $recipient_role Recipient role.
 	 * @param string|null       $message Optional body.
 	 * @param string            $continue_url Secure continuation URL.
+	 * @param string            $idempotency_key Opaque stable business key.
 	 */
-	public function send( EmailAddress $recipient, MessageSenderRole $recipient_role, ?string $message, string $continue_url ): bool;
+	public function send( EmailAddress $recipient, MessageSenderRole $recipient_role, ?string $message, string $continue_url, string $idempotency_key ): bool;
 }

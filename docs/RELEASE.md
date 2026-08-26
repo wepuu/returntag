@@ -1021,3 +1021,17 @@ dependency, Option, Hook, route, feature flag, artifact, or deployment.
 Release authority is unchanged. The remaining production provider, privacy,
 dispute, Recovery, WooCommerce onboarding, staging, and release-candidate gates
 in the delivery roadmap must still close before `0.9.0` can be approved.
+
+## RT-337 dark-deployment and rollback contract
+
+RT-337 advances Schema `14 -> 15` without changing the TagCore plugin version.
+The direct Resend path remains dark until staging has environment-specific send
+and webhook credentials, a registered HTTPS webhook, tracking disabled, and
+synthetic evidence for acceptance, delivery, delay, bounce, complaint,
+duplicate, replay, out-of-order, revoked credential, and outage behavior.
+
+Enable the delivery projection and verified webhook before business email
+dispatch. The immediate kill switch is `returntag_email_dispatch_enabled`;
+there is no `wp_mail()` fallback. Code rollback may retain Schema 15 because
+previous stable code ignores both additive tables. Do not drop delivery or
+webhook history during rollback.

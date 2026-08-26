@@ -43,7 +43,7 @@ final readonly class DispatchOwnerTestEmail {
 		if ( ! $this->claims->claim( $event_id, $now ) ) {
 			return; }
 		$recipient = $this->emails->find( $owner_id );
-		$accepted  = null !== $recipient && $this->sender->send( $recipient );
+		$accepted  = null !== $recipient && $this->sender->send( $recipient, hash( 'sha256', "returntag:owner-test-email:v1\0" . $event_id ) );
 		$this->events->append( new NewEventRecord( $accepted ? 'owner_test_email_accepted' : 'owner_test_email_failed', 'user', $owner_id, 'user', (string) $owner_id, $accepted ? 'accepted_by_mailer' : 'failed', (string) $event_id, EventMetadata::none(), $now ) );
 	}
 }

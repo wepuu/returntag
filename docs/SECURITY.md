@@ -1034,3 +1034,23 @@ all sensitive fields. Retention manual runs additionally require exact Task ID
 confirmation and `returntag_admin_retention_run_enabled`. Queue and dependency
 failures collapse to fixed categories. Request and completion Events contain
 only actor classification, internal task target, result, and UTC time.
+
+## RT-337 Resend delivery and webhook controls
+
+Resend API credentials, the approved From identity, and the Svix webhook secret
+are read only from constants or process environment. They are never WordPress
+Options and must not appear in logs, Events, webhook records, Issues,
+screenshots, or test output. Invalid configuration fails closed without a
+`wp_mail()` fallback.
+
+Send requests include exactly one recipient and omit Reply-To, CC, and BCC.
+Delivery persistence excludes addresses, subjects, bodies, attachment bytes,
+and response bodies. Finder evidence bytes exist only in Worker memory and the
+documented HTTPS payload; projections store correlation metadata only.
+
+The POST-only webhook verifies `svix-id`, `svix-timestamp`, and candidate `v1`
+signatures over the exact raw body, rejects timestamps outside five minutes,
+and deduplicates provider event IDs. Modified bodies, missing headers, replays,
+malformed identifiers, and invalid JSON receive fixed responses. Open and click
+events do not change state; older events and terminal regressions cannot
+overwrite newer state.

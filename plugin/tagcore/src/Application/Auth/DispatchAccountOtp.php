@@ -90,7 +90,8 @@ final readonly class DispatchAccountOtp {
 
 			$recipient = $this->protector->decrypt_email( $claimed->data->email_ciphertext, $subject );
 
-			return $this->email->send( $recipient, $code )
+			$idempotency_key = hash( 'sha256', "returntag:account-otp:v1\0" . $challenge_id );
+			return $this->email->send( $recipient, $code, $idempotency_key )
 				? AccountOtpDispatchResult::ACCEPTED_BY_MAILER
 				: AccountOtpDispatchResult::MAILER_REJECTED;
 		} finally {
