@@ -16,9 +16,8 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current merged baseline: TagCore `0.5.0`, Schema `14`, capability contract
-  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@7593711`; RT-337 PR
-  #100 is the unmerged Schema 15 candidate
+* Current merged baseline: TagCore `0.5.0`, Schema `15`, capability contract
+  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@164480c`
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
   portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
@@ -26,9 +25,9 @@
   privacy, dispute, WooCommerce onboarding, Recovery, and release gates remain
   open in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: RT-336 is merged and RT-337 implements the direct Resend
-  delivery projection and signed webhook before staging acceptance and the
-  remaining P0 path to TagCore `0.9.0`
+* Current workstream: RT-337 delivery projection is merged but awaits staging
+  acceptance; RT-339 privacy contract drafting proceeds without Schema 16 while
+  the external policy version and accountable owner remain blocked
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1259,3 +1258,16 @@ capability contract `6`, and ForgeTag Theme `0.1.0`. RT-331 changes no runtime,
 Schema, migration, dependency, Option, Hook, route, feature flag, artifact,
 production configuration, or deployment authorization. Local design prototype
 material remains excluded from the repository.
+
+## RT-339 privacy contract draft
+
+RT-339 adds proposed ADR 0030, an evidence-backed map across TagCore tables,
+WordPress identity and Options, private objects, Action Scheduler payloads,
+Events, and logs, plus documentation CI markers for the frozen privacy
+boundaries. It changes no runtime or Schema and does not authorize RT-340.
+
+The stable external policy version and accountable owner are `UNVERIFIED`.
+Until both are recorded and signed, exact retention/SLA values cannot be
+invented, ADR 0030 cannot become Accepted, and the privacy runtime remains
+blocked. Active Tags require `action_required`; evidence and other-party
+addresses remain excluded; Holds take precedence over affected cleanup.

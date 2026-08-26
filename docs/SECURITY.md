@@ -1054,3 +1054,25 @@ and deduplicates provider event IDs. Modified bodies, missing headers, replays,
 malformed identifiers, and invalid JSON receive fixed responses. Open and click
 events do not change state; older events and terminal regressions cannot
 overwrite newer state.
+
+## RT-339 privacy-request security contract
+
+Owner privacy requests bind to the authenticated WordPress User ID; submitted
+Owner IDs or email addresses are not authorization evidence. Finder requests
+must complete the WordPress privacy confirmation flow and use an exact keyed
+lookup without creating a WordPress account. A previous Owner receives only a
+safe history of their own participation and never current Tag fields, Finder
+identity, evidence, or current relay access.
+
+Active Tag ownership is an `action_required` gate before any identity mutation.
+The privacy runtime must not remove an Owner, transfer or retire a Tag, disable
+Lost Mode, release a Hold, or broaden an administrator's visibility. Evidence,
+address ciphertext belonging to the other party, token/OTP hashes, IP/risk
+keys, provider/queue internals, raw Event metadata, object references, and logs
+are excluded from export.
+
+Erasure is idempotent constrained anonymization. It revokes access paths first,
+respects active Holds, preserves anti-reuse and audit facts, and reports
+completion only after every durable checkpoint succeeds. The external policy
+version, accountable owner, exact retention periods, and SLA values remain
+`UNVERIFIED`; no RT-340 runtime may be enabled before they are approved.

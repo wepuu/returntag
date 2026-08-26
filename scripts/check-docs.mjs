@@ -90,6 +90,42 @@ const ownerDashboardContract = {
 		'Account login is not Secure',
 	],
 };
+const privacyRequestContract = {
+	'docs/adr/0030-privacy-export-and-constrained-erasure-contract.md': [
+		'Proposed — BLOCKED for acceptance',
+		'Active owned Tag causes `action_required`',
+		'privacy request table does not',
+	],
+	'docs/privacy/RT-339-DATA-MAP.md': [
+		'External policy version:** `UNVERIFIED`',
+		'Accountable privacy owner:** `UNVERIFIED`',
+		'Finder evidence | Exclude',
+	],
+	'docs/ARCHITECTURE.md': [
+		'RT-339 privacy export and constrained-erasure contract',
+		'RT-340 must remain disabled',
+	],
+	'docs/DATABASE.md': [
+		'RT-339 privacy data-map contract',
+		'keeps Schema `15`',
+	],
+	'docs/SECURITY.md': [
+		'RT-339 privacy-request security contract',
+		'Active Tag ownership is an `action_required` gate',
+	],
+	'docs/RELEASE.md': [
+		'RT-339 privacy-contract release gate',
+		'policy version and accountable owner remain `UNVERIFIED`',
+	],
+	'docs/ROADMAP.md': [
+		'RT-339 privacy contract is `IN_PROGRESS`',
+		'does not add Schema 16',
+	],
+	'docs/PROJECT_STATUS.md': [
+		'RT-339 privacy contract draft',
+		'policy version and accountable owner are `UNVERIFIED`',
+	],
+};
 const supersededFinderStatements = [
 	'Finder email must be verified before the owner is notified.',
 	'Finder email must be verified before owner notification.',
@@ -246,6 +282,26 @@ export const findMissingOwnerDashboardContract = ( contentsByPath ) => {
 	return failures;
 };
 
+export const findMissingPrivacyRequestContract = ( contentsByPath ) => {
+	const failures = [];
+
+	for ( const [ relativePath, requiredText ] of Object.entries(
+		privacyRequestContract
+	) ) {
+		const contents = contentsByPath[ relativePath ] ?? '';
+
+		for ( const text of requiredText ) {
+			if ( ! contents.includes( text ) ) {
+				failures.push(
+					`${ relativePath }: missing RT-339 contract: ${ text }`
+				);
+			}
+		}
+	}
+
+	return failures;
+};
+
 const checkFinderEvidenceContract = async () => {
 	const contentsByPath = {};
 
@@ -270,6 +326,19 @@ const checkOwnerDashboardContract = async () => {
 	}
 
 	return findMissingOwnerDashboardContract( contentsByPath );
+};
+
+const checkPrivacyRequestContract = async () => {
+	const contentsByPath = {};
+
+	for ( const relativePath of Object.keys( privacyRequestContract ) ) {
+		contentsByPath[ relativePath ] = await readFile(
+			join( repositoryRoot, relativePath ),
+			'utf8'
+		);
+	}
+
+	return findMissingPrivacyRequestContract( contentsByPath );
 };
 
 const checkRelativeLinks = async ( files ) => {
@@ -496,6 +565,7 @@ export const runDocumentationChecks = async () => {
 		...( await checkStatusMarkdownStructure() ),
 		...( await checkFinderEvidenceContract() ),
 		...( await checkOwnerDashboardContract() ),
+		...( await checkPrivacyRequestContract() ),
 		...( await checkAssetManifest() ),
 		...( await checkExclusions() ),
 		...( await checkSecrets( textFiles ) ),

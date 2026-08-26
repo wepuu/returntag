@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
 	findMissingFinderEvidenceContract,
 	findMissingOwnerDashboardContract,
+	findMissingPrivacyRequestContract,
 	findUnintendedStructuralEscapes,
 } from '../../scripts/check-docs.mjs';
 
@@ -172,6 +173,65 @@ describe( 'findMissingOwnerDashboardContract', () => {
 
 		assert.deepEqual(
 			findMissingOwnerDashboardContract( contentsByPath ),
+			[]
+		);
+	} );
+} );
+
+describe( 'findMissingPrivacyRequestContract', () => {
+	it( 'reports an incomplete privacy request contract', () => {
+		const failures = findMissingPrivacyRequestContract( {
+			'docs/privacy/RT-339-DATA-MAP.md': 'Draft map.',
+		} );
+
+		assert.ok(
+			failures.some( ( failure ) =>
+				failure.includes( 'missing RT-339 contract' )
+			)
+		);
+	} );
+
+	it( 'accepts the frozen privacy request markers', () => {
+		const contentsByPath = {
+			'docs/adr/0030-privacy-export-and-constrained-erasure-contract.md':
+				[
+					'Proposed — BLOCKED for acceptance',
+					'Active owned Tag causes `action_required`',
+					'privacy request table does not',
+				].join( '\n' ),
+			'docs/privacy/RT-339-DATA-MAP.md': [
+				'External policy version:** `UNVERIFIED`',
+				'Accountable privacy owner:** `UNVERIFIED`',
+				'Finder evidence | Exclude',
+			].join( '\n' ),
+			'docs/ARCHITECTURE.md': [
+				'RT-339 privacy export and constrained-erasure contract',
+				'RT-340 must remain disabled',
+			].join( '\n' ),
+			'docs/DATABASE.md': [
+				'RT-339 privacy data-map contract',
+				'keeps Schema `15`',
+			].join( '\n' ),
+			'docs/SECURITY.md': [
+				'RT-339 privacy-request security contract',
+				'Active Tag ownership is an `action_required` gate',
+			].join( '\n' ),
+			'docs/RELEASE.md': [
+				'RT-339 privacy-contract release gate',
+				'policy version and accountable owner remain `UNVERIFIED`',
+			].join( '\n' ),
+			'docs/ROADMAP.md': [
+				'RT-339 privacy contract is `IN_PROGRESS`',
+				'does not add Schema 16',
+			].join( '\n' ),
+			'docs/PROJECT_STATUS.md': [
+				'RT-339 privacy contract draft',
+				'policy version and accountable owner are `UNVERIFIED`',
+			].join( '\n' ),
+		};
+
+		assert.deepEqual(
+			findMissingPrivacyRequestContract( contentsByPath ),
 			[]
 		);
 	} );
