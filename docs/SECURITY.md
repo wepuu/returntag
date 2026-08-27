@@ -1079,3 +1079,19 @@ as ForgeTag Product Owner and Privacy Owner, approved policy
 Owner, Finder, previous-Owner, retention, SLA, and constrained-anonymization
 projections. RT-340 engineering is authorized; production enablement remains a
 separate approval.
+
+## RT-340 Stage 1 security-retention controls
+
+Authentication challenge cleanup is purpose-independent and cannot decrypt or
+select Email ciphertext, lookup/IP digests, or OTP hashes. A challenge becomes
+eligible only after it expires or is consumed. One run uses a single UTC time,
+deletes in bounded 500-row chunks, stops after ten chunks, and repeats hourly.
+Open unexpired challenges remain available to the authentication workflow.
+
+Activation, verification, manual-entry, Owner-action, Account, test-Email, and
+Finder Email Option-backed temporary-state cleanup also runs hourly. Existing
+per-request and per-token one-shot expiry remains in force. The governance
+projection reports only a capped aggregate eligible count and fixed Task
+health; it never reveals a purpose-specific identity, Email, IP, token, OTP,
+or provider value. This stage keeps Schema `15` and does not enable the later
+privacy-request runtime or production deployment.

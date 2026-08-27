@@ -16,7 +16,9 @@ use wpdb;
 /** Registers workers only when private runtime configuration is safe. */
 final class FinderReportBootstrap {
 	public const EMAIL_RATE_CLEANUP_HOOK  = 'returntag_cleanup_finder_email_rate_limits';
-	public const EMAIL_RATE_CLEANUP_GROUP = 'returntag-finder-email-maintenance';
+	public const EMAIL_RATE_CLEANUP_GROUP = 'returntag-finder-security-hourly';
+
+	private const LEGACY_EMAIL_RATE_CLEANUP_GROUP = 'returntag-finder-email-maintenance';
 
 	/** Register Stage 3 processing and Stage 4 notification hooks. */
 	public static function register(): void {
@@ -36,14 +38,17 @@ final class FinderReportBootstrap {
 		add_action(
 			'action_scheduler_init',
 			static function (): void {
+				if ( function_exists( 'as_unschedule_all_actions' ) ) {
+					\as_unschedule_all_actions( self::EMAIL_RATE_CLEANUP_HOOK, array(), self::LEGACY_EMAIL_RATE_CLEANUP_GROUP );
+				}
 				if (
 					function_exists( 'as_has_scheduled_action' )
 					&& function_exists( 'as_schedule_recurring_action' )
 					&& false === \as_has_scheduled_action( self::EMAIL_RATE_CLEANUP_HOOK, array(), self::EMAIL_RATE_CLEANUP_GROUP )
 				) {
 					\as_schedule_recurring_action(
-						time() + DAY_IN_SECONDS,
-						DAY_IN_SECONDS,
+						time() + HOUR_IN_SECONDS,
+						HOUR_IN_SECONDS,
 						self::EMAIL_RATE_CLEANUP_HOOK,
 						array(),
 						self::EMAIL_RATE_CLEANUP_GROUP,

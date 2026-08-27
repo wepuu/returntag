@@ -14,7 +14,7 @@ use ReturnTag\TagCore\Application\Persistence\EventIdentityPolicy;
 /** Restricts retention Events to fixed task identifiers and safe actors. */
 final class AdminGovernanceEventIdentityPolicy implements EventIdentityPolicy {
 	private const EVENTS = array( 'retention_task_run_requested', 'retention_task_run_completed', 'retention_task_run_failed' );
-	private const TASKS  = array( 'activation_cleanup', 'account_cleanup', 'finder_rate_cleanup', 'finder_evidence_cleanup' );
+	private const TASKS  = array( 'auth_challenge_cleanup', 'activation_cleanup', 'account_cleanup', 'finder_rate_cleanup', 'finder_evidence_cleanup' );
 
 	/**
 	 * Determine whether the Event identity is permitted.

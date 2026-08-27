@@ -1241,7 +1241,28 @@ implementation evidence.
 
 The accepted `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` schedule fixes the
 maximum storage boundaries mapped in the RT-339 data map. In particular,
-expired or consumed OTP challenge rows must be removed within 24 hours; the
-current seven-day post-expiry implementation is a known RT-340 acceptance gap.
+expired or consumed OTP challenge rows must be removed within 24 hours.
 Live-system anonymization does not rewrite historical backups; affected backup
 data expires through protected rotation within 35 days.
+
+## 31. RT-340 Stage 1 authentication and temporary-state retention
+
+RT-340 Stage 1 keeps Schema `15`. It adds no table, column, index, Option, or
+private queue argument. A purpose-independent Store deletes only challenges
+whose `expires_at` or non-null `consumed_at` is at or before the Worker's fixed
+UTC run time. The query selects no address ciphertext, lookup/IP digest, OTP
+hash, or other private field, processes at most 500 rows per chunk, and stops
+after ten chunks per run.
+
+The challenge Worker is scheduled hourly and covers `activation_otp`,
+`account_otp`, `finder_email_otp`, and any later purpose that uses the same
+approved table contract. Activation, Account, Owner-action, manual-entry, test
+Email, and Finder Email Option cleanup also moves from daily to hourly. Finder
+Report form claims retain their existing earlier 30-minute one-shot expiry.
+Governance status exposes only one capped aggregate challenge backlog; it does
+not expose purpose, identity, ciphertext, hashes, attempts, or timestamps.
+
+Rollback disables or removes the new recurring Worker and restores the prior
+schedule code. Already-deleted expired or consumed security challenges are not
+restored, no live unexpired challenge is eligible, and previous `0.5.0` code
+remains compatible because Schema stays `15`.

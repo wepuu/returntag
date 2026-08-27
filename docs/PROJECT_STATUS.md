@@ -17,7 +17,7 @@
 * Plugin directory: `plugin/tagcore`
 
 * Current merged baseline: TagCore `0.5.0`, Schema `15`, capability contract
-  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@164480c`
+  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@7eb791e`
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
   portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
@@ -26,8 +26,9 @@
   open in the [delivery roadmap](ROADMAP.md)
 
 * Current workstream: RT-337 delivery projection is merged but awaits staging
-  acceptance; RT-339 product/privacy approval authorizes default-off RT-340
-  engineering while repository acceptance awaits the focused PR
+  acceptance; RT-339 is accepted and merged; RT-340 Stage 1 is tracked by
+  Issue #102 and implements the 24-hour authentication/temporary-state
+  retention baseline without starting the Schema 16 request runtime
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1274,6 +1275,20 @@ boundaries, and constrained anonymization. Active Tags require
 take precedence over affected cleanup. RT-340 engineering is authorized, while
 production enablement remains a separate approval.
 
-RT-339 remains `IN_PROGRESS` until its focused documentation PR passes and
-merges. The policy approval is final; this repository-state distinction avoids
-claiming that unmerged work already exists on canonical `main`.
+RT-339 is `ACCEPTED` and merged through PR #101 at canonical
+`main@7eb791e`. The approval does not authorize production enablement.
+
+## RT-340 Stage 1 security-retention baseline
+
+Issue #102 replaces the historical RT-304 seven-day, daily challenge cleanup
+with one purpose-independent hourly Worker. Expired or consumed Activation,
+Account, and Finder Email challenges are immediately cleanup-eligible; open
+unexpired challenges remain valid. Runs use one UTC boundary, 500-row chunks,
+and a ten-chunk maximum. Governance exposes only a capped aggregate backlog.
+
+Activation, verification, manual-entry, Owner-action, Account, test-Email, and
+Finder Email Option cleanup also moves to hourly maintenance. Existing Finder
+Report form claims retain their shorter 30-minute one-shot expiry. This stage
+keeps TagCore `0.5.0`, Schema `15`, capability contract `6`, and Theme `0.1.0`.
+It does not add a privacy request table/UI, enable production, deploy, or enter
+the release-candidate gate.

@@ -65,15 +65,10 @@ final readonly class WpdbAdminGovernanceReader {
 	 * @param string $now Current UTC database time.
 	 */
 	public function retention_backlog( string $task_id, string $now ): int {
-		if ( 'finder-evidence' === $task_id ) {
+		if ( 'auth-challenges' === $task_id ) {
+			$row = $this->gateway->row( 'SELECT COUNT(*) count FROM (SELECT 1 FROM %i WHERE expires_at <= %s OR (consumed_at IS NOT NULL AND consumed_at <= %s) LIMIT 1001) pending', array( $this->tables->auth_challenges(), $now, $now ) );
+		} elseif ( 'finder-evidence' === $task_id ) {
 			$row = $this->gateway->row( "SELECT COUNT(*) count FROM (SELECT 1 FROM %i WHERE retention_until <= %s AND (hold_until IS NULL OR hold_until <= %s) AND media_status <> 'deleted' LIMIT 1001) pending", array( $this->tables->finder_report_media(), $now, $now ) );
-		} elseif ( in_array( $task_id, array( 'activation-otp', 'account-otp', 'finder-email' ), true ) ) {
-			$purpose = array(
-				'activation-otp' => 'activation_otp',
-				'account-otp'    => 'account_otp',
-				'finder-email'   => 'finder_email_otp',
-			)[ $task_id ];
-			$row     = $this->gateway->row( 'SELECT COUNT(*) count FROM (SELECT 1 FROM %i WHERE purpose = %s AND expires_at <= %s LIMIT 1001) pending', array( $this->tables->auth_challenges(), $purpose, $now ) );
 		} else {
 			return 0;
 		}

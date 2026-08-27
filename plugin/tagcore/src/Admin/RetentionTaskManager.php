@@ -26,6 +26,7 @@ final class RetentionTaskManager {
 	private const LAST_RUN_OPTION  = 'returntag_admin_retention_last_run';
 	private const RUN_CLAIM_PREFIX = 'returntag_admin_retention_run_claim_';
 	private const EVENT_TARGETS    = array(
+		'auth-challenges' => 'auth_challenge_cleanup',
 		'activation-otp'  => 'activation_cleanup',
 		'account-otp'     => 'account_cleanup',
 		'finder-email'    => 'finder_rate_cleanup',

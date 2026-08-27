@@ -18,6 +18,7 @@ final class AdminGovernanceEventIdentityPolicyTest extends TestCase {
 	public function test_allows_only_fixed_retention_event_identities(): void {
 		$policy = new AdminGovernanceEventIdentityPolicy();
 
+		self::assertTrue( $policy->allows( 'retention_task_run_completed', 'system', null, 'retention_task', 'auth_challenge_cleanup', null ) );
 		self::assertTrue( $policy->allows( 'retention_task_run_requested', 'user', 42, 'retention_task', 'activation_cleanup', null ) );
 		self::assertTrue( $policy->allows( 'retention_task_run_completed', 'system', null, 'retention_task', 'finder_evidence_cleanup', null ) );
 		self::assertFalse( $policy->allows( 'retention_task_run_requested', 'user', null, 'retention_task', 'activation_cleanup', null ) );
