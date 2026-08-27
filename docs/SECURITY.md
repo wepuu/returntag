@@ -1073,6 +1073,9 @@ are excluded from export.
 
 Erasure is idempotent constrained anonymization. It revokes access paths first,
 respects active Holds, preserves anti-reuse and audit facts, and reports
-completion only after every durable checkpoint succeeds. The external policy
-version, accountable owner, exact retention periods, and SLA values remain
-`UNVERIFIED`; no RT-340 runtime may be enabled before they are approved.
+completion only after every durable checkpoint succeeds. Forge Life LLC, acting
+as ForgeTag Product Owner and Privacy Owner, approved policy
+`FORGETAG-PRIVACY-RETENTION-v1.0-20260827` effective 2026-08-27, including the
+Owner, Finder, previous-Owner, retention, SLA, and constrained-anonymization
+projections. RT-340 engineering is authorized; production enablement remains a
+separate approval.

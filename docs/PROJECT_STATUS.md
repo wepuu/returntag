@@ -26,8 +26,8 @@
   open in the [delivery roadmap](ROADMAP.md)
 
 * Current workstream: RT-337 delivery projection is merged but awaits staging
-  acceptance; RT-339 privacy contract drafting proceeds without Schema 16 while
-  the external policy version and accountable owner remain blocked
+  acceptance; RT-339 product/privacy approval authorizes default-off RT-340
+  engineering while repository acceptance awaits the focused PR
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1259,15 +1259,21 @@ Schema, migration, dependency, Option, Hook, route, feature flag, artifact,
 production configuration, or deployment authorization. Local design prototype
 material remains excluded from the repository.
 
-## RT-339 privacy contract draft
+## RT-339 privacy contract approval
 
-RT-339 adds proposed ADR 0030, an evidence-backed map across TagCore tables,
+RT-339 adds Accepted ADR 0030, an evidence-backed map across TagCore tables,
 WordPress identity and Options, private objects, Action Scheduler payloads,
 Events, and logs, plus documentation CI markers for the frozen privacy
-boundaries. It changes no runtime or Schema and does not authorize RT-340.
+boundaries. It changes no runtime or Schema.
 
-The stable external policy version and accountable owner are `UNVERIFIED`.
-Until both are recorded and signed, exact retention/SLA values cannot be
-invented, ADR 0030 cannot become Accepted, and the privacy runtime remains
-blocked. Active Tags require `action_required`; evidence and other-party
-addresses remain excluded; Holds take precedence over affected cleanup.
+Forge Life LLC, acting as ForgeTag Product Owner and Privacy Owner, approved
+policy `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` effective 2026-08-27. The
+approval freezes exact retention/SLA values, Owner/Finder/previous-Owner export
+boundaries, and constrained anonymization. Active Tags require
+`action_required`; evidence and other-party addresses remain excluded; Holds
+take precedence over affected cleanup. RT-340 engineering is authorized, while
+production enablement remains a separate approval.
+
+RT-339 remains `IN_PROGRESS` until its focused documentation PR passes and
+merges. The policy approval is final; this repository-state distinction avoids
+claiming that unmerged work already exists on canonical `main`.

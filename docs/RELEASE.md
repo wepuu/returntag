@@ -1043,12 +1043,14 @@ Schema `15`, capability contract `6`, Theme `0.1.0`, and every runtime feature
 flag unchanged. It creates no exporter, eraser, request table, queue worker,
 email, artifact, deployment, or production authorization.
 
-The external policy version and accountable owner remain `UNVERIFIED`.
-Therefore ADR 0030 remains Proposed/Blocked and RT-340 cannot pass acceptance.
-The later runtime must prove bounded WordPress exporter/eraser pagination,
-Owner/Finder/previous-Owner isolation, active-Tag `action_required`, Hold
-precedence, idempotent retry, partial-failure recovery, privacy-safe Events and
-logs, and a complete export leakage scan.
+ADR 0030 is Accepted against
+`FORGETAG-PRIVACY-RETENTION-v1.0-20260827`, effective 2026-08-27 and approved
+by Forge Life LLC acting as ForgeTag Product Owner and Privacy Owner. RT-340
+engineering is authorized. Its later runtime must prove bounded WordPress
+exporter/eraser pagination, Owner/Finder/previous-Owner isolation, active-Tag
+`action_required`, Hold precedence, idempotent retry, partial-failure recovery,
+privacy-safe Events and logs, the complete retention/SLA matrix, and an export
+leakage scan. Production enablement remains separately gated.
 
 Rollback of RT-339 is documentation-only. RT-340 rollback must instead disable
 new intake and workers while preserving request checkpoints and completed

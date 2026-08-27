@@ -242,8 +242,9 @@ signed webhook endpoint is registered, and synthetic dispatch, webhook,
 revocation, and rotation evidence pass.
 
 [RT-339](https://github.com/wepuu/returntag/issues/97) freezes the privacy data
-map and is blocked for acceptance until the approved external policy has a
-stable version identifier and accountable owner.
+map. Policy `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` is approved and effective
+2026-08-27, with Forge Life LLC accountable as ForgeTag Product Owner and
+Privacy Owner.
 
 Because deferred content moderation did not change Schema 14, the fixed
 additive migration sequence is:
@@ -264,12 +265,15 @@ secrets are injected, the HTTPS webhook is registered, and the
 synthetic delivery/failure matrix is recorded. No production enablement is
 authorized.
 
-RT-339 privacy contract is `IN_PROGRESS` on Issue #97 and an isolated contract
-branch. ADR 0030 and the evidence-backed data map define participant visibility,
-export exclusions, constrained anonymization, active-Tag `action_required`,
-Hold precedence, idempotent checkpoints, and RT-340 release gates. RT-339 does not add Schema 16 or any runtime callback, table, queue, route, email, or
-external side effect. Acceptance remains blocked while the external policy
-version and accountable owner are `UNVERIFIED`.
+RT-339 privacy contract is `IN_PROGRESS` on Issue #97 and its isolated contract
+branch. The product/privacy contract is approved; repository acceptance still
+requires the focused PR to pass and merge. ADR 0030 and the evidence-backed
+data map define participant visibility, export exclusions, constrained
+anonymization, active-Tag `action_required`, Hold precedence, exact retention
+and SLA boundaries, idempotent checkpoints, and RT-340 release gates. RT-339
+does not add Schema 16 or any runtime callback, table, queue, route, email, or
+external side effect. RT-340 engineering is authorized; production enablement
+remains a separate approval.
 
 No empty moderation migration is reserved. Each migration still requires fresh
 install, previous-Schema upgrade, idempotent retry, previous-code compatibility,
@@ -350,11 +354,10 @@ the sequence. Every update must link the relevant Issue or PR and preserve the
 distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
-RT-332 is the latest accepted work item and removes image content moderation
-from the v1 critical path. RT-336 is the active engineering spike. The external-
-service gates are RT-333 for Resend and RT-334 for
-Cloudflare Turnstile; they remain `BLOCKED` until those resources exist.
-RT-339 is also assigned but remains blocked for acceptance by the versioned
-privacy policy. Contract-first P0 work may proceed in the dependency order
-above; unassigned Proposed numbers remain placeholders until their
-single-purpose Issues are created.
+RT-332 removes image content moderation from the v1 critical path. RT-336 and
+RT-337 are merged; RT-337 still awaits staging transport and webhook acceptance.
+The remaining external-service gates are RT-333 for Resend staging/production
+configuration and RT-334 for Cloudflare Turnstile.
+RT-339 is accepted against the versioned privacy policy, so RT-340 engineering
+may proceed in the dependency order above. Unassigned Proposed numbers remain
+placeholders until their single-purpose Issues are created.

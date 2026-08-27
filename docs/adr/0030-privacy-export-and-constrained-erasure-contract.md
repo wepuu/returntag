@@ -1,8 +1,8 @@
 # ADR 0030: Privacy export and constrained-erasure contract
 
-**Status:** Proposed — BLOCKED for acceptance
+**Status:** Accepted
 
-**Date:** 2026-08-26
+**Date:** 2026-08-27
 
 **Scope:** RT-339 contract only; no runtime or Schema change
 
@@ -10,18 +10,58 @@
 
 **Plugin before/after:** `0.5.0 -> 0.5.0`
 
-## Blocking policy binding
+## Approved policy binding
 
-The external privacy and retention policy is reported as approved, but its
-stable version identifier and accountable owner are not present in the
-repository. They are therefore `UNVERIFIED`. This ADR cannot become Accepted,
-and RT-340 runtime must remain disabled, until both values are recorded here
-and the policy-to-engineering mapping is signed by the privacy owner.
+| Field | Approved value |
+|---|---|
+| External policy ID | `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` |
+| Effective date | 2026-08-27 |
+| Approver role | ForgeTag Product Owner and Privacy Owner |
+| Accountable organization | Forge Life LLC |
+| Approval date | 2026-08-27 |
 
-The contract deliberately does not invent retention periods or response-time
-SLA values. Those values must come from the versioned external policy. Existing
-short-lived technical expiry and Finder evidence retention controls remain in
-force until that binding is approved.
+Forge Life LLC approved the Owner, Finder, and previous-Owner export boundaries
+in this ADR and the linked data map, together with constrained anonymization.
+The approval authorizes RT-340 engineering implementation. Production
+enablement remains a separate approval.
+
+### Retention schedule
+
+| Data class | Approved maximum or preservation rule |
+|---|---|
+| WordPress privacy export archive | 7 days |
+| Privacy request audit record | 3 years |
+| OTP challenge after expiry or consumption | 24 hours |
+| Access-token hash after expiry or revocation | 30 days |
+| Temporary rate-limit and submission state after expiry | 24 hours |
+| Operational and security logs | 90 days |
+| Finder Evidence after Owner notification | 30 days |
+| Rejected or incomplete Finder Evidence | 7 days |
+| Closed or expired Conversation message content | 12 months |
+| Private Tag fields after ownership ends | 30 days |
+| Email delivery and webhook metadata | 180 days |
+| Ownership, transfer, dispute, and security audit facts | 7 years, with constrained anonymization |
+| Tag IDs, Batch, and manufacturing export integrity records | Permanent; Tag IDs are never reused |
+| Backup natural expiry | 35 days |
+
+An active approved Hold overrides cleanup only for affected data. The backup
+boundary is a natural-expiry requirement: privacy processing does not rewrite
+historical backups, and deleted or anonymized live data must disappear as
+protected backups rotate within 35 days.
+
+### Response SLA
+
+| Stage | Approved target or limit |
+|---|---|
+| Request acknowledgement | Immediate; no later than 24 hours |
+| Normal export completion | Target 7 calendar days |
+| Normal erasure completion | Target 7 calendar days |
+| Internal completion limit | 30 calendar days |
+| Retryable processing failure | Operational alert within 24 hours |
+| Completion notification | Within 24 hours of completion |
+
+`action_required` and a valid Hold pause only the affected completion clock.
+They do not permit TagCore to report a request as completed.
 
 ## Context
 
@@ -169,8 +209,8 @@ or bypass a Hold.
 - Some privacy requests legitimately require user action or delayed completion.
 - Audit and anti-reuse history survive anonymization without preserving an
   unnecessary direct identity link.
-- Exact retention and SLA values remain blocked until the external policy has
-  a stable identifier and accountable owner.
+- RT-340 has an accountable, versioned retention and SLA contract against
+  which runtime behavior and operational evidence can be tested.
 
 ## Rejected alternatives
 
@@ -191,14 +231,16 @@ rights, and evidence that the approved product decision explicitly excludes.
 
 ### Hard-code a provisional retention or SLA schedule
 
-Rejected because the approved external policy is not versioned in the
-repository. Engineering convenience cannot substitute for policy authority.
+Rejected because engineering convenience cannot substitute for policy
+authority. The schedule above is binding because it comes from the versioned
+approval, not because it is convenient for the implementation.
 
 ## Rollout and rollback
 
-This proposed ADR changes documentation only. RT-340 must introduce an
-independent default-disabled runtime, additive Schema 16 migration, fresh and
-15-to-16 upgrade tests, retry checkpoints, and an operational kill switch.
-Rollback disables new request intake and workers while preserving request
-state and audit evidence; it must not reverse completed anonymization or delete
-business records.
+This accepted ADR changes documentation only. RT-340 is authorized to introduce
+an independent default-disabled runtime, additive Schema 16 migration, fresh
+and 15-to-16 upgrade tests, retry checkpoints, and an operational kill switch.
+Acceptance requires proof that every approved retention and SLA rule is mapped
+and enforced. Rollback disables new request intake and workers while preserving
+request state and audit evidence; it must not reverse completed anonymization
+or delete business records. This ADR does not authorize production enablement.

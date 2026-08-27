@@ -981,7 +981,11 @@ and eraser callbacks, repositories, private-media cleanup, queues, and the
 RT-337 transactional gateway. Account and Admin controllers remain thin and
 must recheck committed identity, ownership, capability, and request state.
 
-RT-340 must remain disabled until the external privacy policy has a stable
-version and accountable owner, Schema 16 is approved, and the complete export
-and constrained-erasure matrix passes. RT-339 adds no runtime composition,
-route, callback, Option, queue, table, Migration, or external side effect.
+The approved policy binding is
+`FORGETAG-PRIVACY-RETENTION-v1.0-20260827`, effective 2026-08-27, with Forge
+Life LLC accountable as ForgeTag Product Owner and Privacy Owner. RT-340
+engineering is authorized, but its runtime must remain default-disabled until
+Schema 16 is approved and the complete export, constrained-erasure, retention,
+and SLA matrix passes. Production enablement requires separate approval.
+RT-339 adds no runtime composition, route, callback, Option, queue, table,
+Migration, or external side effect.

@@ -1238,3 +1238,10 @@ and transfer outcomes, accepted-message audit facts, and security Events are
 preserved. Fresh installation, `15 -> 16` upgrade, retry, previous-code
 compatibility, and rollback remain RT-340 requirements rather than RT-339
 implementation evidence.
+
+The accepted `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` schedule fixes the
+maximum storage boundaries mapped in the RT-339 data map. In particular,
+expired or consumed OTP challenge rows must be removed within 24 hours; the
+current seven-day post-expiry implementation is a known RT-340 acceptance gap.
+Live-system anonymization does not rewrite historical backups; affected backup
+data expires through protected rotation within 35 days.

@@ -195,18 +195,22 @@ describe( 'findMissingPrivacyRequestContract', () => {
 		const contentsByPath = {
 			'docs/adr/0030-privacy-export-and-constrained-erasure-contract.md':
 				[
-					'Proposed — BLOCKED for acceptance',
+					'**Status:** Accepted',
+					'FORGETAG-PRIVACY-RETENTION-v1.0-20260827',
+					'Backup natural expiry | 35 days',
 					'Active owned Tag causes `action_required`',
 					'privacy request table does not',
 				].join( '\n' ),
 			'docs/privacy/RT-339-DATA-MAP.md': [
-				'External policy version:** `UNVERIFIED`',
-				'Accountable privacy owner:** `UNVERIFIED`',
+				'**Status:** Accepted contract map',
+				'External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`',
+				'Accountable privacy owner:** Forge Life LLC',
+				'existing seven-day post-expiry cleanup is non-compliant',
 				'Finder evidence | Exclude',
 			].join( '\n' ),
 			'docs/ARCHITECTURE.md': [
 				'RT-339 privacy export and constrained-erasure contract',
-				'RT-340 must remain disabled',
+				'runtime must remain default-disabled',
 			].join( '\n' ),
 			'docs/DATABASE.md': [
 				'RT-339 privacy data-map contract',
@@ -218,15 +222,18 @@ describe( 'findMissingPrivacyRequestContract', () => {
 			].join( '\n' ),
 			'docs/RELEASE.md': [
 				'RT-339 privacy-contract release gate',
-				'policy version and accountable owner remain `UNVERIFIED`',
+				'ADR 0030 is Accepted',
+				'Production enablement remains separately gated',
 			].join( '\n' ),
 			'docs/ROADMAP.md': [
 				'RT-339 privacy contract is `IN_PROGRESS`',
+				'product/privacy contract is approved',
 				'does not add Schema 16',
 			].join( '\n' ),
 			'docs/PROJECT_STATUS.md': [
-				'RT-339 privacy contract draft',
-				'policy version and accountable owner are `UNVERIFIED`',
+				'RT-339 privacy contract approval',
+				'RT-340 engineering is authorized',
+				'RT-339 remains `IN_PROGRESS`',
 			].join( '\n' ),
 		};
 
