@@ -965,3 +965,27 @@ mapping. Infrastructure discards the payload after extracting allowlisted event
 identity, message identity, type, and time. Repository row locks and the
 Application transition policy deduplicate and converge out-of-order events. A
 recurring Action Scheduler worker retries valid, uncorrelated metadata rows.
+
+## 31. RT-339 privacy export and constrained-erasure contract
+
+ADR 0030 and the RT-339 data map define a contract-only boundary over every
+TagCore table, WordPress Option class, private object, Action Scheduler payload,
+Event, and ordinary log. Application-level privacy services must coordinate
+authorization, active-Tag and Hold decisions, pagination, checkpoints, and
+audit through explicit ports. They must not depend directly on `$wpdb`, raw
+WordPress request globals, Action Scheduler storage, object storage, or email
+provider APIs.
+
+Infrastructure adapters may integrate with WordPress personal-data exporter
+and eraser callbacks, repositories, private-media cleanup, queues, and the
+RT-337 transactional gateway. Account and Admin controllers remain thin and
+must recheck committed identity, ownership, capability, and request state.
+
+The approved policy binding is
+`FORGETAG-PRIVACY-RETENTION-v1.0-20260827`, effective 2026-08-27, with Forge
+Life LLC accountable as ForgeTag Product Owner and Privacy Owner. RT-340
+engineering is authorized, but its runtime must remain default-disabled until
+Schema 16 is approved and the complete export, constrained-erasure, retention,
+and SLA matrix passes. Production enablement requires separate approval.
+RT-339 adds no runtime composition, route, callback, Option, queue, table,
+Migration, or external side effect.

@@ -2,8 +2,8 @@
 
 **Status:** Approved implementation path re-certified by RT-331 and aligned by RT-332
 
-**Runtime implementation baseline:** canonical `main` commit `7593711`,
-TagCore `0.5.0`, Schema `14`, ForgeTag Theme `0.1.0`
+**Runtime implementation baseline:** canonical `main` commit `164480c`,
+TagCore `0.5.0`, Schema `15`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
 
@@ -49,16 +49,16 @@ gate.
 | Area | Status | Current evidence and remaining boundary |
 |---|---|---|
 | Milestone 0: engineering | `ACCEPTED` | Repository, Composer, tests, CI, artifacts, flags, and logging are on `main`. |
-| Milestone 1: persistence | `ACCEPTED` | Numbered migrations and repository boundaries are on `main`; Schema has since advanced to `14`. |
+| Milestone 1: persistence | `ACCEPTED` | Numbered migrations and repository boundaries are on `main`; RT-337 has advanced the merged target to Schema `15`. |
 | Milestone 2: manufacturing | `ACCEPTED` | Batch creation, secure Tag ID generation, audited export, lifecycle controls, search, and capacity coverage are on `main`. |
 | Milestone 3: activation | `ACCEPTED` | Canonical scan, OTP, passwordless Session, atomic activation, convergence, limits, and Smart Tag static guidance are on `main`. |
 | Milestone 4: Owner | `ACCEPTED` | Owner services and RT-324 Account presentation are on `main`; production enablement remains a separate release gate. |
-| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted. ADR 0028 defers content moderation; RT-337 delivery-bridge implementation is in PR #100 and still requires staging acceptance. |
+| Milestone 5: Finder relay | `IN_PROGRESS` | RT-323 public presentation and the private Relay runtime are accepted. ADR 0028 defers content moderation; RT-337 is merged and still requires staging delivery acceptance. |
 | Milestone 6: WooCommerce | `PLANNED` | RT-321 commerce presentation is accepted, but TagCore has no Completed Order onboarding runtime. |
 | Milestone 7: operations | `IN_PROGRESS` | RT-326 through RT-329 provide query, lifecycle, Finder Report decisions, roles, Audit, and Retention. The complete ownership-dispute workflow remains open. |
 | Milestone 8: release readiness | `IN_PROGRESS` | CI and artifact automation exist; production dependencies, full compatibility, security, rollback, and release-candidate acceptance remain open. |
 
-The merged operations baseline is TagCore `0.5.0`, Schema `14`, and capability
+The merged operations baseline is TagCore `0.5.0`, Schema `15`, and capability
 contract version `6`. This describes implementation state only. It is not a
 published Milestone 7 release and does not authorize production enablement.
 
@@ -242,8 +242,9 @@ signed webhook endpoint is registered, and synthetic dispatch, webhook,
 revocation, and rotation evidence pass.
 
 [RT-339](https://github.com/wepuu/returntag/issues/97) freezes the privacy data
-map and is blocked for acceptance until the approved external policy has a
-stable version identifier and accountable owner.
+map. Policy `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` is approved and effective
+2026-08-27, with Forge Life LLC accountable as ForgeTag Product Owner and
+Privacy Owner.
 
 Because deferred content moderation did not change Schema 14, the fixed
 additive migration sequence is:
@@ -254,15 +255,25 @@ Schema 16 - privacy requests
 Schema 17 - ownership disputes
 ```
 
-RT-337 is `IN_PROGRESS` in [PR #100](https://github.com/wepuu/returntag/pull/100),
-based directly on canonical `main@7593711`. The candidate repository now
+RT-337 is `MERGED` through [PR #100](https://github.com/wepuu/returntag/pull/100)
+at canonical `main@164480c`. The repository now
 contains the additive Schema 15 contract, provider-neutral gateway, direct
 Resend adapter, environment-only configuration, signed webhook boundary,
 event deduplication, out-of-order convergence, and pending-event worker. This
-is implementation evidence only: acceptance remains blocked until the PR
-merges, staging secrets are injected, the HTTPS webhook is registered, and the
+is implementation evidence only: acceptance remains blocked until staging
+secrets are injected, the HTTPS webhook is registered, and the
 synthetic delivery/failure matrix is recorded. No production enablement is
 authorized.
+
+RT-339 privacy contract is `IN_PROGRESS` on Issue #97 and its isolated contract
+branch. The product/privacy contract is approved; repository acceptance still
+requires the focused PR to pass and merge. ADR 0030 and the evidence-backed
+data map define participant visibility, export exclusions, constrained
+anonymization, active-Tag `action_required`, Hold precedence, exact retention
+and SLA boundaries, idempotent checkpoints, and RT-340 release gates. RT-339
+does not add Schema 16 or any runtime callback, table, queue, route, email, or
+external side effect. RT-340 engineering is authorized; production enablement
+remains a separate approval.
 
 No empty moderation migration is reserved. Each migration still requires fresh
 install, previous-Schema upgrade, idempotent retry, previous-code compatibility,
@@ -343,11 +354,10 @@ the sequence. Every update must link the relevant Issue or PR and preserve the
 distinction between code merge, actual-page acceptance, operational readiness,
 and production release.
 
-RT-332 is the latest accepted work item and removes image content moderation
-from the v1 critical path. RT-336 is the active engineering spike. The external-
-service gates are RT-333 for Resend and RT-334 for
-Cloudflare Turnstile; they remain `BLOCKED` until those resources exist.
-RT-339 is also assigned but remains blocked for acceptance by the versioned
-privacy policy. Contract-first P0 work may proceed in the dependency order
-above; unassigned Proposed numbers remain placeholders until their
-single-purpose Issues are created.
+RT-332 removes image content moderation from the v1 critical path. RT-336 and
+RT-337 are merged; RT-337 still awaits staging transport and webhook acceptance.
+The remaining external-service gates are RT-333 for Resend staging/production
+configuration and RT-334 for Cloudflare Turnstile.
+RT-339 is accepted against the versioned privacy policy, so RT-340 engineering
+may proceed in the dependency order above. Unassigned Proposed numbers remain
+placeholders until their single-purpose Issues are created.

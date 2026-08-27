@@ -90,6 +90,49 @@ const ownerDashboardContract = {
 		'Account login is not Secure',
 	],
 };
+const privacyRequestContract = {
+	'docs/adr/0030-privacy-export-and-constrained-erasure-contract.md': [
+		'**Status:** Accepted',
+		'FORGETAG-PRIVACY-RETENTION-v1.0-20260827',
+		'Backup natural expiry | 35 days',
+		'Active owned Tag causes `action_required`',
+		'privacy request table does not',
+	],
+	'docs/privacy/RT-339-DATA-MAP.md': [
+		'**Status:** Accepted contract map',
+		'External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`',
+		'Accountable privacy owner:** Forge Life LLC',
+		'existing seven-day post-expiry cleanup is non-compliant',
+		'Finder evidence | Exclude',
+	],
+	'docs/ARCHITECTURE.md': [
+		'RT-339 privacy export and constrained-erasure contract',
+		'runtime must remain default-disabled',
+	],
+	'docs/DATABASE.md': [
+		'RT-339 privacy data-map contract',
+		'keeps Schema `15`',
+	],
+	'docs/SECURITY.md': [
+		'RT-339 privacy-request security contract',
+		'Active Tag ownership is an `action_required` gate',
+	],
+	'docs/RELEASE.md': [
+		'RT-339 privacy-contract release gate',
+		'ADR 0030 is Accepted',
+		'Production enablement remains separately gated',
+	],
+	'docs/ROADMAP.md': [
+		'RT-339 privacy contract is `IN_PROGRESS`',
+		'product/privacy contract is approved',
+		'does not add Schema 16',
+	],
+	'docs/PROJECT_STATUS.md': [
+		'RT-339 privacy contract approval',
+		'RT-340 engineering is authorized',
+		'RT-339 remains `IN_PROGRESS`',
+	],
+};
 const supersededFinderStatements = [
 	'Finder email must be verified before the owner is notified.',
 	'Finder email must be verified before owner notification.',
@@ -246,6 +289,26 @@ export const findMissingOwnerDashboardContract = ( contentsByPath ) => {
 	return failures;
 };
 
+export const findMissingPrivacyRequestContract = ( contentsByPath ) => {
+	const failures = [];
+
+	for ( const [ relativePath, requiredText ] of Object.entries(
+		privacyRequestContract
+	) ) {
+		const contents = contentsByPath[ relativePath ] ?? '';
+
+		for ( const text of requiredText ) {
+			if ( ! contents.includes( text ) ) {
+				failures.push(
+					`${ relativePath }: missing RT-339 contract: ${ text }`
+				);
+			}
+		}
+	}
+
+	return failures;
+};
+
 const checkFinderEvidenceContract = async () => {
 	const contentsByPath = {};
 
@@ -270,6 +333,19 @@ const checkOwnerDashboardContract = async () => {
 	}
 
 	return findMissingOwnerDashboardContract( contentsByPath );
+};
+
+const checkPrivacyRequestContract = async () => {
+	const contentsByPath = {};
+
+	for ( const relativePath of Object.keys( privacyRequestContract ) ) {
+		contentsByPath[ relativePath ] = await readFile(
+			join( repositoryRoot, relativePath ),
+			'utf8'
+		);
+	}
+
+	return findMissingPrivacyRequestContract( contentsByPath );
 };
 
 const checkRelativeLinks = async ( files ) => {
@@ -496,6 +572,7 @@ export const runDocumentationChecks = async () => {
 		...( await checkStatusMarkdownStructure() ),
 		...( await checkFinderEvidenceContract() ),
 		...( await checkOwnerDashboardContract() ),
+		...( await checkPrivacyRequestContract() ),
 		...( await checkAssetManifest() ),
 		...( await checkExclusions() ),
 		...( await checkSecrets( textFiles ) ),

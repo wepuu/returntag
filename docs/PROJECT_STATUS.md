@@ -16,9 +16,8 @@
 
 * Plugin directory: `plugin/tagcore`
 
-* Current merged baseline: TagCore `0.5.0`, Schema `14`, capability contract
-  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@7593711`; RT-337 PR
-  #100 is the unmerged Schema 15 candidate
+* Current merged baseline: TagCore `0.5.0`, Schema `15`, capability contract
+  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@164480c`
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
   portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
@@ -26,9 +25,9 @@
   privacy, dispute, WooCommerce onboarding, Recovery, and release gates remain
   open in the [delivery roadmap](ROADMAP.md)
 
-* Current workstream: RT-336 is merged and RT-337 implements the direct Resend
-  delivery projection and signed webhook before staging acceptance and the
-  remaining P0 path to TagCore `0.9.0`
+* Current workstream: RT-337 delivery projection is merged but awaits staging
+  acceptance; RT-339 product/privacy approval authorizes default-off RT-340
+  engineering while repository acceptance awaits the focused PR
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1259,3 +1258,22 @@ capability contract `6`, and ForgeTag Theme `0.1.0`. RT-331 changes no runtime,
 Schema, migration, dependency, Option, Hook, route, feature flag, artifact,
 production configuration, or deployment authorization. Local design prototype
 material remains excluded from the repository.
+
+## RT-339 privacy contract approval
+
+RT-339 adds Accepted ADR 0030, an evidence-backed map across TagCore tables,
+WordPress identity and Options, private objects, Action Scheduler payloads,
+Events, and logs, plus documentation CI markers for the frozen privacy
+boundaries. It changes no runtime or Schema.
+
+Forge Life LLC, acting as ForgeTag Product Owner and Privacy Owner, approved
+policy `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` effective 2026-08-27. The
+approval freezes exact retention/SLA values, Owner/Finder/previous-Owner export
+boundaries, and constrained anonymization. Active Tags require
+`action_required`; evidence and other-party addresses remain excluded; Holds
+take precedence over affected cleanup. RT-340 engineering is authorized, while
+production enablement remains a separate approval.
+
+RT-339 remains `IN_PROGRESS` until its focused documentation PR passes and
+merges. The policy approval is final; this repository-state distinction avoids
+claiming that unmerged work already exists on canonical `main`.

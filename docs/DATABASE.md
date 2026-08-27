@@ -1216,3 +1216,32 @@ Migration `0015` is additive, verifies Schema 14 first, supports fresh install
 and `14 -> 15` retry, and performs no data rewrite. Previous code ignores both
 tables. Rollback disables email dispatch and the webhook runtime while
 preserving delivery history.
+
+## 30. RT-339 privacy data-map contract
+
+RT-339 keeps Schema `15` and adds no table, column, index, Repository write,
+WordPress Option, file, or queue payload. ADR 0030 and
+`docs/privacy/RT-339-DATA-MAP.md` classify the current persistence contract
+before RT-340 may propose additive Schema 16 privacy requests.
+
+The future request table is constrained to internal identity, fixed
+`export|erasure` type, fixed state, versioned policy reference, opaque
+idempotency, bounded checkpoint/attempt metadata, fixed reason/error code, and
+UTC lifecycle times. It must not store email, IP, message or item content,
+evidence or object references, token/OTP material, provider payload, or
+administrator free text.
+
+Any active Tag owned by the requester causes `action_required` before identity
+mutation. An active retention, dispute, abuse, or legal/operational Hold blocks
+only affected cleanup. Generated Tag IDs, immutable Batch exports, ownership
+and transfer outcomes, accepted-message audit facts, and security Events are
+preserved. Fresh installation, `15 -> 16` upgrade, retry, previous-code
+compatibility, and rollback remain RT-340 requirements rather than RT-339
+implementation evidence.
+
+The accepted `FORGETAG-PRIVACY-RETENTION-v1.0-20260827` schedule fixes the
+maximum storage boundaries mapped in the RT-339 data map. In particular,
+expired or consumed OTP challenge rows must be removed within 24 hours; the
+current seven-day post-expiry implementation is a known RT-340 acceptance gap.
+Live-system anonymization does not rewrite historical backups; affected backup
+data expires through protected rotation within 35 days.

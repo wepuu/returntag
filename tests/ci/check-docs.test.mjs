@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
 	findMissingFinderEvidenceContract,
 	findMissingOwnerDashboardContract,
+	findMissingPrivacyRequestContract,
 	findUnintendedStructuralEscapes,
 } from '../../scripts/check-docs.mjs';
 
@@ -172,6 +173,72 @@ describe( 'findMissingOwnerDashboardContract', () => {
 
 		assert.deepEqual(
 			findMissingOwnerDashboardContract( contentsByPath ),
+			[]
+		);
+	} );
+} );
+
+describe( 'findMissingPrivacyRequestContract', () => {
+	it( 'reports an incomplete privacy request contract', () => {
+		const failures = findMissingPrivacyRequestContract( {
+			'docs/privacy/RT-339-DATA-MAP.md': 'Draft map.',
+		} );
+
+		assert.ok(
+			failures.some( ( failure ) =>
+				failure.includes( 'missing RT-339 contract' )
+			)
+		);
+	} );
+
+	it( 'accepts the frozen privacy request markers', () => {
+		const contentsByPath = {
+			'docs/adr/0030-privacy-export-and-constrained-erasure-contract.md':
+				[
+					'**Status:** Accepted',
+					'FORGETAG-PRIVACY-RETENTION-v1.0-20260827',
+					'Backup natural expiry | 35 days',
+					'Active owned Tag causes `action_required`',
+					'privacy request table does not',
+				].join( '\n' ),
+			'docs/privacy/RT-339-DATA-MAP.md': [
+				'**Status:** Accepted contract map',
+				'External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`',
+				'Accountable privacy owner:** Forge Life LLC',
+				'existing seven-day post-expiry cleanup is non-compliant',
+				'Finder evidence | Exclude',
+			].join( '\n' ),
+			'docs/ARCHITECTURE.md': [
+				'RT-339 privacy export and constrained-erasure contract',
+				'runtime must remain default-disabled',
+			].join( '\n' ),
+			'docs/DATABASE.md': [
+				'RT-339 privacy data-map contract',
+				'keeps Schema `15`',
+			].join( '\n' ),
+			'docs/SECURITY.md': [
+				'RT-339 privacy-request security contract',
+				'Active Tag ownership is an `action_required` gate',
+			].join( '\n' ),
+			'docs/RELEASE.md': [
+				'RT-339 privacy-contract release gate',
+				'ADR 0030 is Accepted',
+				'Production enablement remains separately gated',
+			].join( '\n' ),
+			'docs/ROADMAP.md': [
+				'RT-339 privacy contract is `IN_PROGRESS`',
+				'product/privacy contract is approved',
+				'does not add Schema 16',
+			].join( '\n' ),
+			'docs/PROJECT_STATUS.md': [
+				'RT-339 privacy contract approval',
+				'RT-340 engineering is authorized',
+				'RT-339 remains `IN_PROGRESS`',
+			].join( '\n' ),
+		};
+
+		assert.deepEqual(
+			findMissingPrivacyRequestContract( contentsByPath ),
 			[]
 		);
 	} );

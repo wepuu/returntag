@@ -1035,3 +1035,24 @@ dispatch. The immediate kill switch is `returntag_email_dispatch_enabled`;
 there is no `wp_mail()` fallback. Code rollback may retain Schema 15 because
 previous stable code ignores both additive tables. Do not drop delivery or
 webhook history during rollback.
+
+## RT-339 privacy-contract release gate
+
+RT-339 is documentation and CI-contract work only. It keeps TagCore `0.5.0`,
+Schema `15`, capability contract `6`, Theme `0.1.0`, and every runtime feature
+flag unchanged. It creates no exporter, eraser, request table, queue worker,
+email, artifact, deployment, or production authorization.
+
+ADR 0030 is Accepted against
+`FORGETAG-PRIVACY-RETENTION-v1.0-20260827`, effective 2026-08-27 and approved
+by Forge Life LLC acting as ForgeTag Product Owner and Privacy Owner. RT-340
+engineering is authorized. Its later runtime must prove bounded WordPress
+exporter/eraser pagination, Owner/Finder/previous-Owner isolation, active-Tag
+`action_required`, Hold precedence, idempotent retry, partial-failure recovery,
+privacy-safe Events and logs, the complete retention/SLA matrix, and an export
+leakage scan. Production enablement remains separately gated.
+
+Rollback of RT-339 is documentation-only. RT-340 rollback must instead disable
+new intake and workers while preserving request checkpoints and completed
+anonymization; it must not attempt to restore erased identity material or
+delete protected business history.
