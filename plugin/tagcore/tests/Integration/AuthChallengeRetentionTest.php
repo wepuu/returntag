@@ -26,7 +26,7 @@ use wpdb;
 
 /** Verifies purpose-independent, private-field-free deletion on the real schema. */
 final class AuthChallengeRetentionTest extends WP_UnitTestCase {
-	/** Install Schema 15 for each isolated test. */
+	/** Install Schema 16 for each isolated test. */
 	protected function setUp(): void {
 		parent::setUp();
 		global $wpdb;
@@ -34,7 +34,7 @@ final class AuthChallengeRetentionTest extends WP_UnitTestCase {
 		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		$this->clear_schema( $wpdb );
 		$runner = new MigrationRunner( ( new MigrationRegistryFactory( $wpdb ) )->create(), new WordPressSchemaVersionStore(), new WordPressAdvisoryMigrationLock( $wpdb, get_current_blog_id(), 0 ) );
-		self::assertSame( 15, $runner->migrate()->ending_version );
+		self::assertSame( 16, $runner->migrate()->ending_version );
 	}
 
 	/** Remove fixtures and recurring actions. */
@@ -126,13 +126,13 @@ final class AuthChallengeRetentionTest extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Remove every TagCore table used by the Schema 15 migration chain.
+	 * Remove every TagCore table used by the Schema 16 migration chain.
 	 *
 	 * @param wpdb $database Active test database.
 	 */
 	private function clear_schema( wpdb $database ): void {
 		$tables = new TableNames( $database->prefix );
-		foreach ( array( $tables->email_webhook_events(), $tables->email_deliveries(), $tables->tag_transfers(), $tables->finder_report_media(), $tables->finder_reports(), $tables->events(), $tables->access_tokens(), $tables->messages(), $tables->conversations(), $tables->auth_challenges(), $tables->batch_exports(), $tables->tags(), $tables->batches() ) as $table_name ) {
+		foreach ( array( $tables->privacy_requests(), $tables->email_webhook_events(), $tables->email_deliveries(), $tables->tag_transfers(), $tables->finder_report_media(), $tables->finder_reports(), $tables->events(), $tables->access_tokens(), $tables->messages(), $tables->conversations(), $tables->auth_challenges(), $tables->batch_exports(), $tables->tags(), $tables->batches() ) as $table_name ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated trusted-table cleanup.
 			$database->query( "DROP TABLE IF EXISTS {$table_name}" );
 		}

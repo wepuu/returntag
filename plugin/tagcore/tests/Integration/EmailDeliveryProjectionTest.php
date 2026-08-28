@@ -182,7 +182,7 @@ final class EmailDeliveryProjectionTest extends WP_UnitTestCase {
 	 */
 	private function clear_schema( wpdb $database ): void {
 		$names = new TableNames( $database->prefix );
-		foreach ( array( $names->email_webhook_events(), $names->email_deliveries(), $names->tag_transfers(), $names->finder_report_media(), $names->finder_reports(), $names->events(), $names->access_tokens(), $names->messages(), $names->conversations(), $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table ) {
+		foreach ( array( $names->privacy_requests(), $names->email_webhook_events(), $names->email_deliveries(), $names->tag_transfers(), $names->finder_report_media(), $names->finder_reports(), $names->events(), $names->access_tokens(), $names->messages(), $names->conversations(), $names->auth_challenges(), $names->batch_exports(), $names->tags(), $names->batches() ) as $table ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Isolated cleanup with trusted identifiers.
 			$database->query( "DROP TABLE IF EXISTS {$table}" );
 		}

@@ -1,7 +1,7 @@
 # ReturnTag Security and Privacy Baseline
 
-**Status:** Security and privacy contracts through RT-337 at TagCore 0.5.0 and
-target Schema 15; remaining P0 production gates are tracked in the
+**Status:** Security and privacy contracts through RT-340 Stage 2 at TagCore
+0.5.0 and target Schema 16; remaining P0 production gates are tracked in the
 [delivery roadmap](ROADMAP.md)
 
 ## 1. Purpose
@@ -1095,3 +1095,25 @@ projection reports only a capped aggregate eligible count and fixed Task
 health; it never reveals a purpose-specific identity, Email, IP, token, OTP,
 or provider value. This stage keeps Schema `15` and does not enable the later
 privacy-request runtime or production deployment.
+
+## RT-340 Stage 2 privacy-request security controls
+
+Schema 16 persists no raw requester email, IP address, free text, private
+content, evidence, token, provider payload, queue payload, or administrator
+note. Requester equality uses a keyed irreversible digest supplied by an
+authorized boundary. An authenticated user request additionally binds to the
+committed WordPress User ID; Finder rows must have no User ID. Submitted Owner
+IDs or email addresses are never authorization evidence.
+
+Opaque SHA-256 idempotency and active-request keys make retries safe without
+revealing identity. Unique constraints prevent duplicate unfinished requests,
+and state plus `row_version` checks reject replay and stale writes. State Events
+contain only fixed actor/target/result values and the internal numeric request
+ID; Event metadata is always absent.
+
+`returntag_privacy_request_intake_enabled` and
+`returntag_privacy_request_processing_enabled` are independent fail-closed
+controls and default disabled. They do not replace actor authorization, active
+Tag checks, Hold checks, or capability enforcement. This stage exposes no
+public or authenticated endpoint, performs no erasure or export, sends no
+email, and creates no archive. Production enablement remains separately gated.

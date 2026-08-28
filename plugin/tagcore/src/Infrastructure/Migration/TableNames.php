@@ -115,4 +115,9 @@ final class TableNames {
 	public function email_webhook_events(): string {
 		return $this->wordpress_prefix . 'returntag_email_webhook_events';
 	}
+
+	/** Return the metadata-only privacy request ledger table. */
+	public function privacy_requests(): string {
+		return $this->wordpress_prefix . 'returntag_privacy_requests';
+	}
 }

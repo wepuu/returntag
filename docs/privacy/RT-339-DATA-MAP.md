@@ -2,8 +2,9 @@
 
 **Status:** Accepted contract map
 
-**Evidence baseline:** canonical `main@7eb791e`, TagCore `0.5.0`, Schema `15`,
-capability contract `6`
+**Evidence baseline:** RT-339 and RT-340 Stage 1 are accepted at canonical
+`main@8fbf2c6`, TagCore `0.5.0`, Schema `15`, capability contract `6`; RT-340
+Stage 2 Schema `16` work is `IN_PROGRESS` on Issue #104
 
 **External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`
 
@@ -23,7 +24,7 @@ here. The governing behavior and approved schedule are fixed in
 | Approved rule | Engineering projection |
 |---|---|
 | Privacy export archive: 7 days | Reuse the protected WordPress export lifecycle; TagCore must not create a second permanent archive. |
-| Privacy request audit: 3 years | Future Schema 16 request rows retain only fixed state, policy version, checkpoint/result codes, and timestamps; no email, body, evidence, IP, or provider payload. |
+| Privacy request audit: 3 years | Schema 16 request rows retain only keyed requester/idempotency references, fixed type/state, policy version, checkpoint/reason/error codes, attempts and timestamps; no email, body, evidence, IP, token, free text or provider payload. Bounded cleanup remains a later production gate. |
 | OTP challenges: 24 hours after expiry/consumption | RT-340 Stage 1 makes every purpose eligible immediately after expiry or consumption and runs a purpose-independent, bounded hourly Worker. |
 | Access-token hashes: 30 days after expiry/revocation | Revoke first, then delete hash-only token rows within 30 days; raw tokens are never stored or exported. |
 | Temporary rate-limit/submission state: 24 hours after expiry | RT-340 Stage 1 moves scheduled Option cleanup to hourly; the Finder Report submission ledger retains its earlier 30-minute one-shot expiry. |
@@ -71,6 +72,7 @@ even if it is internally related to the requester.
 | `returntag_tag_transfers` | source Owner ID, encrypted target email/HMAC, token hash, status/times | Ownership transfer | Participant receives only their role, Tag, status and safe times; never the other party's email or internal ID | Cancel/revoke open token paths before identity anonymization. Preserve transfer outcome and immediate previous-Owner revocation evidence; anonymize eligible direct identity after seven years | Seven-year transfer/security audit; dispute Hold overrides affected anonymization | `CreateTagTransfersTableMigration.php`, transfer repositories |
 | `returntag_email_deliveries` | no address/content; opaque idempotency key and provider message ID | Provider-neutral delivery projection | Exclude provider, IDs, idempotency key and attempts; user-facing export may use only a safe delivery-status summary when tied through an authorized business record | Delete minimal delivery metadata within 180 days; do not attempt email-based deletion because no address is stored | Maximum 180 days | `CreateEmailDeliveryTablesMigration.php`, `WpdbEmailDeliveryRepository.php` |
 | `returntag_email_webhook_events` | no address/content; provider event/message IDs and times | Signature-verified delivery convergence | Exclude | Delete allowlisted metadata within 180 days after convergence; never store or reconstruct raw payload | Maximum 180 days | `CreateEmailDeliveryTablesMigration.php`, webhook repository/controller |
+| `returntag_privacy_requests` | optional WordPress User ID, keyed irreversible requester digest, opaque idempotency/active keys, fixed type/state/policy/checkpoint/reason/error and lifecycle times; no address, content or payload | Privacy request orchestration and audit | Exclude raw row and internal keys; a later authorized projection may expose only safe request type/state/times to its subject | Preserve the metadata-only audit row for three years; later constrained cleanup/anonymization must respect Active Hold and may not use the request as authority for Tag lifecycle changes | Three years; Active Hold overrides affected cleanup | `CreatePrivacyRequestsTableMigration.php`, `WpdbPrivacyRequestRepository.php`, `PrivacyRequestWorkflow.php` |
 
 ## WordPress-owned identity data
 
@@ -120,7 +122,8 @@ Evidence: `Infrastructure/Media`, `Infrastructure/Persistence`, ADR 0019, ADR
 Approved TagCore actions enqueue internal numeric IDs or bounded fixed
 arguments: Batch/checkpoint, challenge ID, Finder Report ID, message ID,
 transfer ID, Event/Owner ID, retention task ID, and email webhook convergence.
-New privacy workers must enqueue only the internal privacy request ID.
+New privacy workers must enqueue only the internal privacy request ID. RT-340
+Stage 2 does not register such a worker or enqueue any request.
 
 Queue payloads must not contain an email address, message body, evidence bytes,
 token, IP address, provider payload, or export archive. The worker re-resolves
@@ -172,7 +175,8 @@ RT-340 engineering implementation is authorized. Runtime acceptance still
 requires:
 
 1. Schema 16 defines the fixed request states without email, free text or
-   private payload storage;
+   private payload storage; RT-340 Stage 2 implements this dormant ledger and
+   default-disabled orchestration boundary;
 2. every rule above is implemented or backed by documented platform
    configuration and operational evidence;
 3. RT-340 Stage 1 challenge and temporary-state retention remains green under

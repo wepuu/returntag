@@ -1,7 +1,7 @@
 # ReturnTag Release Baseline
 
-**Status:** Engineering quality and artifact automation through RT-337 at
-TagCore 0.5.0, target Schema 15, capability contract 6, and ForgeTag Theme
+**Status:** Engineering quality and artifact automation through RT-340 Stage 2
+at TagCore 0.5.0, target Schema 16, capability contract 6, and ForgeTag Theme
 0.1.0; the P0-to-v1.0 release sequence is tracked in the [delivery
 roadmap](ROADMAP.md)
 
@@ -1056,3 +1056,24 @@ Rollback of RT-339 is documentation-only. RT-340 rollback must instead disable
 new intake and workers while preserving request checkpoints and completed
 anonymization; it must not attempt to restore erased identity material or
 delete protected business history.
+
+## RT-340 Stage 2 dark-deployment and rollback contract
+
+RT-340 Stage 2 advances Schema `15 -> 16` without changing TagCore `0.5.0`,
+capability contract `6`, Theme `0.1.0`, or any production setting. Migration
+`0016` is additive and requires fresh-install, exact previous-Schema upgrade,
+idempotent retry, MySQL and MariaDB, and previous-code compatibility evidence.
+It performs no data rewrite and previous stable code ignores the new table.
+
+The new intake and processing controls default disabled. Stage 2 has no route,
+callback, UI, worker, exporter, eraser, archive, email, provider integration,
+artifact, deployment, or production authorization. A dark deployment therefore
+changes only the installed schema and dormant code surface.
+
+Rollback first disables
+`returntag_privacy_request_intake_enabled` and
+`returntag_privacy_request_processing_enabled`. Schema 16 and its request/Event
+history remain in place; do not drop the table, delete checkpoints, restore
+anonymized identity, or remove protected audit facts. Enabling intake or
+processing requires later complete runtime acceptance and separate production
+approval.
