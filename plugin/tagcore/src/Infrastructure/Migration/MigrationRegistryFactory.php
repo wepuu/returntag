@@ -47,6 +47,7 @@ final class MigrationRegistryFactory {
 
 		$transfers = new CreateTagTransfersTableMigration( $this->database, $table_names, $inspector, $dispatch_claims );
 		$holds     = new AddFinderEvidenceHoldMigration( $this->database, $table_names, $transfers );
+		$email     = new CreateEmailDeliveryTablesMigration( $this->database, $table_names, $inspector, $holds );
 		return new MigrationRegistry(
 			array(
 				$batches,
@@ -63,7 +64,8 @@ final class MigrationRegistryFactory {
 				$dispatch_claims,
 				$transfers,
 				$holds,
-				new CreateEmailDeliveryTablesMigration( $this->database, $table_names, $inspector, $holds ),
+				$email,
+				new CreatePrivacyRequestsTableMigration( $this->database, $table_names, $inspector, $email ),
 			)
 		);
 	}

@@ -124,4 +124,11 @@ final class TableNamesTest extends TestCase {
 		self::assertSame( 'rt_test_returntag_email_deliveries', $table_names->email_deliveries() );
 		self::assertSame( 'rt_test_returntag_email_webhook_events', $table_names->email_webhook_events() );
 	}
+
+	/** Schema 16 privacy requests must preserve the active prefix. */
+	public function test_privacy_requests_table_uses_supplied_wordpress_prefix(): void {
+		$table_names = new TableNames( 'rt_test_' );
+
+		self::assertSame( 'rt_test_returntag_privacy_requests', $table_names->privacy_requests() );
+	}
 }

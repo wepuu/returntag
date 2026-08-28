@@ -17,7 +17,7 @@
 * Plugin directory: `plugin/tagcore`
 
 * Current merged baseline: TagCore `0.5.0`, Schema `15`, capability contract
-  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@7eb791e`
+  `6`, and ForgeTag Theme `0.1.0` at canonical `origin/main@8fbf2c6`
 
 * Current delivery state: Milestones 0 through 4 and the consumer presentation
   portion of Milestone 5 are accepted. ADR 0028 defers Finder image content
@@ -26,9 +26,10 @@
   open in the [delivery roadmap](ROADMAP.md)
 
 * Current workstream: RT-337 delivery projection is merged but awaits staging
-  acceptance; RT-339 is accepted and merged; RT-340 Stage 1 is tracked by
-  Issue #102 and implements the 24-hour authentication/temporary-state
-  retention baseline without starting the Schema 16 request runtime
+  acceptance; RT-339 and RT-340 Stage 1 are accepted and merged. RT-340 Stage
+  2 is `IN_PROGRESS` on Issue #104 and proposes additive Schema 16
+  privacy-request persistence and orchestration without UI, export, erasure,
+  email, worker, external side effect, or production enablement
 
 * Canonical execution roadmap: [ReturnTag v1.0 Delivery Roadmap](ROADMAP.md)
 
@@ -1292,3 +1293,25 @@ Report form claims retain their shorter 30-minute one-shot expiry. This stage
 keeps TagCore `0.5.0`, Schema `15`, capability contract `6`, and Theme `0.1.0`.
 It does not add a privacy request table/UI, enable production, deploy, or enter
 the release-candidate gate.
+
+RT-340 Stage 1 is `ACCEPTED` and squash-merged through PR #103 at canonical
+`main@8fbf2c6`. Its source branch remains retained. No production deployment
+was performed.
+
+## RT-340 Stage 2 privacy-request persistence and orchestration
+
+Issue #104 scopes additive Schema 16 and a metadata-only request workflow.
+The proposed ledger supports fixed `export|erasure` requests and
+`queued|processing|action_required|completed|failed` states, keyed requester
+references, retry-safe idempotency, one unfinished request per subject/type,
+optimistic concurrency, resumable fixed checkpoints, and metadata-free Events.
+
+Separate intake and processing controls default disabled. This stage does not
+compose a WordPress route, exporter/eraser callback, Account/Admin UI, queue
+worker, archive, notification, or external provider. It does not execute an
+export or anonymization. Production enablement remains separately gated.
+
+RT-340 Stage 2 is `IN_PROGRESS` on branch
+`codex/RT-340-stage-2-privacy-requests`. Its implementation target is TagCore
+`0.5.0`, Schema `16`, capability contract `6`, and Theme `0.1.0`; these values
+are not a merged baseline until its focused PR passes and merges.

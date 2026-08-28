@@ -2,7 +2,7 @@
 
 **Status:** Approved implementation path re-certified by RT-331 and aligned by RT-332
 
-**Runtime implementation baseline:** canonical `main` commit `164480c`,
+**Runtime implementation baseline:** canonical `main` commit `8fbf2c6`,
 TagCore `0.5.0`, Schema `15`, ForgeTag Theme `0.1.0`
 
 ## 1. Purpose and authority
@@ -265,15 +265,24 @@ secrets are injected, the HTTPS webhook is registered, and the
 synthetic delivery/failure matrix is recorded. No production enablement is
 authorized.
 
-RT-339 privacy contract is `IN_PROGRESS` on Issue #97 and its isolated contract
-branch. The product/privacy contract is approved; repository acceptance still
-requires the focused PR to pass and merge. ADR 0030 and the evidence-backed
+RT-339 privacy contract is `ACCEPTED` through PR #101 at canonical
+`main@7eb791e`. ADR 0030 and the evidence-backed
 data map define participant visibility, export exclusions, constrained
 anonymization, active-Tag `action_required`, Hold precedence, exact retention
 and SLA boundaries, idempotent checkpoints, and RT-340 release gates. RT-339
 does not add Schema 16 or any runtime callback, table, queue, route, email, or
 external side effect. RT-340 engineering is authorized; production enablement
 remains a separate approval.
+
+RT-340 Stage 1 is `ACCEPTED` through PR #103 at canonical `main@8fbf2c6`.
+It implements the approved hourly, purpose-independent authentication and
+temporary-state retention baseline without changing Schema 15.
+RT-340 Stage 2 is `IN_PROGRESS` on Issue #104 and branch
+`codex/RT-340-stage-2-privacy-requests`. Its scope is additive Schema 16,
+metadata-only request persistence, conditional orchestration and Events, with
+intake and processing default disabled. It does not include WordPress privacy
+callbacks, Account/Admin UI, exporter, eraser, archive, worker, email, or
+production enablement.
 
 No empty moderation migration is reserved. Each migration still requires fresh
 install, previous-Schema upgrade, idempotent retry, previous-code compatibility,
@@ -358,9 +367,10 @@ RT-332 removes image content moderation from the v1 critical path. RT-336 and
 RT-337 are merged; RT-337 still awaits staging transport and webhook acceptance.
 The remaining external-service gates are RT-333 for Resend staging/production
 configuration and RT-334 for Cloudflare Turnstile.
-RT-339 is accepted against the versioned privacy policy, so RT-340 engineering
-may proceed in the dependency order above. RT-340 Stage 1 is tracked by Issue
-#102 and addresses the approved 24-hour OTP and temporary-state retention
-baseline without changing Schema `15`; the privacy-request runtime remains a
-separate later stage. Unassigned Proposed numbers remain placeholders until
+RT-339 is accepted against the versioned privacy policy. RT-340 Stage 1 is
+accepted at `main@8fbf2c6`; Stage 2 is `IN_PROGRESS` on Issue #104 and advances
+only the dormant persistence/orchestration boundary to Schema `16`. WordPress
+privacy callbacks, projections, constrained anonymization, cleanup, SLA
+alerts, UI and production acceptance remain later scoped stages. Unassigned
+Proposed numbers remain placeholders until
 their single-purpose Issues are created.

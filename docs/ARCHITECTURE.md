@@ -1,9 +1,9 @@
 # ReturnTag Architecture
 
-**Status:** Runtime architecture through RT-337: TagCore 0.5.0 at target Schema
-15 with capability contract 6. The re-certified consumer presentation baseline
-is preserved and the remaining P0 and release work is tracked in the [delivery
-roadmap](ROADMAP.md)
+**Status:** Runtime architecture through RT-340 Stage 2: TagCore 0.5.0 at target
+Schema 16 with capability contract 6. The re-certified consumer presentation
+baseline is preserved and the remaining P0 and release work is tracked in the
+[delivery roadmap](ROADMAP.md)
 
 **Plugin:** TagCore (`plugin/tagcore`)
 
@@ -989,3 +989,27 @@ Schema 16 is approved and the complete export, constrained-erasure, retention,
 and SLA matrix passes. Production enablement requires separate approval.
 RT-339 adds no runtime composition, route, callback, Option, queue, table,
 Migration, or external side effect.
+
+## 32. RT-340 Stage 2 privacy-request persistence and orchestration
+
+The Privacy Application boundary owns fixed request types and states,
+idempotent start, optimistic state transitions, checkpoints, and metadata-free
+audit Events. It accepts only a `PrivacyRequestSubject`: authenticated Owners
+use a committed WordPress User ID plus keyed requester digest, while Finder
+identity uses only a keyed irreversible digest and no WordPress User ID. Raw
+email addresses and request payloads never cross into the request Repository.
+
+Infrastructure provides the additive Schema 16 Migration and `$wpdb`
+Repository. Atomic unique keys resolve repeated submissions and prevent more
+than one unfinished request for a subject/type. Conditional writes use state
+and `row_version`; the Application service places the write and Event append in
+one database transaction. Domain and Application code do not depend on
+`$wpdb`, WordPress request globals, Action Scheduler, file storage, or an email
+provider.
+
+Stage 2 intentionally has no Bootstrap composition, route, WordPress exporter
+or eraser callback, Account/Admin UI, worker, archive, email, or external call.
+Both intake and processing remain independently default-disabled. Later stages
+must compose these ports only after actor authorization, active-Tag and Hold
+rechecks, bounded projection contracts, and the full privacy acceptance matrix
+are implemented.

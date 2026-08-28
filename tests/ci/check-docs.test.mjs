@@ -211,29 +211,34 @@ describe( 'findMissingPrivacyRequestContract', () => {
 			'docs/ARCHITECTURE.md': [
 				'RT-339 privacy export and constrained-erasure contract',
 				'runtime must remain default-disabled',
+				'RT-340 Stage 2 privacy-request persistence and orchestration',
 			].join( '\n' ),
 			'docs/DATABASE.md': [
 				'RT-339 privacy data-map contract',
 				'keeps Schema `15`',
+				'Schema 16 privacy-request orchestration ledger',
 			].join( '\n' ),
 			'docs/SECURITY.md': [
 				'RT-339 privacy-request security contract',
 				'Active Tag ownership is an `action_required` gate',
+				'RT-340 Stage 2 privacy-request security controls',
 			].join( '\n' ),
 			'docs/RELEASE.md': [
 				'RT-339 privacy-contract release gate',
 				'ADR 0030 is Accepted',
 				'Production enablement remains separately gated',
+				'RT-340 Stage 2 dark-deployment and rollback contract',
 			].join( '\n' ),
 			'docs/ROADMAP.md': [
-				'RT-339 privacy contract is `IN_PROGRESS`',
-				'product/privacy contract is approved',
+				'RT-339 privacy contract is `ACCEPTED`',
+				'RT-340 Stage 2 is `IN_PROGRESS` on Issue #104',
 				'does not add Schema 16',
 			].join( '\n' ),
 			'docs/PROJECT_STATUS.md': [
 				'RT-339 privacy contract approval',
 				'RT-340 engineering is authorized',
 				'RT-339 is `ACCEPTED` and merged through PR #101',
+				'RT-340 Stage 2 privacy-request persistence and orchestration',
 			].join( '\n' ),
 		};
 

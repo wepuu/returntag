@@ -1,11 +1,11 @@
 # ReturnTag Database Baseline
 
-**Status:** Runtime database contract through RT-337: TagCore 0.5.0 at target
-Schema 15 and capability contract 6. RT-337 additively extends the re-certified
-Schema 14 baseline with metadata-only email delivery state; remaining additive
-persistence and release order is tracked in the [delivery roadmap](ROADMAP.md)
+**Status:** Runtime database contract through RT-340 Stage 2: TagCore 0.5.0 at
+target Schema 16 and capability contract 6. RT-340 Stage 2 additively extends
+Schema 15 with a metadata-only privacy-request orchestration ledger; remaining
+runtime and release work is tracked in the [delivery roadmap](ROADMAP.md)
 
-**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`, `returntag_email_deliveries`, `returntag_email_webhook_events`; current target version `15`
+**Current Schema:** `returntag_batches`, `returntag_tags`, `returntag_batch_exports`, `returntag_auth_challenges`, `returntag_conversations`, `returntag_messages`, `returntag_access_tokens`, `returntag_events`, `returntag_finder_reports`, `returntag_finder_report_media`, `returntag_tag_transfers`, `returntag_email_deliveries`, `returntag_email_webhook_events`, `returntag_privacy_requests`; current target version `16`
 
 ## 1. Purpose
 
@@ -1266,3 +1266,41 @@ Rollback disables or removes the new recurring Worker and restores the prior
 schedule code. Already-deleted expired or consumed security challenges are not
 restored, no live unexpired challenge is eligible, and previous `0.5.0` code
 remains compatible because Schema stays `15`.
+
+## 32. Schema 16 privacy-request orchestration ledger
+
+RT-340 Stage 2 adds `returntag_privacy_requests` through Migration `0016`.
+The table is an internal metadata ledger, not a request payload or export
+archive. It stores only a numeric request ID, fixed requester/type/state codes,
+an optional WordPress User ID for authenticated users, keyed irreversible
+requester and idempotency digests, the frozen policy version, fixed checkpoint,
+reason and error codes, attempt and optimistic-lock counters, and UTC lifecycle
+times. It must never store an email address, IP address, free text, item or
+message content, evidence or object references, tokens, provider payloads, or
+administrator notes.
+
+Request types are exactly `export|erasure`; states are exactly
+`queued|processing|action_required|completed|failed`. A unique
+`active_request_key` permits only one unfinished request per keyed subject and
+type. Completion clears that key so later legitimate requests remain possible.
+A unique `idempotency_key` makes submission retry-safe. Every conditional state
+change checks `row_version`; stale or replayed transitions fail without an
+Event. The `requester_history` and `state_updated` indexes support bounded
+subject history and worker selection without scanning private data.
+
+The Application workflow atomically appends metadata-free Events for queued,
+processing, action-required, failed, requeued, and completed transitions.
+Stage 2 creates no WordPress privacy callback, Account or Admin route, exporter,
+eraser, archive, queue worker, email, or external side effect. Intake and
+processing use separate default-disabled controls:
+`returntag_privacy_request_intake_enabled` and
+`returntag_privacy_request_processing_enabled`.
+
+Migration `0016` is additive, verifies exact Schema 15 first, supports fresh
+installation and retry-safe `15 -> 16` upgrade, and performs no row rewrite.
+Previous `0.5.0` code ignores the new table. Operational rollback disables both
+privacy controls and retains request checkpoints and Events; it does not drop
+the table, restore anonymized identity, or delete protected business history.
+The approved request-audit retention boundary is three years, subject to an
+Active Hold where applicable. A later bounded retention implementation remains
+required before production enablement.

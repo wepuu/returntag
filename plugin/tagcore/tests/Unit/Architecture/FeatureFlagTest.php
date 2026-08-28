@@ -38,6 +38,8 @@ final class FeatureFlagTest extends TestCase {
 				'returntag_admin_tag_lifecycle_enabled',
 				'returntag_admin_finder_report_decisions_enabled',
 				'returntag_admin_retention_run_enabled',
+				'returntag_privacy_request_intake_enabled',
+				'returntag_privacy_request_processing_enabled',
 			),
 			$option_names
 		);
