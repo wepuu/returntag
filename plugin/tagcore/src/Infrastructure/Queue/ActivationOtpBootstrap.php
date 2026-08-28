@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Infrastructure\Queue;
 
-use DateInterval;
 use ReturnTag\TagCore\Application\Auth\DispatchActivationOtp;
 use ReturnTag\TagCore\Application\PublicTag\PublicTagPagePolicy;
 use ReturnTag\TagCore\Application\PublicTag\ResolvePublicTagPage;
@@ -41,7 +40,9 @@ use wpdb;
 final class ActivationOtpBootstrap {
 	public const CLEANUP_HOOK = 'returntag_cleanup_activation_otp_rate_limits';
 
-	public const CLEANUP_GROUP = 'returntag-activation-otp-maintenance';
+	public const CLEANUP_GROUP = 'returntag-activation-security-hourly';
+
+	private const LEGACY_CLEANUP_GROUP = 'returntag-activation-otp-maintenance';
 
 	/**
 	 * Register the Worker and maintenance hooks for the current site.
@@ -70,31 +71,27 @@ final class ActivationOtpBootstrap {
 		);
 		add_action(
 			self::CLEANUP_HOOK,
-			static function () use ( $request_limiter, $verification_limiter, $activation_limiter, $entry_limiter, $store ): void {
+			static function () use ( $request_limiter, $verification_limiter, $activation_limiter, $entry_limiter ): void {
 				$request_limiter->cleanup_expired();
 				$verification_limiter->cleanup_expired();
 				$activation_limiter->cleanup_expired();
 				$entry_limiter->cleanup_expired();
-				$before = ( new SystemClock() )->now()->sub( new DateInterval( 'P7D' ) );
-
-				for ( $chunk = 0; $chunk < 10; ++$chunk ) {
-					if ( 500 !== $store->cleanup_expired( $before, 500 ) ) {
-						break;
-					}
-				}
 			}
 		);
 		add_action(
 			'action_scheduler_init',
 			static function (): void {
+				if ( function_exists( 'as_unschedule_all_actions' ) ) {
+					\as_unschedule_all_actions( self::CLEANUP_HOOK, array(), self::LEGACY_CLEANUP_GROUP );
+				}
 				if (
 					function_exists( 'as_has_scheduled_action' )
 					&& function_exists( 'as_schedule_recurring_action' )
 					&& false === \as_has_scheduled_action( self::CLEANUP_HOOK, array(), self::CLEANUP_GROUP )
 				) {
 					\as_schedule_recurring_action(
-						time() + DAY_IN_SECONDS,
-						DAY_IN_SECONDS,
+						time() + HOUR_IN_SECONDS,
+						HOUR_IN_SECONDS,
 						self::CLEANUP_HOOK,
 						array(),
 						self::CLEANUP_GROUP,

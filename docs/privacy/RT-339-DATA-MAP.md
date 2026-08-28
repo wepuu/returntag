@@ -2,7 +2,7 @@
 
 **Status:** Accepted contract map
 
-**Evidence baseline:** canonical `main@164480c`, TagCore `0.5.0`, Schema `15`,
+**Evidence baseline:** canonical `main@7eb791e`, TagCore `0.5.0`, Schema `15`,
 capability contract `6`
 
 **External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`
@@ -24,9 +24,9 @@ here. The governing behavior and approved schedule are fixed in
 |---|---|
 | Privacy export archive: 7 days | Reuse the protected WordPress export lifecycle; TagCore must not create a second permanent archive. |
 | Privacy request audit: 3 years | Future Schema 16 request rows retain only fixed state, policy version, checkpoint/result codes, and timestamps; no email, body, evidence, IP, or provider payload. |
-| OTP challenges: 24 hours after expiry/consumption | All TagCore OTP purposes require bounded deletion within 24 hours. The existing seven-day post-expiry cleanup is non-compliant and must be corrected before RT-340 acceptance. |
+| OTP challenges: 24 hours after expiry/consumption | RT-340 Stage 1 makes every purpose eligible immediately after expiry or consumption and runs a purpose-independent, bounded hourly Worker. |
 | Access-token hashes: 30 days after expiry/revocation | Revoke first, then delete hash-only token rows within 30 days; raw tokens are never stored or exported. |
-| Temporary rate-limit/submission state: 24 hours after expiry | Bounded Option/ledger cleanup must remove expired state within 24 hours. |
+| Temporary rate-limit/submission state: 24 hours after expiry | RT-340 Stage 1 moves scheduled Option cleanup to hourly; the Finder Report submission ledger retains its earlier 30-minute one-shot expiry. |
 | Operational/security logs: 90 days | Provider log retention must be configured to no more than 90 days; logs are never an export source. |
 | Notified Finder Evidence: 30 days | Existing report/media `retention_until` remains the ordinary cleanup boundary; Active Hold overrides affected deletion. |
 | Rejected/incomplete Finder Evidence: 7 days | Seven days is the maximum. Existing 24-hour cleanup remains compliant and may stay shorter. |
@@ -61,7 +61,7 @@ even if it is internally related to the requester.
 | `returntag_batches` | `created_by`; free-text `notes` may contain accidental personal data | Manufacturing audit; administrator/operator | Exclude from Owner/Finder export; operator receives no raw Batch notes through privacy export | Preserve Batch and immutable manufacturing facts permanently; anonymize eligible operator identity after the seven-year audit boundary; free-text notes require separate minimization review | Permanent Batch/export integrity; seven-year attributable audit; Active Hold overrides affected anonymization | `CreateBatchesTableMigration.php`, Batch repositories |
 | `returntag_tags` | `owner_id`, `item_name`, `public_label`, `lost_message`, ownership and scan times | Current Owner and physical Tag | Current Owner: Tag ID/type/status, their private item fields, Lost Mode state and relevant times; previous Owner: historical participation only, never current private fields | Active owned Tag causes `action_required`; no automatic unassign/retire. After approved lifecycle resolution, clear private text within 30 days and anonymize eligible direct Owner links while preserving Tag ID, non-reuse and lifecycle facts | Tag ID and lifecycle facts are permanent; private fields have a 30-day post-ownership maximum; Active Hold overrides affected cleanup | `CreateTagsTableMigration.php`, Account and ownership repositories |
 | `returntag_batch_exports` | `created_by` operator ID | Immutable manufacturing export audit | Exclude from Owner/Finder export | Preserve version, checksum, count and time permanently; anonymize eligible operator identity after seven years | Permanent export integrity; seven-year attributable audit; no privacy deletion of export facts | `CreateBatchExportsTableMigration.php`, `WpdbBatchExportRepository.php` |
-| `returntag_auth_challenges` | encrypted email, email lookup HMAC, OTP hash, IP hash, attempt/send counts | Owner/Finder authentication and abuse prevention | Exclude all fields; an export may state only that authentication occurred when an approved Event already records it | Cleanup through bounded challenge expiry; never decrypt for erasure matching when keyed lookup suffices | Delete within 24 hours after expiry/consumption. Existing seven-day cleanup must be corrected by RT-340 acceptance; Holds do not make OTPs exportable | `CreateAuthChallengesTableMigration.php`, auth challenge stores |
+| `returntag_auth_challenges` | encrypted email, email lookup HMAC, OTP hash, IP hash, attempt/send counts | Owner/Finder authentication and abuse prevention | Exclude all fields; an export may state only that authentication occurred when an approved Event already records it | Cleanup through bounded challenge expiry; never decrypt for erasure matching when keyed lookup suffices | Expired or consumed rows are immediately eligible for the bounded hourly Worker; Holds do not make OTPs exportable | `CleanupAuthChallenges.php`, `WpdbAuthChallengeRetentionStore.php`, `AuthChallengeRetentionBootstrap.php` |
 | `returntag_conversations` | Owner snapshot ID, Finder email ciphertext/HMAC, verification and activity times | Private two-party relay | Verified participant receives safe Conversation status/times and entitled message content; never the other address or internal user ID | Close/revoke before anonymization. Remove or irreversibly disconnect Finder address ciphertext/HMAC no later than the 12-month terminal-content boundary; Owner snapshot may become an anonymous subject reference | Twelve months after close/expiry for identity-bearing content; dispute/abuse Hold takes precedence | `CreateConversationsTableMigration.php`, Conversation repositories |
 | `returntag_messages` | encrypted body, sender role; provider and dispatch fields | Accepted relay content and delivery | Include only content the verified requester sent or was entitled to receive, labelled by role without identity; exclude provider/dispatch internals | Preserve accepted-message audit fact. Remove or irreversibly disconnect the body within 12 months after Conversation close/expiry unless a Hold applies | Twelve months after close/expiry for content; seven years for approved audit facts; Active Hold overrides affected cleanup | `CreateMessagesTableMigration.php`, relay repositories |
 | `returntag_access_tokens` | token hash, role, purpose, exchange/revocation times | Secure-link access | Exclude | Revoke first; expired/revoked hash rows are deleted within 30 days and are never exported | Maximum 30 days after expiry/revocation; no Hold exposes token data | `CreateAccessTokensTableMigration.php`, access-token stores |
@@ -89,7 +89,7 @@ WordPress prefix and never hard-code `wp_`.
 | Option class | Data | Export | Cleanup/anonymization | Evidence |
 |---|---|---|---|---|
 | Feature flags and schema/capability versions | Site configuration, no person | Exclude | Preserve | `WordPressOptionFeatureFlagReader`, schema/capability stores |
-| OTP, activation, manual-entry, Finder and Account rate buckets | Count, expiry and keyed/HMAC-shaped peer/email/Tag buckets | Exclude | Remove within 24 hours after expiry; never reverse or export a lookup key | `Infrastructure/RateLimit/*` |
+| OTP, activation, manual-entry, Finder and Account rate buckets | Count, expiry and keyed/HMAC-shaped peer/email/Tag buckets | Exclude | Hourly bounded cleanup removes expired state within 24 hours; never reverse or export a lookup key | `Infrastructure/RateLimit/*`, Activation/Account/Finder maintenance bootstraps |
 | Owner test-email dispatch claims | Opaque event/owner-derived claim and expiry | Exclude | Remove within 24 hours after expiry | `WordPressOptionOwnerTestEmailDispatchClaimStore` |
 | Finder Report submission ledger | Opaque form/token-derived state and expiry | Exclude | Remove within 24 hours after expiry; never expose submission tokens | `WordPressFinderReportSubmissionLedger` |
 | Retention task status/claims | Fixed task ID, state, counts and times; operator ID may appear in the Action Scheduler argument/Event rather than the public result | Exclude from ordinary export; approved operator history comes from privacy-safe Events | Remove temporary claims within 24 hours after expiry; preserve approved audit Events under the seven-year rule | `RetentionTaskManager` |
@@ -175,8 +175,8 @@ requires:
    private payload storage;
 2. every rule above is implemented or backed by documented platform
    configuration and operational evidence;
-3. the existing seven-day OTP post-expiry cleanup is reduced to the approved
-   24-hour maximum;
+3. RT-340 Stage 1 challenge and temporary-state retention remains green under
+   hourly schedule, bounded backlog, and authentication regression tests;
 4. tests cover Owner, Finder and previous-Owner boundaries, active Tag
    `action_required`, Hold precedence, idempotent retry, partial failure, and
    an export privacy-leak scan; and

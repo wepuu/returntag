@@ -102,7 +102,7 @@ const privacyRequestContract = {
 		'**Status:** Accepted contract map',
 		'External policy version:** `FORGETAG-PRIVACY-RETENTION-v1.0-20260827`',
 		'Accountable privacy owner:** Forge Life LLC',
-		'existing seven-day post-expiry cleanup is non-compliant',
+		'RT-340 Stage 1 makes every purpose eligible immediately after expiry or consumption',
 		'Finder evidence | Exclude',
 	],
 	'docs/ARCHITECTURE.md': [
@@ -130,7 +130,7 @@ const privacyRequestContract = {
 	'docs/PROJECT_STATUS.md': [
 		'RT-339 privacy contract approval',
 		'RT-340 engineering is authorized',
-		'RT-339 remains `IN_PROGRESS`',
+		'RT-339 is `ACCEPTED` and merged through PR #101',
 	],
 };
 const supersededFinderStatements = [

@@ -60,7 +60,7 @@ final class AdminGovernanceConsoleTest extends WP_UnitTestCase {
 		}
 		delete_option( CapabilityInstaller::OPTION_NAME );
 		delete_option( FeatureFlag::ADMIN_RETENTION_RUN->value );
-		foreach ( array( 'activation-otp', 'account-otp', 'finder-email', 'finder-evidence' ) as $task_id ) {
+		foreach ( array( 'auth-challenges', 'activation-otp', 'account-otp', 'finder-email', 'finder-evidence' ) as $task_id ) {
 			delete_option( 'returntag_admin_retention_run_claim_' . $task_id );
 			if ( function_exists( 'as_unschedule_all_actions' ) ) {
 				as_unschedule_all_actions( RetentionTaskManager::MANUAL_HOOK, array( 'task_id' => $task_id ), RetentionTaskManager::MANUAL_GROUP );
@@ -209,7 +209,7 @@ final class AdminGovernanceConsoleTest extends WP_UnitTestCase {
 		$response = rest_do_request( $this->request( 'GET', '/tagcore/v1/admin/retention/tasks' ) );
 		$data     = $response->get_data();
 		self::assertSame( 200, $response->get_status() );
-		self::assertCount( 4, $data['items'] );
+		self::assertCount( 5, $data['items'] );
 		self::assertFalse( $data['manual_run_enabled'] );
 		$json = wp_json_encode( $data );
 		self::assertIsString( $json );

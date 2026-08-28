@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace ReturnTag\TagCore\Admin;
 
 use ReturnTag\TagCore\Account\AccountBootstrap;
+use ReturnTag\TagCore\Infrastructure\Queue\AuthChallengeRetentionBootstrap;
 use ReturnTag\TagCore\Infrastructure\Queue\ActivationOtpBootstrap;
 use ReturnTag\TagCore\Infrastructure\Queue\FinderReportActionHandler;
 use ReturnTag\TagCore\Infrastructure\Queue\ActionSchedulerFinderReportProcessingScheduler;
@@ -24,24 +25,31 @@ final class RetentionTaskCatalog {
 	 */
 	public function tasks(): array {
 		return array(
+			'auth-challenges' => array(
+				'name'        => 'Authentication challenge cleanup',
+				'description' => 'Purpose-independent cleanup for expired or consumed Activation, Account, and Finder email challenges.',
+				'policy'      => 'Expired or consumed challenges are immediately eligible and removed in bounded hourly batches.',
+				'hook'        => AuthChallengeRetentionBootstrap::CLEANUP_HOOK,
+				'group'       => AuthChallengeRetentionBootstrap::CLEANUP_GROUP,
+			),
 			'activation-otp'  => array(
-				'name'        => 'Activation security cleanup',
-				'description' => 'Activation OTP, verification, and related rate-limit cleanup.',
-				'policy'      => 'Expired challenges are removed in bounded batches after the fixed security window.',
+				'name'        => 'Activation temporary-state cleanup',
+				'description' => 'Activation request, verification, mutation, and manual-entry rate-limit cleanup.',
+				'policy'      => 'Expired temporary security state is removed by bounded hourly maintenance.',
 				'hook'        => ActivationOtpBootstrap::CLEANUP_HOOK,
 				'group'       => ActivationOtpBootstrap::CLEANUP_GROUP,
 			),
 			'account-otp'     => array(
-				'name'        => 'Account security cleanup',
-				'description' => 'Account OTP, Owner action limits, and test-email claim cleanup.',
-				'policy'      => 'Expired account security records are removed in bounded batches after the fixed security window.',
+				'name'        => 'Account temporary-state cleanup',
+				'description' => 'Account request limits, Owner action limits, and test-email claim cleanup.',
+				'policy'      => 'Expired temporary security state is removed by bounded hourly maintenance.',
 				'hook'        => AccountBootstrap::CLEANUP_HOOK,
 				'group'       => AccountBootstrap::CLEANUP_GROUP,
 			),
 			'finder-email'    => array(
-				'name'        => 'Finder email cleanup',
-				'description' => 'Finder email verification and rate-limit cleanup.',
-				'policy'      => 'Expired verification and limiter records follow the fixed Finder privacy window.',
+				'name'        => 'Finder temporary-state cleanup',
+				'description' => 'Finder email rate-limit cleanup; verification challenges use the unified challenge task.',
+				'policy'      => 'Expired temporary security state is removed by bounded hourly maintenance.',
 				'hook'        => FinderReportBootstrap::EMAIL_RATE_CLEANUP_HOOK,
 				'group'       => FinderReportBootstrap::EMAIL_RATE_CLEANUP_GROUP,
 			),

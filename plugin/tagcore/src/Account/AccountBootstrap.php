@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace ReturnTag\TagCore\Account;
 
-use DateInterval;
 use ReturnTag\TagCore\Application\Account\ContinueOwnerConversation;
 use ReturnTag\TagCore\Application\Account\MutateOwnerTag;
 use ReturnTag\TagCore\Application\Account\OwnerTagMutationEventIdentityPolicy;
@@ -75,7 +74,9 @@ use wpdb;
 final class AccountBootstrap {
 	public const CLEANUP_HOOK = 'returntag_cleanup_account_otp';
 
-	public const CLEANUP_GROUP = 'returntag-account-otp-maintenance';
+	public const CLEANUP_GROUP = 'returntag-account-security-hourly';
+
+	private const LEGACY_CLEANUP_GROUP = 'returntag-account-otp-maintenance';
 
 	/**
 	 * Register the Owner Account runtime for the current site.
@@ -123,7 +124,7 @@ final class AccountBootstrap {
 		$email_gateway   = TransactionalEmailRuntimeFactory::create_or_unavailable( $wpdb );
 		( new OwnerTestEmailActionHandler( new DispatchOwnerTestEmail( $flags, new WordPressAuthenticatedUserEmailReader(), $test_claims, new WordPressOwnerTestEmailSender( $email_gateway ), $test_events, $clock ) ) )->register();
 
-		self::register_cleanup( $store, $limiter, $tag_limiter, $test_claims, $clock );
+		self::register_cleanup( $limiter, $tag_limiter, $test_claims );
 
 		try {
 			$protector = new SodiumAccountOtpProtector( ActivationOtpSecrets::load() );
@@ -243,45 +244,37 @@ final class AccountBootstrap {
 	/**
 	 * Register bounded Account challenge and limiter cleanup.
 	 *
-	 * @param WpdbAccountOtpStore                             $store Account challenge Store.
 	 * @param WordPressOptionAccountOtpRateLimiter            $limiter Account rate limiter.
 	 * @param WordPressOptionOwnerTagMutationRateLimiter      $tag_limiter Owner Tag mutation limiter.
 	 * @param WordPressOptionOwnerTestEmailDispatchClaimStore $test_claims Test Email dispatch claims.
-	 * @param SystemClock                                     $clock UTC clock.
 	 */
 	private static function register_cleanup(
-		WpdbAccountOtpStore $store,
 		WordPressOptionAccountOtpRateLimiter $limiter,
 		WordPressOptionOwnerTagMutationRateLimiter $tag_limiter,
-		WordPressOptionOwnerTestEmailDispatchClaimStore $test_claims,
-		SystemClock $clock
+		WordPressOptionOwnerTestEmailDispatchClaimStore $test_claims
 	): void {
 		add_action(
 			self::CLEANUP_HOOK,
-			static function () use ( $store, $limiter, $tag_limiter, $test_claims, $clock ): void {
+			static function () use ( $limiter, $tag_limiter, $test_claims ): void {
 				$limiter->cleanup_expired();
 				$tag_limiter->cleanup_expired();
 				$test_claims->cleanup_expired();
-				$before = $clock->now()->sub( new DateInterval( 'P7D' ) );
-
-				for ( $chunk = 0; $chunk < 10; ++$chunk ) {
-					if ( 500 !== $store->cleanup_expired( $before, 500 ) ) {
-						break;
-					}
-				}
 			}
 		);
 		add_action(
 			'action_scheduler_init',
 			static function (): void {
+				if ( function_exists( 'as_unschedule_all_actions' ) ) {
+					\as_unschedule_all_actions( self::CLEANUP_HOOK, array(), self::LEGACY_CLEANUP_GROUP );
+				}
 				if (
 					function_exists( 'as_has_scheduled_action' )
 					&& function_exists( 'as_schedule_recurring_action' )
 					&& false === \as_has_scheduled_action( self::CLEANUP_HOOK, array(), self::CLEANUP_GROUP )
 				) {
 					\as_schedule_recurring_action(
-						time() + DAY_IN_SECONDS,
-						DAY_IN_SECONDS,
+						time() + HOUR_IN_SECONDS,
+						HOUR_IN_SECONDS,
 						self::CLEANUP_HOOK,
 						array(),
 						self::CLEANUP_GROUP,

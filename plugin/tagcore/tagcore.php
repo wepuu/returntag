@@ -44,6 +44,10 @@ if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstr
 	ReturnTag\TagCore\Infrastructure\Queue\BatchGenerationBootstrap::register();
 }
 
+if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\AuthChallengeRetentionBootstrap::class ) ) {
+	ReturnTag\TagCore\Infrastructure\Queue\AuthChallengeRetentionBootstrap::register();
+}
+
 if ( class_exists( ReturnTag\TagCore\Infrastructure\Queue\ActivationOtpBootstrap::class ) ) {
 	ReturnTag\TagCore\Infrastructure\Queue\ActivationOtpBootstrap::register();
 }

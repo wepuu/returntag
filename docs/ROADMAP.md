@@ -359,5 +359,8 @@ RT-337 are merged; RT-337 still awaits staging transport and webhook acceptance.
 The remaining external-service gates are RT-333 for Resend staging/production
 configuration and RT-334 for Cloudflare Turnstile.
 RT-339 is accepted against the versioned privacy policy, so RT-340 engineering
-may proceed in the dependency order above. Unassigned Proposed numbers remain
-placeholders until their single-purpose Issues are created.
+may proceed in the dependency order above. RT-340 Stage 1 is tracked by Issue
+#102 and addresses the approved 24-hour OTP and temporary-state retention
+baseline without changing Schema `15`; the privacy-request runtime remains a
+separate later stage. Unassigned Proposed numbers remain placeholders until
+their single-purpose Issues are created.
