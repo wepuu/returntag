@@ -57,7 +57,7 @@ jobs:
           echo "FORGE_TAG_VERSION=${version}" >> "$GITHUB_ENV"
 
       - name: Upload immutable artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: forge-tag-v${{ env.FORGE_TAG_VERSION }}
           path: |

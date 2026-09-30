@@ -64,7 +64,7 @@ jobs:
           sha256sum "tagcore-v${TAGCORE_VERSION}.zip" > "tagcore-v${TAGCORE_VERSION}.zip.sha256"
 
       - name: Upload immutable artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tagcore-v${{ env.TAGCORE_VERSION }}
           path: |
