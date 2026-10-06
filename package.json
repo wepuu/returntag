@@ -48,7 +48,7 @@
     "@wordpress/data": "10.33.1",
     "@wordpress/element": "6.33.1",
     "@wordpress/i18n": "6.6.1",
-    "@wordpress/icons": "11.0.1",
+    "@wordpress/icons": "15.3.0",
     "@wordpress/interactivity": "6.33.3",
     "@wordpress/notices": "5.33.1"
   },
